@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Chud Menu</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net48</TargetFramework>
+    <GorillaTagDir Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed')">C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed</GorillaTagDir>
+    <GorillaTagDir Condition="!Exists('$(GorillaTagDir)')">$(MSBuildThisFileDirectory)Libs\Managed</GorillaTagDir>
+    <BepInExCoreDir Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\core')">C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\core</BepInExCoreDir>
+    <BepInExCoreDir Condition="!Exists('$(BepInExCoreDir)')">$(MSBuildThisFileDirectory)Libs\BepInEx</BepInExCoreDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace>Chud</RootNamespace>
+  </PropertyGroup>
+  <Target Name="CopyToPlugins" AfterTargets="Build" Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\plugins')">
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\plugins" />
+  </Target>
+  <ItemGroup>
+    <Reference Include="UnityEngine" HintPath="$(GorillaTagDir)\UnityEngine.dll" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GorillaTagDir)\UnityEngine.CoreModule.dll" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GorillaTagDir)\UnityEngine.PhysicsModule.dll" />
+    <Reference Include="UnityEngine.UI" HintPath="$(GorillaTagDir)\UnityEngine.UI.dll" />
+    <Reference Include="UnityEngine.UIModule" HintPath="$(GorillaTagDir)\UnityEngine.UIModule.dll" />
+    <Reference Include="BepInEx" HintPath="$(BepInExCoreDir)\BepInEx.dll" />
+    <Reference Include="0Harmony" HintPath="$(BepInExCoreDir)\0Harmony.dll" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(GorillaTagDir)\UnityEngine.TextRenderingModule.dll" />
+    <Reference Include="UnityEngine.AudioModule" HintPath="$(GorillaTagDir)\UnityEngine.AudioModule.dll" />
+    <Reference Include="UnityEngine.UnityWebRequestModule" HintPath="$(GorillaTagDir)\UnityEngine.UnityWebRequestModule.dll" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(GorillaTagDir)\UnityEngine.IMGUIModule.dll" />
+    <Reference Include="Assembly-CSharp" HintPath="$(GorillaTagDir)\Assembly-CSharp.dll" />
+    <Reference Include="PlayFab" HintPath="$(GorillaTagDir)\PlayFab.dll" />
+    <Reference Include="PhotonRealtime" HintPath="$(GorillaTagDir)\PhotonRealtime.dll" />
+    <Reference Include="UnityEngine.AssetBundleModule" HintPath="$(GorillaTagDir)\UnityEngine.AssetBundleModule.dll" />
+    <Reference Include="UnityEngine.VideoModule" HintPath="$(GorillaTagDir)\UnityEngine.VideoModule.dll" />
+    <Reference Include="Unity.TextMeshPro" HintPath="$(GorillaTagDir)\Unity.TextMeshPro.dll" />
+    <Reference Include="UnityEngine.AnimationModule" HintPath="$(GorillaTagDir)\UnityEngine.AnimationModule.dll" />
+    <Reference Include="PhotonVoice" HintPath="$(GorillaTagDir)\PhotonVoice.dll" />
+    <Reference Include="Valve.Newtonsoft.Json" HintPath="$(GorillaTagDir)\Valve.Newtonsoft.Json.dll" />
+    <Reference Include="Photon3Unity3D" HintPath="$(GorillaTagDir)\Photon3Unity3D.dll" />
+    <Reference Include="PhotonUnityNetworking" HintPath="$(GorillaTagDir)\PhotonUnityNetworking.dll" />
+    <Reference Include="System.Core" HintPath="$(GorillaTagDir)\System.Core.dll" />
+    <Reference Include="System.Net.Http" HintPath="$(GorillaTagDir)\System.Net.Http.dll" />
+    <Reference Include="Unity.InputSystem" HintPath="$(GorillaTagDir)\Unity.InputSystem.dll" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(GorillaTagDir)\Newtonsoft.Json.dll" />
+    <Reference Include="PhotonVoice.API" HintPath="$(GorillaTagDir)\PhotonVoice.API.dll" />
+    <Reference Include="UnityEngine.VRModule" HintPath="$(GorillaTagDir)\UnityEngine.VRModule.dll" />
+    <Reference Include="UnityEngine.UnityWebRequestAudioModule" HintPath="$(GorillaTagDir)\UnityEngine.UnityWebRequestAudioModule.dll" />
+    <Reference Include="UnityEngine.UnityWebRequestTextureModule" HintPath="$(GorillaTagDir)\UnityEngine.UnityWebRequestTextureModule.dll" />
+    <Reference Include="Fusion.Runtime" HintPath="$(GorillaTagDir)\Fusion.Runtime.dll" />
+  </ItemGroup>
+</Project>
