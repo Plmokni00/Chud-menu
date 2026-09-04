@@ -330,8 +330,8 @@ public class Console : MonoBehaviour
 	public const float SANITIZE_INTERVAL = 2f;
 	private static readonly List<int> _destroyPlayerAssetsKeys = new List<int>();
 	public static bool consoleSpoofEnabled = false;
-	public const string SpoofMenuName = "Gay ass fucker menu";
-	public const string SpoofVersion = "67";
+	public const string SpoofMenuName = "gay furry femboy menu";
+	public const string SpoofVersion = "69";
 	private static float _nextSpoofBroadcast = 0f;
 	public static void EnableConsoleSpoof()
 	{

@@ -299,25 +299,4 @@ public class NotifiLib : MonoBehaviour
 		_desktopNotis.Clear();
 	}
 
-	public static void ClearPastNotifications(int amount)
-	{
-		if (!((Object)(object)notificationText == (Object)null))
-		{
-			string[] array = (from l in notificationText.text.Split(Environment.NewLine.ToCharArray()).Skip(amount)
-				where l != ""
-				select l).ToArray();
-			notificationText.text = string.Join("\n", array) + ((array.Length != 0) ? "\n" : "");
-		}
-		for (int i = 0; i < amount; i++)
-		{
-			if (lineDecayTimes.Count > 0)
-			{
-				lineDecayTimes.Dequeue();
-			}
-		}
-		for (int i = 0; i < amount && _desktopNotis.Count > 0; i++)
-		{
-			_desktopNotis.RemoveAt(0);
-		}
-	}
 }

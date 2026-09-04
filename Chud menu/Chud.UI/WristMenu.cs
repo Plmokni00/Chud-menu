@@ -41,51 +41,14 @@ internal partial class WristMenu : MonoBehaviour
 
 	public static bool Close = false;
 
-	private const float OPEN_ANIMATION_SPEED = 0.3f;
-
-	private const float CLOSE_ANIMATION_SPEED = 0.3f;
-
 	public static bool animationsEnabled = false;
 
-	// Layout constants
 	private const float MENU_CYLINDER_RADIUS = 0.1f;
 	private const float MENU_CYLINDER_HEIGHT = 0.3f;
 	private const float MENU_CYLINDER_DEPTH = 0.4f;
-	private const float MENU_OBJ_SCALE_X = 0.1f;
-	private const float MENU_OBJ_SCALE_Y = 1f;
-	private const float MENU_OBJ_SCALE_Z = 1f;
-	private const float MENU_OBJ_POS_X = 0.05f;
 	private const float BUTTON_CYLINDER_SCALE_X = 0.09f;
 	private const float BUTTON_CYLINDER_SCALE_Y = 0.9f;
 	private const float BUTTON_CYLINDER_SCALE_Z = 0.08f;
-	private const float BUTTONS_START_X = 0.56f;
-	private const float BUTTONS_START_Z = 0.28f;
-	private const float BUTTON_SPACING = 0.116f;
-	private const float CANVAS_TEXT_X = 0.064f;
-	private const float CANVAS_TEXT_Z_OFFSET = 0.111f;
-	private const float CANVAS_SIZE_X = 0.2f;
-	private const float CANVAS_SIZE_Y = 0.03f;
-	private const float TITLE_CANVAS_SIZE_X = 0.28f;
-	private const float TITLE_CANVAS_SIZE_Y = 0.05f;
-	private const float FPS_CANVAS_SIZE_Y = 0.02f;
-	private const float TITLE_POS_Z = 0.175f;
-	private const float FPS_POS_Z = 0.135f;
-	private const float DISCONNECT_POS_Z = 0.6f;
-	private const float CANVAS_TEXT_Z_FACTOR = 2.6f;
-	private const float PREV_NEXT_BUTTON_OFFSET = 0.65f;
-	private const float PREV_NEXT_SCALE_Z = 0.9f;
-	private const float PREV_NEXT_SCALE_Y = 0.2f;
-	private const float PREV_NEXT_TEXT_OFFSET = 0.195f;
-	private const float GRADIENT_TEXTURE_HEIGHT = 16f;
-	private const float GRADIENT_HIGHLIGHT_STRENGTH = 0.075f;
-	private const float GRADIENT_ANIMATION_SPEED = 0.2f;
-	private const int FONT_SIZE = 200;
-	private const int DYNAMIC_PIXELS_PER_UNIT = 1900;
-	private const float REFERENCE_PIXELS_PER_UNIT = 100f;
-
-	public static bool ChangingColors = false;
-
-	public static Color FirstColor = Color.blue;
 
 	public static Color NormalColor = new Color(0.25f, 0.25f, 0.25f);
 

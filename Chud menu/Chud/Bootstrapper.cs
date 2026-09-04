@@ -35,12 +35,6 @@ public static class Bootstrapper
 		}
 		catch (Exception e) { UnityEngine.Debug.LogError("[Chud] Bootstrapper Patch failed: " + e); }
 	}
-	public static void Unpatch()
-	{
-		try { _harmony?.UnpatchSelf(); } catch { }
-		_harmony = null;
-		patched = false;
-	}
 
 	public static void Initialize()
 	{

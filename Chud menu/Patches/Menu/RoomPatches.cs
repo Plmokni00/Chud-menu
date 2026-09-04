@@ -36,10 +36,6 @@ internal class OnPlayerLeft : HarmonyPatch
 		{
 			Console.ScheduleConsoleUserScan();
 		}
-		if (NetworkManager.instance != null)
-		{
-			NetworkManager.instance.ClearPlayerCache(otherPlayer.ActorNumber);
-		}
 	}
 }
 

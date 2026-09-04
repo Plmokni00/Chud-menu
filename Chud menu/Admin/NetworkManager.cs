@@ -18,10 +18,6 @@ public class NetworkManager : MonoBehaviour
 
 	public const byte ConsoleByte = 68;
 
-	public void ClearPlayerCache(int actorNumber)
-	{
-	}
-
 	private void Awake()
 	{
 		instance = this;

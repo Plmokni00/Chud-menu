@@ -106,7 +106,7 @@ internal partial class WristMenu
 			menu.transform.parent = _menuAnchor.transform;
 			menu.transform.localPosition = Vector3.zero;
 			menu.transform.localRotation = _menuAnchorIsRightHand ? Quaternion.Euler(0f, 0f, 180f) : Quaternion.identity;
-			_menuAnchor.transform.position = _menuFollowHand.position + Vector3.up * 0.02f;
+			_menuAnchor.transform.position = _menuFollowHand.position;
 			_menuAnchor.transform.rotation = _menuFollowHand.rotation;
 			if ((Object)(object)reference == (Object)null || (Object)(object)reference.GetComponent<Renderer>() == (Object)null || (Object)(object)reference.GetComponent<Renderer>().material == (Object)null)
 			{

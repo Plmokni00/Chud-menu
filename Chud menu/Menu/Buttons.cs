@@ -170,7 +170,6 @@ public static class Buttons
 			new ButtonInfo { buttonText = "Grab All Bugs", method = Mods.GrabAllBugs, disableMethod = Mods.DisableGrabAllBugs, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Grab all bugs with your hand -- Grab them first" },
 			new ButtonInfo { buttonText = "Grab Green Bug", method = Mods.GrabGreenBug, disableMethod = Mods.DisableGrabGreenBug, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Grab Green Doug with grip from anywhere -- Grab them first" },
 			new ButtonInfo { buttonText = "Grab Doug the Bug", method = Mods.GrabDougBug, disableMethod = Mods.DisableGrabDougBug, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Grab Doug with grip from anywhere -- Grab them first" },
-			new ButtonInfo { buttonText = "Spawn Hoverboard", method = Mods.SpawnHoverboard, disableMethod = Mods.DisableSpawnHoverboard, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Press grip to spawn hoverboard" },
 			new ButtonInfo { buttonText = "Spaz Bugs", method = Mods.SpazBugs, disableMethod = Mods.DisableSpazBugs, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Spaz the bugs between your hands -- Grab them first" },
 			new ButtonInfo { buttonText = "lowercase name", method = () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", "").ToLower(); PhotonNetwork.LocalPlayer.NickName = n; if (VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, isTogglable = false, type = ButtonType.Action, toolTip = "Make ur name lowercase" },
 			new ButtonInfo { buttonText = "FPS Spoofer", enableMethod = Mods.EnableFPSSpoof, disableMethod = Mods.DisableFPSSpoof, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Spoof your fps to other players" },
@@ -186,6 +185,7 @@ public static class Buttons
 			new ButtonInfo { buttonText = "Spinning Torso", enableMethod = Mods.EnableSpinningTorso, disableMethod = Mods.DisableSpinningTorso, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Makes your torso spin around" },
 			new ButtonInfo { buttonText = "Fake FBT", enableMethod = Mods.EnableFakeFBT, disableMethod = Mods.DisableFakeFBT, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Fake Full Body Tracking" },
 			new ButtonInfo { buttonText = "Dinnerbone", enableMethod = Mods.EnableDinnerbone, disableMethod = Mods.DisableDinnerbone, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Flip yourself upside down" },
+			new ButtonInfo { buttonText = "Natsuki Neck", enableMethod = Mods.EnableNatsukiNeck, disableMethod = Mods.DisableNatsukiNeck, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Snap your neck to the right" },
 			new ButtonInfo { buttonText = "Grab Rig", method = Mods.GrabRig, disableMethod = Mods.DisableGrabRig, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Hold grip to grab your rig" }
 		},
 
@@ -254,7 +254,7 @@ public static class Buttons
 			new ButtonInfo { buttonText = "Shreksophone", enableMethod = ConsoleMods.Shreksophone.Enable, disableMethod = ConsoleMods.Shreksophone.Disable, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "This is Shreksophone" },
 			new ButtonInfo { buttonText = "Carti", enableMethod = ConsoleMods.Carti.Enable, disableMethod = ConsoleMods.Carti.Disable, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "This is Carti" },
 			new ButtonInfo { buttonText = "Cherry Bomb", enableMethod = ConsoleMods.CherryBomb.Enable, disableMethod = ConsoleMods.CherryBomb.Disable, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "This is Cherry Bomb" },
-			new ButtonInfo { buttonText = "Console Spoof", enableMethod = Chud.Backend.Console.EnableConsoleSpoof, disableMethod = Chud.Backend.Console.DisableConsoleSpoof, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Spoof as Gay ass fucker menu v67" },
+			new ButtonInfo { buttonText = "Console Spoof", enableMethod = Chud.Backend.Console.EnableConsoleSpoof, disableMethod = Chud.Backend.Console.DisableConsoleSpoof, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Spoof as gay furry femboy menu v69" },
 			new ButtonInfo { buttonText = "Destroy All Assets", method = ConsoleMods.DestroyAllAssets, isTogglable = false, type = ButtonType.Action, toolTip = "Remove all spawned assets" },
 			new ButtonInfo { buttonText = "Console Settings", method = () => MenuManager.ToggleCategory("Console Settings"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens console settings" }
 		},
@@ -284,25 +284,6 @@ public static class Buttons
 	{
 		get => MenuManager.CurrentCategoryName;
 		set => MenuManager.CurrentCategoryName = value;
-	}
-
-	public static int CurrentCategoryIndex => System.Array.IndexOf(categoryNames, CurrentCategoryName);
-
-	public static int buttonPages => buttons.Length;
-
-	public static ButtonInfo GetIndex(string name)
-	{
-		foreach (ButtonInfo[] array in buttons)
-		{
-			foreach (ButtonInfo button in array)
-			{
-				if (button.buttonText == name)
-					return button;
-				if (button.aliases != null && System.Array.IndexOf(button.aliases, name) >= 0)
-					return button;
-			}
-		}
-		return null;
 	}
 
 	public static void Register()

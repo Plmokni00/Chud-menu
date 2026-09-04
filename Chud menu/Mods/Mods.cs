@@ -496,8 +496,6 @@ private static VRRig ghostRig;
 
 	private static bool grabSpazBugActive = false;
 
-	private static bool hoverboardGripWasPressed = false;
-
 	private static float grabBugLastScan;
 
 	private static readonly List<ThrowableBug> cachedGrabBugs = new List<ThrowableBug>();
@@ -834,48 +832,6 @@ private static VRRig ghostRig;
 			}
 			catch { }
 		}
-	}
-
-	public static void SpawnHoverboard()
-	{
-		if ((object)ControllerInputPoller.instance == null || (object)VRRig.LocalRig == null || (object)VRRig.LocalRig.hoverboardVisual == null || (object)GTPlayer.Instance == null) return;
-		bool rightGrip = ControllerInputPoller.instance.rightGrab;
-		bool leftGrip = ControllerInputPoller.instance.leftGrab;
-		bool grip = rightGrip || leftGrip;
-		if (!grip) { hoverboardGripWasPressed = false; return; }
-		if (hoverboardGripWasPressed) return;
-		hoverboardGripWasPressed = true;
-		if (VRRig.LocalRig.hoverboardVisual.IsHeld)
-		{
-			bool isLeftHeld = VRRig.LocalRig.hoverboardVisual.IsLeftHanded;
-			try { VRRig.LocalRig.hoverboardVisual.DropFreeBoard(); } catch { }
-			try { VRRig.LocalRig.hoverboardVisual.SetNotHeld(isLeftHeld); } catch { }
-			try { GTPlayer.Instance.SetHoverActive(false); } catch { }
-			return;
-		}
-		bool isLeft = leftGrip;
-		Vector3 pos = Vector3.zero;
-		Quaternion rot = Quaternion.identity;
-		try
-		{
-			var anyHandle = Resources.FindObjectsOfTypeAll<FreeHoverboardHandle>().FirstOrDefault();
-			if (anyHandle != null)
-			{
-				var t = Traverse.Create(anyHandle);
-				pos = isLeft ? t.Field("defaultHoldPosLeft").GetValue<Vector3>() : t.Field("defaultHoldPosRight").GetValue<Vector3>();
-				rot = isLeft ? t.Field("defaultHoldAngleLeft").GetValue<Quaternion>() : t.Field("defaultHoldAngleRight").GetValue<Quaternion>();
-			}
-		}
-		catch { }
-		try { GTPlayer.Instance.SetHoverAllowed(true); } catch { }
-		Color col = Color.white;
-		try { col = VRRig.LocalRig.playerColor; } catch { }
-		GTPlayer.Instance.GrabPersonalHoverboard(isLeft, pos, rot, col);
-	}
-
-	public static void DisableSpawnHoverboard()
-	{
-		hoverboardGripWasPressed = false;
 	}
 
 	public static void Noclip()
@@ -1960,7 +1916,7 @@ private static VRRig ghostRig;
 				((Renderer)value).material.shader = CachedGuiTextShader;
 				tracerLines[val] = value;
 			}
-			value.SetPosition(0, GTPlayer.Instance.RightHand.controllerTransform.position);
+			value.SetPosition(0, GetTracerStart());
 			value.SetPosition(1, vRRigFromPlayer.transform.position);
 			Color val3 = vRRigFromPlayer.playerColor;
 			try
@@ -1982,6 +1938,18 @@ private static VRRig ghostRig;
 			value.startColor = val3;
 			value.endColor = val3;
 		}
+	}
+
+	private static Vector3 GetTracerStart()
+	{
+		if (!XRSettings.isDeviceActive && (object)ghostRig != (Object)null && GhostWanted())
+		{
+			Transform ghostHand = null;
+			try { ghostHand = ghostRig.rightHand?.rigTarget?.transform; } catch { }
+			if ((object)ghostHand != (Object)null) return ghostHand.position;
+			return ghostRig.transform.position + Vector3.up * 0.2f;
+		}
+		return GTPlayer.Instance.RightHand.controllerTransform.position;
 	}
 
 	public static void DisableTracers()
@@ -3746,16 +3714,12 @@ private static VRRig ghostRig;
 			if (want.r < 4f / 255f && want.g < 4f / 255f && want.b < 4f / 255f)
 				want = Color.white;
 			want.a = 0.5f;
-			if (want != lastGhostColor)
-			{
-				lastGhostColor = want;
-				ghostRigMaterial.color = want;
-				ApplyGhostMaterial();
-			}
+			ghostRigMaterial.color = want;
+			ApplyGhostMaterial();
 		}
 	}
 
-	private static Color lastGhostColor = new Color(-1f, -1f, -1f, -1f);
+	private static Renderer[] ghostSkinRenderers;
 
 	private static bool GhostWanted()
 	{
@@ -3765,15 +3729,30 @@ private static VRRig ghostRig;
 	private static void ApplyGhostMaterial()
 	{
 		if ((Object)(object)ghostRig == (Object)null || (Object)(object)ghostRigMaterial == (Object)null) return;
+		if (ghostSkinRenderers == null)
+			CacheGhostRenderers();
+		if (ghostSkinRenderers == null) return;
+		foreach (Renderer r in ghostSkinRenderers)
+		{
+			if ((Object)(object)r == (Object)null) continue;
+			r.material = ghostRigMaterial;
+		}
+	}
+
+	private static void CacheGhostRenderers()
+	{
+		if ((Object)(object)ghostRig == (Object)null) return;
+		List<Renderer> found = new List<Renderer>();
 		if ((Object)(object)ghostRig.mainSkin != (Object)null)
-			ghostRig.mainSkin.material = ghostRigMaterial;
+			found.Add(ghostRig.mainSkin);
 		Renderer[] renderers = ghostRig.GetComponentsInChildren<Renderer>(true);
 		foreach (Renderer r in renderers)
 		{
 			if ((Object)(object)r == (Object)null) continue;
 			if ((Object)(object)r == (Object)ghostRig.mainSkin) continue;
-			if (r is SkinnedMeshRenderer) r.material = ghostRigMaterial;
+			if (r is SkinnedMeshRenderer) found.Add(r);
 		}
+		ghostSkinRenderers = found.ToArray();
 	}
 
 	private static void EnsureGhostRig()
@@ -3838,6 +3817,7 @@ private static VRRig ghostRig;
 			Object.Destroy(line);
 
 		CleanGhostRigGameplay();
+		CacheGhostRenderers();
 
 		if ((Object)(object)ghostRigMaterial == (Object)null)
 		{
@@ -3918,10 +3898,6 @@ private static VRRig ghostRig;
 		if (!GhostWanted())
 			UnsubscribeGhostRig();
 	}
-
-	public static void TryUnsubscribeGhostRigPublic() => TryUnsubscribeGhostRig();
-	public static void EnsureGhostRigPublic() => EnsureGhostRig();
-	public static VRRig GetGhostRig() => ghostRig;
 
 	private static float tagAuraCooldown;
 	public static float tagAuraRange = 1.5f;
@@ -4352,25 +4328,15 @@ private static VRRig ghostRig;
 		catch { }
 	}
 
-	private static float _nextBlockTick = 0f;
-	private static int _blockCrashIndex = 0;
 	private static void AntiBlockCrashTick()
 	{
 		if (!antiBlockCrash) return;
-		if (Time.time < _nextBlockTick) return;
-		_nextBlockTick = Time.time + 1f;
 		try
 		{
 			if (!GorillaTagScripts.BuilderTable.TryGetBuilderTableForZone(GorillaTagScripts.BuilderTable.BUILDER_ZONE, out var table)) return;
 			if (table.pieces == null || table.pieces.Count == 0) return;
-			int count = table.pieces.Count;
-			if (_blockCrashIndex >= count) _blockCrashIndex = 0;
-			int processed = 0;
-			int maxPerTick = 40;
-			for (int n = 0; n < count && processed < maxPerTick; n++)
+			foreach (BuilderPiece p in table.pieces)
 			{
-				int i = (_blockCrashIndex + n) % count;
-				BuilderPiece p = table.pieces[i];
 				if (p == null || !p.gameObject.activeSelf || p.isBuiltIntoTable) continue;
 				try { table.builderRenderer.RemovePiece(p); } catch { }
 				p.gameObject.SetActive(false);
@@ -4383,9 +4349,7 @@ private static VRRig ghostRig;
 						if (col != null) col.enabled = false;
 					}
 				}
-				processed++;
 			}
-			_blockCrashIndex = (_blockCrashIndex + Math.Max(processed, 1)) % Math.Max(1, count);
 		}
 		catch { }
 	}
@@ -5201,16 +5165,74 @@ private static VRRig ghostRig;
 				});
 			}
 		}
+		EnsureSoundboardPreload();
 		return buttons;
 	}
 
 	private static AudioClip _soundboardClip;
+
+	private static readonly Dictionary<string, AudioClip> soundboardCache = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+
+	private static bool soundboardPreloadStarted = false;
+
+	private static void EnsureSoundboardPreload()
+	{
+		if (soundboardPreloadStarted) return;
+		if ((Object)(object)instance == (Object)null) return;
+		soundboardPreloadStarted = true;
+		instance.StartCoroutine(PreloadSoundboard());
+	}
+
+	private static IEnumerator PreloadSoundboard()
+	{
+		if (!Directory.Exists(soundboardBasePath)) yield break;
+		string[] files = null;
+		try { files = Directory.GetFiles(soundboardBasePath); } catch { yield break; }
+		if (files == null) yield break;
+		foreach (string path in files)
+		{
+			if (soundboardCache.ContainsKey(path)) continue;
+			string ext = "";
+			try { ext = Path.GetExtension(path).ToLower(); } catch { continue; }
+			if (ext != ".ogg" && ext != ".wav" && ext != ".mp3") continue;
+			AudioClip clip = null;
+			UnityWebRequest req = UnityWebRequestMultimedia.GetAudioClip("file:///" + path.Replace("\\", "/"), ext == ".wav" ? AudioType.WAV : (ext == ".mp3" ? AudioType.MPEG : AudioType.OGGVORBIS));
+			try
+			{
+				yield return req.SendWebRequest();
+				if ((int)req.result == 1)
+				{
+					try { clip = DownloadHandlerAudioClip.GetContent(req); } catch { }
+					if ((Object)(object)clip != (Object)null)
+						soundboardCache[path] = clip;
+				}
+			}
+			finally
+			{
+				((IDisposable)req)?.Dispose();
+			}
+			yield return null;
+		}
+	}
 
 	private static void SoundboardPlay(string path)
 	{
 		if (!PhotonNetwork.InRoom)
 		{
 			NotifiLib.SendNotification("You can only play sounds inside a lobby");
+			return;
+		}
+		EnsureSoundboardPreload();
+		if (soundboardCache.TryGetValue(path, out AudioClip cached) && (Object)(object)cached != (Object)null)
+		{
+			Recorder instantRecorder = ((Object)(object)GorillaTagger.Instance != (Object)null) ? GorillaTagger.Instance.myRecorder : null;
+			if (instantRecorder != null)
+			{
+				instantRecorder.SourceType = Recorder.InputSourceType.AudioClip;
+				instantRecorder.AudioClip = cached;
+				instantRecorder.RestartRecording(true);
+				instantRecorder.DebugEchoMode = true;
+			}
 			return;
 		}
 		instance.StartCoroutine(SoundboardLoadAndPlay(path));
@@ -5236,6 +5258,7 @@ private static VRRig ghostRig;
 			if ((int)unityWebRequest.result == 1)
 			{
 				AudioClip audioClip = DownloadHandlerAudioClip.GetContent(unityWebRequest);
+				try { soundboardCache[path] = audioClip; } catch { }
 				Recorder myRecorder = GorillaTagger.Instance.myRecorder;
 				if (myRecorder != null)
 				{
@@ -5412,6 +5435,52 @@ private static VRRig ghostRig;
 		rig.transform.rotation = rig.transform.rotation * Quaternion.Euler(0f, 0f, 180f);
 		rig.transform.position += Vector3.down * 0.3f;
 	}
+	private static bool natsukiNeckEnabled;
+	private static Vector3 natsukiSavedPos;
+	private static Quaternion natsukiSavedRot;
+	private static bool natsukiHasSaved;
+	public static void EnableNatsukiNeck()
+	{
+		natsukiNeckEnabled = true;
+		natsukiHasSaved = false;
+		VRRig rig = VRRig.LocalRig;
+		if (rig != null && rig.head != null && (Object)(object)rig.head.rigTarget != (Object)null)
+		{
+			natsukiSavedPos = rig.head.rigTarget.transform.position;
+			natsukiSavedRot = rig.head.rigTarget.transform.rotation;
+			natsukiHasSaved = true;
+		}
+		TorsoPatch.VRRigLateUpdate -= NatsukiNeckTick;
+		TorsoPatch.VRRigLateUpdate += NatsukiNeckTick;
+	}
+	public static void DisableNatsukiNeck()
+	{
+		natsukiNeckEnabled = false;
+		TorsoPatch.VRRigLateUpdate -= NatsukiNeckTick;
+		if (natsukiHasSaved)
+		{
+			natsukiHasSaved = false;
+			VRRig rig = VRRig.LocalRig;
+			if (rig != null && rig.head != null && (Object)(object)rig.head.rigTarget != (Object)null)
+				rig.head.rigTarget.transform.SetPositionAndRotation(natsukiSavedPos, natsukiSavedRot);
+		}
+	}
+	private static void NatsukiNeckTick()
+	{
+		if (!natsukiNeckEnabled) return;
+		VRRig rig = VRRig.LocalRig;
+		if (rig == null || rig.head == null || (Object)(object)rig.head.rigTarget == (Object)null) return;
+		if ((Object)(object)GorillaTagger.Instance == (Object)null || (Object)(object)GorillaTagger.Instance.headCollider == (Object)null) return;
+		Quaternion live = GorillaTagger.Instance.headCollider.transform.rotation;
+		float scale = rig.scaleFactor;
+		if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
+			scale = 1f;
+		Vector3 offset = (rig.head != null) ? rig.head.trackingPositionOffset : Vector3.zero;
+		rig.head.rigTarget.transform.SetPositionAndRotation(
+			GorillaTagger.Instance.headCollider.transform.position + live * offset * scale,
+			live * Quaternion.Euler(0f, 0f, -90f));
+		rig.transform.rotation = GorillaLocomotion.GTPlayerTransform.BodyRotation;
+	}
 	private static bool spiderMonkeyEnabled;
 	private static Quaternion spiderMonkeyRot;
 	private static Quaternion spiderMonkeyTargetRot;
@@ -5446,8 +5515,6 @@ private static VRRig ghostRig;
 		GTPlayerTransform.ApplyRotationOverride(spiderMonkeyRot, Time.frameCount);
 		GTPlayer.Instance.SetGravityOverride(GTPlayer.Instance, p => p.AddForce(spiderMonkeyRot * Physics.gravity, ForceMode.Acceleration));
 	}
-	public static void EnableNoclip() => Noclip();
-	public static void DisableNoclip() => NoclipOff();
 	private static bool lagGunRunning;
 	private static int lagGunTargetActor = -1;
 	private static VRRig lagGunLockedTarget;
@@ -5690,35 +5757,11 @@ private static VRRig ghostRig;
 public class TorsoPatch
 {
 	public static event Action VRRigLateUpdate;
-	public static bool enabled;
-	public static int mode = 0;
 
 	public static void Postfix(VRRig __instance)
 	{
 		if (__instance.isLocal)
 		{
-			if (enabled)
-			{
-				Quaternion rotation = Quaternion.identity;
-				switch (mode)
-				{
-					case 0:
-						rotation = Quaternion.Euler(0f, Time.time * 180f % 360, 0f);
-						break;
-					case 1:
-						rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-						break;
-					case 2:
-						rotation = Quaternion.Euler(0f, GorillaTagger.Instance.headCollider.transform.rotation.eulerAngles.y + 180f, 0f);
-						break;
-				}
-
-				__instance.transform.rotation = rotation;
-				__instance.head.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
-				__instance.leftHand.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
-				__instance.rightHand.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
-			}
-
 			VRRigLateUpdate?.Invoke();
 
 			if ((Object)(object)__instance.playerText1 != (Object)null)

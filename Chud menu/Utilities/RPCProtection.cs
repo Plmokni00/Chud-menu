@@ -22,9 +22,8 @@ public static class RPCProtection
 			}
 			if (count >= MaxRPCs) return false;
 			eventTimes[(head + count) % MaxRPCs] = now;
-			count++;
-			return true;
+		count++;
+		return true;
 		}
 	}
-	public static void Reset() { lock (_lock) { head = 0; count = 0; } }
 }

@@ -85,7 +85,7 @@ internal partial class WristMenu
 	{
 		if ((Object)(object)_menuAnchor != (Object)null && (Object)(object)_menuFollowHand != (Object)null)
 		{
-			_menuAnchor.transform.position = _menuFollowHand.position + Vector3.up * 0.02f;
+			_menuAnchor.transform.position = _menuFollowHand.position;
 			_menuAnchor.transform.rotation = _menuFollowHand.rotation;
 		}
 	}
@@ -223,7 +223,7 @@ internal partial class WristMenu
 				menu.transform.parent = _menuAnchor.transform;
 				menu.transform.localPosition = Vector3.zero;
 				menu.transform.localRotation = Quaternion.identity;
-				_menuAnchor.transform.position = _menuFollowHand.position + Vector3.up * 0.02f;
+				_menuAnchor.transform.position = _menuFollowHand.position;
 				_menuAnchor.transform.rotation = _menuFollowHand.rotation;
 				if ((Object)(object)reference == (Object)null)
 				{
@@ -245,7 +245,7 @@ internal partial class WristMenu
 				menu.transform.parent = _menuAnchor.transform;
 				menu.transform.localPosition = Vector3.zero;
 				menu.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
-				_menuAnchor.transform.position = _menuFollowHand.position + Vector3.up * 0.02f;
+				_menuAnchor.transform.position = _menuFollowHand.position;
 				_menuAnchor.transform.rotation = _menuFollowHand.rotation;
 				if ((Object)(object)reference == (Object)null)
 				{
