@@ -3693,13 +3693,24 @@ private static VRRig ghostRig;
 		ghostRig.transform.SetPositionAndRotation(headPos + ghostRig.transform.rotation * local.headBodyOffset * scale, bodyRot);
 		if (ghostRig.head != null && (Object)(object)ghostRig.head.rigTarget != (Object)null)
 			ghostRig.head.rigTarget.transform.SetPositionAndRotation(headPos, liveRot);
-		Transform liveOffset = ((Object)(object)local.playerOffsetTransform != (Object)null) ? local.playerOffsetTransform : ghostRig.playerOffsetTransform;
 		if (XRSettings.isDeviceActive)
 		{
+			Transform liveOffset = ((Object)(object)local.playerOffsetTransform != (Object)null) ? local.playerOffsetTransform : ghostRig.playerOffsetTransform;
 			if (ghostRig.leftHand != null)
 				ghostRig.leftHand.MapMine(scale, liveOffset);
 			if (ghostRig.rightHand != null)
 				ghostRig.rightHand.MapMine(scale, liveOffset);
+		}
+		else
+		{
+			bool localPosedElsewhere = tagGunLockedTarget != null || tagAllTarget != null || (copyMovementActive && copyMovementTarget != null) || orbitActive || grabRigActive;
+			if (!localPosedElsewhere)
+			{
+				if (ghostRig.leftHand != null && (Object)(object)ghostRig.leftHand.rigTarget != (Object)null && local.leftHand != null && (Object)(object)local.leftHand.rigTarget != (Object)null)
+					ghostRig.leftHand.rigTarget.transform.SetPositionAndRotation(local.leftHand.rigTarget.transform.position, local.leftHand.rigTarget.transform.rotation);
+				if (ghostRig.rightHand != null && (Object)(object)ghostRig.rightHand.rigTarget != (Object)null && local.rightHand != null && (Object)(object)local.rightHand.rigTarget != (Object)null)
+					ghostRig.rightHand.rigTarget.transform.SetPositionAndRotation(local.rightHand.rigTarget.transform.position, local.rightHand.rigTarget.transform.rotation);
+			}
 		}
 		float fingerLerp = ghostRig.lerpValueFingers;
 		if (ghostRig.rightIndex != null) ghostRig.rightIndex.MapMyFinger(fingerLerp);
@@ -3809,6 +3820,13 @@ private static VRRig ghostRig;
 			Object.Destroy(pv);
 		foreach (Photon.Pun.PhotonTransformView ptv in ghostRig.GetComponentsInChildren<Photon.Pun.PhotonTransformView>(true))
 			Object.Destroy(ptv);
+		foreach (Component c in ghostRig.GetComponentsInChildren<Component>(true))
+		{
+			if (c == null || (Object)(object)c is Transform) continue;
+			string tn = c.GetType().Name;
+			if (tn == "TagEffectsPackToggle" || tn == "RigidbodyWaterInteraction" || tn == "ConstantForce")
+				Object.Destroy(c);
+		}
 		foreach (Collider col in ghostRig.GetComponentsInChildren<Collider>(true))
 			Object.Destroy(col);
 		foreach (Rigidbody rb in ghostRig.GetComponentsInChildren<Rigidbody>(true))

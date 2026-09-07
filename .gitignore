@@ -8,3 +8,6 @@
 .vs/
 *.nupkg
 *.zip
+BepInEx/config/com.multibot.instancegui.cfg
+MultiInstance/bin/
+MultiInstance/obj/
