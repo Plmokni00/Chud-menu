@@ -1317,6 +1317,8 @@ private static VRRig ghostRig;
 				VRRig.LocalRig.transform.position = new Vector3(9999f, 9999f, 9999f);
 			}
 		}
+		if (ghostRigSubscribed && GhostWanted())
+			GhostRigTick();
 		UpdateBoop();
 		if (stickyRightActive && jump_right_local != null) ClampHandToCage(jump_right_local.transform.position, true);
 		if (stickyLeftActive && jump_left_local != null) ClampHandToCage(jump_left_local.transform.position, false);
@@ -3701,24 +3703,16 @@ private static VRRig ghostRig;
 			if (ghostRig.rightHand != null)
 				ghostRig.rightHand.MapMine(scale, liveOffset);
 		}
-		else
-		{
-			bool localPosedElsewhere = tagGunLockedTarget != null || tagAllTarget != null || (copyMovementActive && copyMovementTarget != null) || orbitActive || grabRigActive;
-			if (!localPosedElsewhere)
-			{
-				if (ghostRig.leftHand != null && (Object)(object)ghostRig.leftHand.rigTarget != (Object)null && local.leftHand != null && (Object)(object)local.leftHand.rigTarget != (Object)null)
-					ghostRig.leftHand.rigTarget.transform.SetPositionAndRotation(local.leftHand.rigTarget.transform.position, local.leftHand.rigTarget.transform.rotation);
-				if (ghostRig.rightHand != null && (Object)(object)ghostRig.rightHand.rigTarget != (Object)null && local.rightHand != null && (Object)(object)local.rightHand.rigTarget != (Object)null)
-					ghostRig.rightHand.rigTarget.transform.SetPositionAndRotation(local.rightHand.rigTarget.transform.position, local.rightHand.rigTarget.transform.rotation);
-			}
-		}
 		float fingerLerp = ghostRig.lerpValueFingers;
-		if (ghostRig.rightIndex != null) ghostRig.rightIndex.MapMyFinger(fingerLerp);
-		if (ghostRig.rightMiddle != null) ghostRig.rightMiddle.MapMyFinger(fingerLerp);
-		if (ghostRig.rightThumb != null) ghostRig.rightThumb.MapMyFinger(fingerLerp);
-		if (ghostRig.leftIndex != null) ghostRig.leftIndex.MapMyFinger(fingerLerp);
-		if (ghostRig.leftMiddle != null) ghostRig.leftMiddle.MapMyFinger(fingerLerp);
-		if (ghostRig.leftThumb != null) ghostRig.leftThumb.MapMyFinger(fingerLerp);
+		if (XRSettings.isDeviceActive)
+		{
+			if (ghostRig.rightIndex != null) ghostRig.rightIndex.MapMyFinger(fingerLerp);
+			if (ghostRig.rightMiddle != null) ghostRig.rightMiddle.MapMyFinger(fingerLerp);
+			if (ghostRig.rightThumb != null) ghostRig.rightThumb.MapMyFinger(fingerLerp);
+			if (ghostRig.leftIndex != null) ghostRig.leftIndex.MapMyFinger(fingerLerp);
+			if (ghostRig.leftMiddle != null) ghostRig.leftMiddle.MapMyFinger(fingerLerp);
+			if (ghostRig.leftThumb != null) ghostRig.leftThumb.MapMyFinger(fingerLerp);
+		}
 		if ((Object)(object)ghostRigMaterial != (Object)null)
 		{
 			Color want = local.playerColor;
@@ -5622,6 +5616,7 @@ private static VRRig ghostRig;
 				copyMovementActive = true;
 				TorsoPatch.VRRigLateUpdate -= CopyMovementTick;
 				TorsoPatch.VRRigLateUpdate += CopyMovementTick;
+				SubscribeGhostRig();
 			}
 		}, delegate
 		{
@@ -5643,6 +5638,7 @@ private static VRRig ghostRig;
 		}
 		copyMovementActive = false;
 		copyMovementTarget = null;
+		TryUnsubscribeGhostRig();
 	}
 
 	public static void StopCopyMovementGunFull()

@@ -273,9 +273,8 @@ public static class Buttons
 
 		new[] {
 			new ButtonInfo { buttonText = "Exit Credits", method = () => MenuManager.ToggleCategory("Credits"), isTogglable = false, type = ButtonType.Action, toolTip = "Returns to the main page" },
-			new ButtonInfo { buttonText = "Jolyne (Only menu owner/Maker)", method = () => NotifiLib.SendNotification("Jolyne: Menu owner", 2), isTogglable = false, type = ButtonType.Action, toolTip = "Menu owner" },
-			new ButtonInfo { buttonText = "DeepSeek V4", method = () => NotifiLib.SendNotification("DeepSeek V4: Made most of the mods on the menu", 2), isTogglable = false, type = ButtonType.Action, toolTip = "Made most of the mods on the menu" },
-			new ButtonInfo { buttonText = "Seralyth", method = () => NotifiLib.SendNotification("Seralyth: has skidded code from Seralyth", 2), isTogglable = false, type = ButtonType.Action, toolTip = "has skidded code from Seralyth" },
+			new ButtonInfo { buttonText = "Jolyne/Sayori", method = () => Application.OpenURL("https://github.com/Plmokni00"), isTogglable = false, type = ButtonType.Action, toolTip = "Owners Github" },
+			new ButtonInfo { buttonText = "Ling-3.0-Flash-Fin-Free", method = () => NotifiLib.SendNotification("Ling-3.0-Flash-Fin-Free: Made this mod", 2), isTogglable = false, type = ButtonType.Action, toolTip = "Made this mod" },
 			new ButtonInfo { buttonText = "Industry", method = () => NotifiLib.SendNotification("Industry: ARS system by Industry", 2), isTogglable = false, type = ButtonType.Action, toolTip = "ARS system by Industry" }
 		}
 	};
