@@ -923,14 +923,12 @@ private static VRRig ghostRig;
 		_predPrevLeftHand = GorillaTagger.Instance.leftHandTransform.position;
 		_predPrevRightHand = GorillaTagger.Instance.rightHandTransform.position;
 		_predPrevHead = VRRig.LocalRig.head.rigTarget.transform.position;
-		TorsoPatch.VRRigLateUpdate -= ControllerPredTick;
-		TorsoPatch.VRRigLateUpdate += ControllerPredTick;
+		
 	}
 
 	public static void DisableControllerPredictions()
 	{
 		controllerPredActive = false;
-		TorsoPatch.VRRigLateUpdate -= ControllerPredTick;
 	}
 
 	public static void SetControllerPrediction(int index)
@@ -1205,15 +1203,13 @@ private static VRRig ghostRig;
 			if (!grabRigActive)
 			{
 				grabRigActive = true;
-				TorsoPatch.VRRigLateUpdate -= GrabRigTick;
-				TorsoPatch.VRRigLateUpdate += GrabRigTick;
+				
 				SubscribeGhostRig();
 			}
 		}
 		else if (grabRigActive)
 		{
 			grabRigActive = false;
-			TorsoPatch.VRRigLateUpdate -= GrabRigTick;
 			EnsureLocalRigEnabled();
 			TryUnsubscribeGhostRig();
 		}
@@ -1222,7 +1218,6 @@ private static VRRig ghostRig;
 	public static void DisableGrabRig()
 	{
 		grabRigActive = false;
-		TorsoPatch.VRRigLateUpdate -= GrabRigTick;
 		EnsureLocalRigEnabled();
 		TryUnsubscribeGhostRig();
 	}
@@ -1319,6 +1314,22 @@ private static VRRig ghostRig;
 		}
 		if (ghostRigSubscribed && GhostWanted())
 			GhostRigTick();
+		if (VRRig.LocalRig.playerText1 != null)
+			VRRig.LocalRig.playerText1.color = ColorUtil.PlayerColor(VRRig.LocalRig);
+		GrabRigTick();
+		CopyMovementTick();
+		OrbitTick();
+		TagRigVisualTick();
+		if (!LocalRigOverrideActive)
+		{
+			ControllerPredTick();
+			FlipTick();
+			SpinningTorsoTick();
+			FakeFBTTick();
+			DinnerboneTick();
+			NatsukiNeckTick();
+			SpiderMonkeyTick();
+		}
 		UpdateBoop();
 		if (stickyRightActive && jump_right_local != null) ClampHandToCage(jump_right_local.transform.position, true);
 		if (stickyLeftActive && jump_left_local != null) ClampHandToCage(jump_left_local.transform.position, false);
@@ -3647,7 +3658,6 @@ private static VRRig ghostRig;
 	{
 		if (!tagRigVisualSubscribed)
 		{
-			TorsoPatch.VRRigLateUpdate += TagRigVisualTick;
 			tagRigVisualSubscribed = true;
 		}
 	}
@@ -3656,7 +3666,6 @@ private static VRRig ghostRig;
 	{
 		if (tagRigVisualSubscribed)
 		{
-			TorsoPatch.VRRigLateUpdate -= TagRigVisualTick;
 			tagRigVisualSubscribed = false;
 		}
 	}
@@ -3690,8 +3699,9 @@ private static VRRig ghostRig;
 		Quaternion liveRot = headT.rotation;
 		if ((Object)(object)GTPlayer.Instance != (Object)null && (Object)(object)GTPlayer.Instance.mainCamera != (Object)null)
 			liveRot = GTPlayer.Instance.mainCamera.transform.rotation;
+		Vector3 headWorldPos = ((Object)(object)GTPlayer.Instance != (Object)null && (Object)(object)GTPlayer.Instance.mainCamera != (Object)null) ? GTPlayer.Instance.mainCamera.transform.position : headT.position;
 		Vector3 trackOffset = (local.head != null) ? local.head.trackingPositionOffset : Vector3.zero;
-		Vector3 headPos = headT.position + liveRot * trackOffset * scale;
+		Vector3 headPos = headWorldPos + liveRot * trackOffset * scale;
 		ghostRig.transform.SetPositionAndRotation(headPos + ghostRig.transform.rotation * local.headBodyOffset * scale, bodyRot);
 		if (ghostRig.head != null && (Object)(object)ghostRig.head.rigTarget != (Object)null)
 			ghostRig.head.rigTarget.transform.SetPositionAndRotation(headPos, liveRot);
@@ -3890,7 +3900,6 @@ private static VRRig ghostRig;
 	{
 		if (!ghostRigSubscribed)
 		{
-			TorsoPatch.VRRigLateUpdate += GhostRigTick;
 			ghostRigSubscribed = true;
 		}
 	}
@@ -3899,7 +3908,6 @@ private static VRRig ghostRig;
 	{
 		if (ghostRigSubscribed)
 		{
-			TorsoPatch.VRRigLateUpdate -= GhostRigTick;
 			ghostRigSubscribed = false;
 			HideGhostRig();
 		}
@@ -5310,31 +5318,23 @@ private static VRRig ghostRig;
 	public static void EnableBackflip()
 	{
 		backflipEnabled = true;
-		TorsoPatch.VRRigLateUpdate -= FlipTick;
-		TorsoPatch.VRRigLateUpdate += FlipTick;
 	}
 
 	public static void DisableBackflip()
 	{
 		backflipEnabled = false;
 		backflipActive = false;
-		if (!frontflipEnabled)
-			TorsoPatch.VRRigLateUpdate -= FlipTick;
 	}
 
 	public static void EnableFrontflip()
 	{
 		frontflipEnabled = true;
-		TorsoPatch.VRRigLateUpdate -= FlipTick;
-		TorsoPatch.VRRigLateUpdate += FlipTick;
 	}
 
 	public static void DisableFrontflip()
 	{
 		frontflipEnabled = false;
 		frontflipActive = false;
-		if (!backflipEnabled)
-			TorsoPatch.VRRigLateUpdate -= FlipTick;
 	}
 
 	private static void FlipTick()
@@ -5385,13 +5385,10 @@ private static VRRig ghostRig;
 	public static void EnableSpinningTorso()
 	{
 		spinningTorsoEnabled = true;
-		TorsoPatch.VRRigLateUpdate -= SpinningTorsoTick;
-		TorsoPatch.VRRigLateUpdate += SpinningTorsoTick;
 	}
 	public static void DisableSpinningTorso()
 	{
 		spinningTorsoEnabled = false;
-		TorsoPatch.VRRigLateUpdate -= SpinningTorsoTick;
 	}
 	private static void SpinningTorsoTick()
 	{
@@ -5409,13 +5406,10 @@ private static VRRig ghostRig;
 	public static void EnableFakeFBT()
 	{
 		fakeFBTEnabled = true;
-		TorsoPatch.VRRigLateUpdate -= FakeFBTTick;
-		TorsoPatch.VRRigLateUpdate += FakeFBTTick;
 	}
 	public static void DisableFakeFBT()
 	{
 		fakeFBTEnabled = false;
-		TorsoPatch.VRRigLateUpdate -= FakeFBTTick;
 	}
 	private static void FakeFBTTick()
 	{
@@ -5431,13 +5425,10 @@ private static VRRig ghostRig;
 	public static void EnableDinnerbone()
 	{
 		dinnerboneEnabled = true;
-		TorsoPatch.VRRigLateUpdate -= DinnerboneTick;
-		TorsoPatch.VRRigLateUpdate += DinnerboneTick;
 	}
 	public static void DisableDinnerbone()
 	{
 		dinnerboneEnabled = false;
-		TorsoPatch.VRRigLateUpdate -= DinnerboneTick;
 	}
 	private static void DinnerboneTick()
 	{
@@ -5462,13 +5453,10 @@ private static VRRig ghostRig;
 			natsukiSavedRot = rig.head.rigTarget.transform.rotation;
 			natsukiHasSaved = true;
 		}
-		TorsoPatch.VRRigLateUpdate -= NatsukiNeckTick;
-		TorsoPatch.VRRigLateUpdate += NatsukiNeckTick;
 	}
 	public static void DisableNatsukiNeck()
 	{
 		natsukiNeckEnabled = false;
-		TorsoPatch.VRRigLateUpdate -= NatsukiNeckTick;
 		if (natsukiHasSaved)
 		{
 			natsukiHasSaved = false;
@@ -5502,13 +5490,10 @@ private static VRRig ghostRig;
 		spiderMonkeyEnabled = true;
 		spiderMonkeyRot = Quaternion.identity;
 		spiderMonkeyTargetRot = Quaternion.identity;
-		TorsoPatch.VRRigLateUpdate -= SpiderMonkeyTick;
-		TorsoPatch.VRRigLateUpdate += SpiderMonkeyTick;
 	}
 	public static void DisableSpiderMonkey()
 	{
 		spiderMonkeyEnabled = false;
-		TorsoPatch.VRRigLateUpdate -= SpiderMonkeyTick;
 		GTPlayer.Instance.UnsetGravityOverride(GTPlayer.Instance);
 		GTPlayerTransform.ApplyRotationOverride(Quaternion.identity, Time.frameCount);
 	}
@@ -5614,8 +5599,6 @@ private static VRRig ghostRig;
 			{
 				copyMovementTarget = rig;
 				copyMovementActive = true;
-				TorsoPatch.VRRigLateUpdate -= CopyMovementTick;
-				TorsoPatch.VRRigLateUpdate += CopyMovementTick;
 				SubscribeGhostRig();
 			}
 		}, delegate
@@ -5631,7 +5614,6 @@ private static VRRig ghostRig;
 
 	public static void StopCopyMovementGun()
 	{
-		TorsoPatch.VRRigLateUpdate -= CopyMovementTick;
 		if (copyMovementActive && (Object)(object)VRRig.LocalRig != (Object)null)
 		{
 			EnsureLocalRigEnabled();
@@ -5687,8 +5669,6 @@ private static VRRig ghostRig;
 				orbitActive = true;
 				orbitAngle = 0f;
 				SubscribeGhostRig();
-				TorsoPatch.VRRigLateUpdate -= OrbitTick;
-				TorsoPatch.VRRigLateUpdate += OrbitTick;
 			}
 		}, delegate { StopOrbit(); });
 		if (orbitTarget != null && pointer != null && Line != null)
@@ -5700,7 +5680,6 @@ private static VRRig ghostRig;
 
 	public static void StopOrbit()
 	{
-		TorsoPatch.VRRigLateUpdate -= OrbitTick;
 		if (orbitActive && (Object)(object)VRRig.LocalRig != (Object)null) EnsureLocalRigEnabled();
 		orbitActive = false;
 		orbitTarget = null;
@@ -5763,23 +5742,6 @@ private static VRRig ghostRig;
 		}
 		gunTriggerWasDown = false;
 	}
-
 }
 
 
-[HarmonyPatch(typeof(VRRig), nameof(VRRig.PostTick))]
-public class TorsoPatch
-{
-	public static event Action VRRigLateUpdate;
-
-	public static void Postfix(VRRig __instance)
-	{
-		if (__instance.isLocal)
-		{
-			VRRigLateUpdate?.Invoke();
-
-			if ((Object)(object)__instance.playerText1 != (Object)null)
-				__instance.playerText1.color = ColorUtil.PlayerColor(__instance);
-		}
-	}
-}
