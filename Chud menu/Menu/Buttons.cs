@@ -35,7 +35,7 @@ public static class Buttons
 	public static ButtonInfo[][] buttons =
 	{
 		new[] {
-			new ButtonInfo { buttonText = "Join Discord", method = () => Application.OpenURL("https://discord.gg/dshwtjYVUr"), isTogglable = false, type = ButtonType.Action, toolTip = "Join the Chud Menu Discord" },
+			new ButtonInfo { buttonText = "Join Discord", method = () => Application.OpenURL("https://discord.gg/3kzkDTFbH7"), isTogglable = false, type = ButtonType.Action, toolTip = "Join the Chud Menu Discord" },
 			new ButtonInfo { buttonText = "Settings", method = () => MenuManager.ToggleCategory("Settings"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the settings tab" },
 			new ButtonInfo { buttonText = "Enabled Mods", method = () => MenuManager.ToggleCategory("Enabled Mods"), isTogglable = false, type = ButtonType.Action, toolTip = "Shows your enabled mods" },
 			new ButtonInfo { buttonText = "Movement Mods", method = () => MenuManager.ToggleCategory("Movement Mods"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the movement mods" },
