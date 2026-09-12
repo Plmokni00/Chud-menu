@@ -49,6 +49,7 @@
     <Reference Include="UnityEngine.VRModule" HintPath="$(GorillaTagDir)\UnityEngine.VRModule.dll" />
     <Reference Include="UnityEngine.UnityWebRequestAudioModule" HintPath="$(GorillaTagDir)\UnityEngine.UnityWebRequestAudioModule.dll" />
     <Reference Include="UnityEngine.UnityWebRequestTextureModule" HintPath="$(GorillaTagDir)\UnityEngine.UnityWebRequestTextureModule.dll" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="Fusion.Runtime" HintPath="$(GorillaTagDir)\Fusion.Runtime.dll" />
   </ItemGroup>
 </Project>

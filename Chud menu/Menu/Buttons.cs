@@ -29,7 +29,8 @@ public static class Buttons
 		"Master Mods",
 		"Console Mods",
 		"Console Settings",
-		"Credits"
+		"Credits",
+		"Macros"
 	};
 
 	public static ButtonInfo[][] buttons =
@@ -46,6 +47,7 @@ public static class Buttons
 			new ButtonInfo { buttonText = "Infection Mods", method = () => MenuManager.ToggleCategory("Infection Mods"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the infection mods" },
 			new ButtonInfo { buttonText = "Room Mods", method = () => MenuManager.ToggleCategory("Room Mods"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the room mods" },
 			new ButtonInfo { buttonText = "Master Mods", method = () => MenuManager.ToggleCategory("Master Mods"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the master mods" },
+			new ButtonInfo { buttonText = "Macros", method = () => MenuManager.ToggleCategory("Macros"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the macros" },
 			new ButtonInfo { buttonText = "Soundboard", method = () => MenuManager.ToggleCategory("Soundboard"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the soundboard" },
 			new ButtonInfo { buttonText = "Credits", method = () => MenuManager.ToggleCategory("Credits"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the credits" }
 		},
@@ -275,7 +277,16 @@ public static class Buttons
 			new ButtonInfo { buttonText = "Exit Credits", method = () => MenuManager.ToggleCategory("Credits"), isTogglable = false, type = ButtonType.Action, toolTip = "Returns to the main page" },
 			new ButtonInfo { buttonText = "Jolyne/Sayori", method = () => Application.OpenURL("https://github.com/Plmokni00"), isTogglable = false, type = ButtonType.Action, toolTip = "Owners Github" },
 			new ButtonInfo { buttonText = "Ling-3.0-Flash-Fin-Free", method = () => NotifiLib.SendNotification("Ling-3.0-Flash-Fin-Free: Made this mod", 2), isTogglable = false, type = ButtonType.Action, toolTip = "Made this mod" },
-			new ButtonInfo { buttonText = "Industry", method = () => NotifiLib.SendNotification("Industry: ARS system by Industry", 2), isTogglable = false, type = ButtonType.Action, toolTip = "ARS system by Industry" }
+			new ButtonInfo { buttonText = "Industry", method = () => NotifiLib.SendNotification("Industry: ARS system by Industry", 2), isTogglable = false, type = ButtonType.Action, toolTip = "ARS system by Industry" },
+			new ButtonInfo { buttonText = "Hamburbur", method = () => { NotifiLib.SendNotification("I stole their macro system please use their menu", 2); Application.OpenURL("https://discord.gg/3Bn3V52MYs"); }, isTogglable = false, type = ButtonType.Action, toolTip = "I stole their macro system please use their menu" }
+		},
+
+		new[] {
+			new ButtonInfo { buttonText = "Exit Macros", method = () => MenuManager.ToggleCategory("Macros"), isTogglable = false, type = ButtonType.Action, toolTip = "Returns to the main page" },
+			new ButtonInfo { buttonText = "Record Macro", enableMethod = MacroManager.EnableRecordMacro, method = MacroManager.RecordMacroTick, disableMethod = MacroManager.DisableRecordMacro, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Hold LEFT trigger to record your movement, release to save ONE macro" },
+			new ButtonInfo { buttonText = "Macro Gun", method = MacroManager.MacroGunTick, disableMethod = MacroManager.MacroGunCleanup, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Grip to aim, hold trigger on a player to record THEM, release to save ONE macro" },
+			new ButtonInfo { buttonText = "Reload Macros", method = MacroManager.ReloadMacros, isTogglable = false, type = ButtonType.Action, toolTip = "Reload saved macros from files" },
+			new ButtonInfo { buttonText = "Delete Macro", enableMethod = MacroManager.EnableDeleteMode, disableMethod = MacroManager.DisableDeleteMode, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Enable, then click a saved macro to delete its file" }
 		}
 	};
 
@@ -305,6 +316,8 @@ public static class Buttons
 		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());
 		MenuManager.AddCategory("Video", ConsoleMods.BuildVideoCategory());
 		MenuManager.AddCategory("Soundboard", Mods.BuildSoundboardCategory());
+
+		try { MacroManager.LoadAllMacros(); } catch { }
 
 		foreach (MenuCategory category in MenuManager.Categories)
 			foreach (ButtonInfo button in category.Buttons)

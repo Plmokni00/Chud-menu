@@ -213,7 +213,9 @@ internal class Mods : MonoBehaviour
 
 	internal static bool invisMonkeOn = false;
 
-	public static bool LocalRigOverrideActive => ghostMonkeOn || invisMonkeOn || grabRigActive || orbitActive || copyMovementActive || tagGunLockedTarget != null || tagAllTarget != null;
+	internal static bool macroPlaybackActive = false;
+
+	public static bool LocalRigOverrideActive => ghostMonkeOn || invisMonkeOn || grabRigActive || orbitActive || copyMovementActive || macroPlaybackActive || tagGunLockedTarget != null || tagAllTarget != null;
 
 	private static bool ghostMonkeLastPress = false;
 
@@ -2841,7 +2843,7 @@ private static VRRig ghostRig;
 			var enabledButtons = new JArray();
 			foreach (MenuCategory category in MenuManager.Categories)
 			{
-				if (category.Buttons == null || category.Name == "Enabled Mods") continue;
+				if (category.Buttons == null || category.Name == "Enabled Mods" || category.Name == "Macros") continue;
 				foreach (ButtonInfo button in category.Buttons)
 				{
 					if (button.enabled.HasValue && button.enabled.Value && !string.IsNullOrEmpty(button.buttonText))
@@ -2987,7 +2989,7 @@ private static VRRig ghostRig;
 				var buttonLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
 				foreach (MenuCategory cat in MenuManager.Categories)
 				{
-					if (cat.Buttons == null || cat.Name == "Enabled Mods") continue;
+					if (cat.Buttons == null || cat.Name == "Enabled Mods" || cat.Name == "Macros") continue;
 					foreach (ButtonInfo btn in cat.Buttons)
 					{
 						if (btn.type != ButtonType.Action && btn.enabled.HasValue && !string.IsNullOrEmpty(btn.buttonText) && !buttonLookup.ContainsKey(btn.buttonText))
@@ -3738,7 +3740,7 @@ private static VRRig ghostRig;
 
 	private static bool GhostWanted()
 	{
-		return tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn || (copyMovementActive && copyMovementTarget != null) || orbitActive;
+		return tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn || (copyMovementActive && copyMovementTarget != null) || orbitActive || macroPlaybackActive;
 	}
 
 	private static void ApplyGhostMaterial()
@@ -3917,6 +3919,18 @@ private static VRRig ghostRig;
 	{
 		if (!GhostWanted())
 			UnsubscribeGhostRig();
+	}
+
+	internal static void SubscribeMacroGhost()
+	{
+		macroPlaybackActive = true;
+		SubscribeGhostRig();
+	}
+
+	internal static void UnsubscribeMacroGhost()
+	{
+		macroPlaybackActive = false;
+		TryUnsubscribeGhostRig();
 	}
 
 	private static float tagAuraCooldown;
