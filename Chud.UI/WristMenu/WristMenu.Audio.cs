@@ -1,34 +1,69 @@
-using System;
 using System.Collections;
+using Chud.Backend;
 using UnityEngine;
-using UnityEngine.Networking;
 using Object = UnityEngine.Object;
 
 namespace Chud.UI;
 
 internal partial class WristMenu
 {
+	public static readonly string[] ButtonClickUrls = new string[]
+	{
+		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/button%20click.mp3",
+		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/button%20click%202.mp3",
+		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/button%20click%203.mp3"
+	};
+
+	public static readonly string[] ButtonClickNames = new string[]
+	{
+		"Default button click",
+		"Clicker trainer",
+		"DDLC"
+	};
+
+	public static AudioClip[] buttonClickClips = new AudioClip[3];
+
+	public static int buttonClickIndex = 0;
+
+	private static bool buttonClickLoading = false;
+
+	public static void ApplyButtonClickSound(int index)
+	{
+		if (index < 0 || index >= ButtonClickUrls.Length) return;
+		buttonClickIndex = index;
+		EnsureButtonClickLoaded();
+		if (buttonClickClips[index] != null)
+		{
+			customButtonClick = buttonClickClips[index];
+		}
+	}
+
+	public static void EnsureButtonClickLoaded()
+	{
+		if (buttonClickLoading || instance == null) return;
+		buttonClickLoading = true;
+		instance.StartCoroutine(LoadCustomButtonClickAudio());
+	}
+
 	public static IEnumerator LoadCustomButtonClickAudio()
 	{
-		if (customAudioLoaded)
+		for (int i = 0; i < ButtonClickUrls.Length; i++)
 		{
-			yield break;
+			int slot = i;
+			yield return SoundCache.GetClip(ButtonClickUrls[slot], c => buttonClickClips[slot] = c);
 		}
-		string url = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/button%20click.mp3";
-		UnityWebRequest req = UnityWebRequestMultimedia.GetAudioClip(url, (AudioType)13);
-		try
+		if (buttonClickIndex < 0 || buttonClickIndex >= buttonClickClips.Length)
+			buttonClickIndex = 0;
+		if (buttonClickClips[buttonClickIndex] != null)
 		{
-			yield return req.SendWebRequest();
-			if ((int)req.result == 1)
-			{
-				customButtonClick = DownloadHandlerAudioClip.GetContent(req);
-				customAudioLoaded = true;
-			}
+			customButtonClick = buttonClickClips[buttonClickIndex];
 		}
-		finally
+		else if (buttonClickClips[0] != null)
 		{
-			((IDisposable)req)?.Dispose();
+			buttonClickIndex = 0;
+			customButtonClick = buttonClickClips[0];
 		}
+		buttonClickLoading = false;
 	}
 
 	public static void PlayButtonClickSound(bool rightHand)
@@ -44,6 +79,14 @@ internal partial class WristMenu
 				Object.DontDestroyOnLoad((Object)(object)val);
 			}
 			buttonClickAudioSource.PlayOneShot(customButtonClick, 0.5f);
+			return;
 		}
+		try
+		{
+			if (VRRig.LocalRig != null)
+				VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, rightHand, 0.5f);
+		}
+		catch { }
+		EnsureButtonClickLoaded();
 	}
 }

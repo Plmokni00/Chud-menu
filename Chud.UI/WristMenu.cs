@@ -33,8 +33,6 @@ internal partial class WristMenu : MonoBehaviour
 
 	private static bool MenuFontInitialized = false;
 
-	private static bool customAudioLoaded = false;
-
 	public static string[] CustomBoardTexts = new string[4] { "CHUD MENU USERS, LOOK HERE", "CHUD MENU", "Monkeys can climb. Crickets can leap. Horses can race. Owls can seek. Cheetahs can run. Eagles can fly. People can try. But that's about it.", "if u get banned with this, its on u, not me" };
 
 	public static string FolderName = "Chud Menu";

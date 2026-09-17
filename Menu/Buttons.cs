@@ -63,6 +63,7 @@ public static class Buttons
 			new ButtonInfo { buttonText = "Water Splash Speed", method = () => MenuManager.ToggleCategory("Water Splash Speed"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the water splash speed settings" },
 			new ButtonInfo { buttonText = "Controller Predictions Settings", method = () => MenuManager.ToggleCategory("Controller Predictions Settings"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the controller predictions settings" },
 			new ButtonInfo { buttonText = "FPS Spoofer Settings", method = () => MenuManager.ToggleCategory("FPS Spoofer Settings"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the FPS spoofer settings" },
+			new ButtonInfo { buttonText = "Button Click Sound", method = () => MenuManager.ToggleCategory("Button Click Sound"), isTogglable = false, type = ButtonType.Action, toolTip = "Opens the button click sound settings" },
 			new ButtonInfo { buttonText = "Menu Animations", enableMethod = () => WristMenu.animationsEnabled = true, disableMethod = () => WristMenu.animationsEnabled = false, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Toggle menu open/close and button press animations" },
 			new ButtonInfo { buttonText = "Toggle Menu", enableMethod = () => WristMenu.toggleMenu = true, disableMethod = () => WristMenu.toggleMenu = false, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Press button once to open, press again to close" },
 			new ButtonInfo { buttonText = "Right Hand", enableMethod = Mods.EnableRightHand, disableMethod = Mods.DisableRightHand, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Move menu to right hand" },
@@ -300,6 +301,7 @@ public static class Buttons
 		AddSettingPage("Water Splash Speed", "Settings", Mods.WaterSplashNames, Mods.SetWaterSplashSpeed, "Set water splash cooldown to {0}");
 		AddSettingPage("Controller Predictions Settings", "Settings", Mods.ControllerPredNames, Mods.SetControllerPrediction, "Set controller predictions");
 		AddSettingPage("FPS Spoofer Settings", "Settings", Mods.FPSSpoofValues.Select(v => v.ToString()).ToArray(), Mods.SetFPSSpoof, "Spoof {0} fps");
+		AddSettingPage("Button Click Sound", "Settings", new[] { "Default button click", "Clicker trainer", "DDLC" }, Mods.SetButtonClickSound, "Use {0} for button clicks");
 
 		ConsoleMediaConfig.LoadConfig();
 		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());

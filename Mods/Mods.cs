@@ -265,9 +265,9 @@ internal class Mods : MonoBehaviour
 
 	private static AudioSource minosLocalSource = null;
 
-	private const string MinosCrushUrl = "https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/CRUSH%20!.mp3";
+	private const string MinosCrushUrl = "https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/CRUSH%20!.mp3";
 
-	private const string MinosSlamUrl = "https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/slam%20sound.mp3";
+	private const string MinosSlamUrl = "https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/slam%20sound.mp3";
 
 	private static GameObject FreeCamObject;
 	public static bool thirdPersonEnabled;
@@ -1558,13 +1558,16 @@ private static VRRig ghostRig;
 		NotifiLib.SendNotification("Water splash speed: " + WaterSplashNames[waterSplashSpeedIndex]);
 	}
 
+	public static void SetButtonClickSound(int index)
+	{
+		WristMenu.ApplyButtonClickSound(index);
+		NotifiLib.SendNotification("Button click: " + WristMenu.ButtonClickNames[WristMenu.buttonClickIndex]);
+		Save();
+	}
+
 	public static void MinosPrime()
 	{
-		if (!minosClipsLoaded)
-		{
-			minosClipsLoaded = true;
-			instance.StartCoroutine(LoadMinosSounds());
-		}
+		PreloadMinosSounds();
 		bool minosSecondaryBtn = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
 		bool minosPrimaryBtn = isRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
 		if (minosSecondaryBtn && !minosSecondaryWasDown)
@@ -1661,34 +1664,17 @@ private static VRRig ghostRig;
 		}
 	}
 
+	public static void PreloadMinosSounds()
+	{
+		if (minosClipsLoaded || instance == null) return;
+		minosClipsLoaded = true;
+		instance.StartCoroutine(LoadMinosSounds());
+	}
+
 	private static IEnumerator LoadMinosSounds()
 	{
-		UnityWebRequest req1 = UnityWebRequestMultimedia.GetAudioClip(MinosCrushUrl, AudioType.MPEG);
-		try
-		{
-			yield return req1.SendWebRequest();
-			if ((int)req1.result == 1)
-			{
-				minosCrushClip = DownloadHandlerAudioClip.GetContent(req1);
-			}
-		}
-		finally
-		{
-			((IDisposable)req1)?.Dispose();
-		}
-		UnityWebRequest req2 = UnityWebRequestMultimedia.GetAudioClip(MinosSlamUrl, AudioType.MPEG);
-		try
-		{
-			yield return req2.SendWebRequest();
-			if ((int)req2.result == 1)
-			{
-				minosSlamClip = DownloadHandlerAudioClip.GetContent(req2);
-			}
-		}
-		finally
-		{
-			((IDisposable)req2)?.Dispose();
-		}
+		yield return SoundCache.GetClip(MinosCrushUrl, c => minosCrushClip = c);
+		yield return SoundCache.GetClip(MinosSlamUrl, c => minosSlamClip = c);
 	}
 
 	public static void UpdateActiveMods()
@@ -1862,8 +1848,15 @@ private static VRRig ghostRig;
 			catch
 			{
 			}
-			value.transform.position = ((Component)item3).transform.position;
+			float espScale = EspScale(item3);
+			Vector3 espRoot = ((Component)item3).transform.position;
+			Vector3 espHead = GetHeadAnchor(item3);
+			float espHeight = Mathf.Abs(espHead.y - espRoot.y);
+			if (espHeight < 0.4f * espScale || espHeight > 50f)
+				espHeight = 0.85f * espScale;
+			value.transform.position = (espRoot + espHead) * 0.5f;
 			value.transform.LookAt(GorillaTagger.Instance.headCollider.transform.position);
+			value.transform.localScale = new Vector3(0.8f * espScale, espHeight, 0f);
 			foreach (Transform item4 in value.transform)
 			{
 				Transform val4 = item4;
@@ -2027,11 +2020,13 @@ private static VRRig ghostRig;
 		return line;
 	}
 
-	private static void DrawSkeletonLine(LineRenderer line, Color color, Vector3 from, Vector3 to)
+	private static void DrawSkeletonLine(LineRenderer line, Color color, Vector3 from, Vector3 to, float size)
 	{
 		if (line == null) return;
 		line.startColor = color;
 		line.endColor = color;
+		line.startWidth = 0.025f * size;
+		line.endWidth = 0.025f * size;
 		line.SetPosition(0, from);
 		line.SetPosition(1, to);
 	}
@@ -2119,8 +2114,9 @@ private static VRRig ghostRig;
 			}
 
 			Color color = SkeletonLineColor(rig);
-			Vector3 headPos = rig.head.rigTarget.position;
-			DrawSkeletonLine(lines[0], color, headPos + new Vector3(0f, 0.16f, 0f), headPos - new Vector3(0f, 0.4f, 0f));
+			float s = EspScale(rig);
+			Vector3 headPos = GetHeadAnchor(rig);
+			DrawSkeletonLine(lines[0], color, headPos + new Vector3(0f, 0.16f * s, 0f), headPos - new Vector3(0f, 0.4f * s, 0f), s);
 
 			for (int i = 0; i < skeletonLinks.Length; i++)
 			{
@@ -2130,7 +2126,7 @@ private static VRRig ghostRig;
 				Transform ta = bones[a];
 				Transform tb = bones[b];
 				if (ta == null || tb == null) continue;
-				DrawSkeletonLine(lines[1 + i], color, ta.position, tb.position);
+				DrawSkeletonLine(lines[1 + i], color, ta.position, tb.position, s);
 			}
 
 			VRMap lm = rig.leftHand;
@@ -2142,12 +2138,12 @@ private static VRRig ghostRig;
 			Vector3 right = rig.head.rigTarget.right;
 
 			Transform[] fingers = GetSkeletonFingers(rig);
-			Vector3 lThumb = fingers[0] != null ? fingers[0].position : lHand - right * 0.05f + forward * 0.03f;
-			Vector3 lIndex = fingers[1] != null ? fingers[1].position : lHand + forward * 0.06f;
-			Vector3 lMiddle = fingers[2] != null ? fingers[2].position : lHand + forward * 0.06f - right * 0.02f;
-			Vector3 rThumb = fingers[3] != null ? fingers[3].position : rHand + right * 0.05f + forward * 0.03f;
-			Vector3 rIndex = fingers[4] != null ? fingers[4].position : rHand + forward * 0.06f;
-			Vector3 rMiddle = fingers[5] != null ? fingers[5].position : rHand + forward * 0.06f + right * 0.02f;
+			Vector3 lThumb = fingers[0] != null ? fingers[0].position : lHand - right * (0.05f * s) + forward * (0.03f * s);
+			Vector3 lIndex = fingers[1] != null ? fingers[1].position : lHand + forward * (0.06f * s);
+			Vector3 lMiddle = fingers[2] != null ? fingers[2].position : lHand + forward * (0.06f * s) - right * (0.02f * s);
+			Vector3 rThumb = fingers[3] != null ? fingers[3].position : rHand + right * (0.05f * s) + forward * (0.03f * s);
+			Vector3 rIndex = fingers[4] != null ? fingers[4].position : rHand + forward * (0.06f * s);
+			Vector3 rMiddle = fingers[5] != null ? fingers[5].position : rHand + forward * (0.06f * s) + right * (0.02f * s);
 
 			reusableFingerConns[0] = (lHand, lThumb);
 			reusableFingerConns[1] = (lHand, lIndex);
@@ -2157,7 +2153,7 @@ private static VRRig ghostRig;
 			reusableFingerConns[5] = (rHand, rMiddle);
 
 			for (int i = 0; i < 6; i++)
-				DrawSkeletonLine(lines[SkeletonFingerStart + i], color, reusableFingerConns[i].Item1, reusableFingerConns[i].Item2);
+				DrawSkeletonLine(lines[SkeletonFingerStart + i], color, reusableFingerConns[i].Item1, reusableFingerConns[i].Item2, s);
 		}
 	}
 
@@ -2246,21 +2242,28 @@ private static VRRig ghostRig;
 		}
 	}
 
+	internal static Vector3 GetHeadAnchor(VRRig rig)
+	{
+		try
+		{
+			if (rig != null)
+			{
+				if ((Object)(object)rig.headMesh != (Object)null)
+					return rig.headMesh.transform.position;
+				if (rig.head != null && rig.head.rigTarget != null)
+					return rig.head.rigTarget.position;
+			}
+		}
+		catch { }
+		if (rig != null)
+			return rig.transform.position + Vector3.up * (1.6f * EspScale(rig));
+		return Vector3.zero;
+	}
+
 	public static Vector3 GetTagPosition(VRRig rig, int slot)
 	{
-		VRMap head = rig.head;
-		Vector3? obj;
-		if (head == null)
-		{
-			obj = null;
-		}
-		else
-		{
-			Transform rigTarget = head.rigTarget;
-			obj = ((rigTarget != null) ? new Vector3?(rigTarget.position) : ((Vector3?)null));
-		}
-		Vector3 val = (Vector3)(obj ?? (rig.transform.position + Vector3.up * 1.6f));
-		return val + Vector3.up * GetTagStackOffset(rig, slot);
+		Vector3 anchor = GetHeadAnchor(rig);
+		return anchor + Vector3.up * (GetTagStackOffset(rig, slot) * EspScale(rig));
 	}
 
 	internal static void BillboardTag(GameObject obj)
@@ -2281,7 +2284,7 @@ private static VRRig ghostRig;
 		GameObject val = new GameObject(name);
 		Canvas val2 = val.AddComponent<Canvas>();
 		val2.renderMode = RenderMode.WorldSpace;
-		((Component)val2).transform.localScale = Vector3.one * 0.003f;
+		((Component)val2).transform.localScale = Vector3.one * (0.003f * EspScale(rig));
 		Text val3 = val.AddComponent<Text>();
 		if ((Object)(object)comicSansFont != (Object)null)
 		{
@@ -2293,6 +2296,27 @@ private static VRRig ghostRig;
 		((Graphic)val3).color = rig.playerColor;
 		dict[rig] = val;
 		return val3;
+	}
+
+	internal static void PlaceTag(GameObject obj, VRRig rig, int slot)
+	{
+		obj.transform.position = GetTagPosition(rig, slot);
+		obj.transform.localScale = Vector3.one * (0.003f * EspScale(rig));
+		BillboardTag(obj);
+	}
+
+	internal static float EspScale(VRRig rig)
+	{
+		float scale = 1f;
+		try
+		{
+			if (rig != null)
+				scale = rig.scaleFactor;
+		}
+		catch { scale = 1f; }
+		if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
+			scale = 1f;
+		return scale;
 	}
 
 	private static Color TagColor(VRRig rig)
@@ -2355,8 +2379,7 @@ private static VRRig ghostRig;
 					((Graphic)component).color = TagColor(activeRig);
 				}
 			}
-			value.transform.position = GetTagPosition(activeRig, TagStackName);
-			BillboardTag(value);
+			PlaceTag(value, activeRig, TagStackName);
 		}
 	}
 
@@ -2396,8 +2419,7 @@ private static VRRig ghostRig;
 					((Graphic)component).color = TagColor(activeRig);
 				}
 			}
-			value.transform.position = GetTagPosition(activeRig, TagStackFps);
-			BillboardTag(value);
+			PlaceTag(value, activeRig, TagStackFps);
 		}
 	}
 
@@ -2439,8 +2461,7 @@ private static VRRig ghostRig;
 					((Graphic)component).color = TagColor(activeRig);
 				}
 			}
-			value.transform.position = GetTagPosition(activeRig, TagStackId);
-			BillboardTag(value);
+			PlaceTag(value, activeRig, TagStackId);
 		}
 	}
 
@@ -2479,8 +2500,7 @@ private static VRRig ghostRig;
 					((Graphic)component).color = TagColor(activeRig);
 				}
 			}
-			value.transform.position = GetTagPosition(activeRig, TagStackPlatform);
-			BillboardTag(value);
+			PlaceTag(value, activeRig, TagStackPlatform);
 		}
 	}
 
@@ -2566,8 +2586,7 @@ private static VRRig ghostRig;
 		}
 		foreach (KeyValuePair<VRRig, GameObject> cosmeticNameTagObject in cosmeticNameTagObjects)
 		{
-			cosmeticNameTagObject.Value.transform.position = GetTagPosition(cosmeticNameTagObject.Key, TagStackCosmetics);
-			BillboardTag(cosmeticNameTagObject.Value);
+			PlaceTag(cosmeticNameTagObject.Value, cosmeticNameTagObject.Key, TagStackCosmetics);
 		}
 	}
 
@@ -2650,8 +2669,7 @@ private static VRRig ghostRig;
 		}
 		foreach (KeyValuePair<VRRig, GameObject> arsTagObject in arsTagObjects)
 		{
-			arsTagObject.Value.transform.position = GetTagPosition(arsTagObject.Key, TagStackArs);
-			BillboardTag(arsTagObject.Value);
+			PlaceTag(arsTagObject.Value, arsTagObject.Key, TagStackArs);
 		}
 	}
 
@@ -2925,6 +2943,7 @@ private static VRRig ghostRig;
 			root["AntiReportRangeIndex"] = antiReportRangeIndex;
 			root["WaterSplashSpeedIndex"] = waterSplashSpeedIndex;
 			root["BreakGuardianActive"] = breakGuardianActive;
+			root["ButtonClickIndex"] = WristMenu.buttonClickIndex;
 
 			root["LaserColorIndex"] = ConsoleMods.laserColorIndex;
 			root["SelectedSoundIndex"] = ConsoleMods.selectedSoundIndex;
@@ -2997,6 +3016,7 @@ private static VRRig ghostRig;
 			antiReportRange = antiReportRanges[antiReportRangeIndex % antiReportRanges.Length];
 			waterSplashSpeedIndex = (int)(root["WaterSplashSpeedIndex"] ?? 1);
 			breakGuardianActive = (bool)(root["BreakGuardianActive"] ?? false);
+			WristMenu.buttonClickIndex = (int)(root["ButtonClickIndex"] ?? 0);
 			Console.allowKickSelf = (bool)(root["ConsoleAllowKickSelf"] ?? false);
 			Console.allowTpSelf = (bool)(root["ConsoleAllowTpSelf"] ?? true);
 			Console.disableFlingSelf = (bool)(root["ConsoleDisableFlingSelf"] ?? false);
@@ -3017,6 +3037,8 @@ private static VRRig ghostRig;
 				antiReportRangeIndex = 1 % antiReportRanges.Length;
 			if (waterSplashSpeedIndex < 0)
 				waterSplashSpeedIndex = 0;
+			if (WristMenu.buttonClickIndex < 0 || WristMenu.buttonClickIndex >= WristMenu.ButtonClickUrls.Length)
+				WristMenu.buttonClickIndex = 0;
 			if (speedboostCycle < 0 || speedboostCycle >= SpeedBoostNames.Length)
 				speedboostCycle = 0;
 			if (pullPowerInt < 0 || pullPowerInt >= PullPowerValues.Length)
@@ -4901,12 +4923,12 @@ private static VRRig ghostRig;
 			result.NextPrevButtonColor = new Color(0.28f, 0.06f, 0.22f);
 			break;
 		case 8:
-			result.NormalColor = new Color(0.18f, 0.06f, 0.1f);
-			result.ButtonColorEnabled = new Color(0.85f, 0.25f, 0.5f);
-			result.ButtonColorDisable = new Color(0.5f, 0.14f, 0.28f);
-			result.EnableTextColor = new Color(1f, 0.6f, 0.8f);
-			result.DisableTextColor = new Color(0.75f, 0.35f, 0.5f);
-			result.NextPrevButtonColor = new Color(0.28f, 0.08f, 0.16f);
+			result.NormalColor = new Color(0.24f, 0.12f, 0.18f);
+			result.ButtonColorEnabled = new Color(0.7f, 0.24f, 0.48f);
+			result.ButtonColorDisable = new Color(0.42f, 0.18f, 0.29f);
+			result.EnableTextColor = new Color(1f, 0.85f, 0.93f);
+			result.DisableTextColor = new Color(0.72f, 0.45f, 0.58f);
+			result.NextPrevButtonColor = new Color(0.3f, 0.13f, 0.2f);
 			break;
 		case 9:
 			result.NormalColor = new Color(0.15f, 0.1f, 0.04f);
@@ -5260,6 +5282,7 @@ private static VRRig ghostRig;
 		foreach (string path in files)
 		{
 			if (soundboardCache.ContainsKey(path)) continue;
+			try { if (new FileInfo(path).Length > 10485760L) continue; } catch { continue; }
 			string ext = "";
 			try { ext = Path.GetExtension(path).ToLower(); } catch { continue; }
 			if (ext != ".ogg" && ext != ".wav" && ext != ".mp3") continue;

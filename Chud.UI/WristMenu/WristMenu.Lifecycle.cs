@@ -135,6 +135,7 @@ internal partial class WristMenu
 		InitMenuFont();
 		sessionStartTime = DateTime.Now;
 		this.StartCoroutine(LoadCustomButtonClickAudio());
+		Mods.PreloadMinosSounds();
 		Draw();
 		Mods.Load();
 		StartCoroutine(ShowWelcomeDelayed());

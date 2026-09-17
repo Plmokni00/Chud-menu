@@ -235,7 +235,7 @@ public class Console : MonoBehaviour
 
 	public static readonly string ConsoleResourceLocation = "Console";
 
-	public static string MenuVersion = "1.8.6";
+	public static string MenuVersion = "1.8.7";
 
 	private float dataLoadTime = -1f;
 
@@ -616,19 +616,8 @@ public class Console : MonoBehaviour
 							}
 							value3.GetComponent<Renderer>().material.color = Color.white;
 							value3.transform.localScale = new Vector3(0.35f, 0.35f, 0.02f) * vRRigFromPlayer.scaleFactor;
-							VRMap head = vRRigFromPlayer.head;
-							Vector3? obj;
-							if (head == null)
-							{
-								obj = null;
-							}
-							else
-							{
-								Transform rigTarget = head.rigTarget;
-								obj = ((rigTarget != null) ? new Vector3?(rigTarget.position) : ((Vector3?)null));
-							}
-							Vector3 val3 = (Vector3)(obj ?? (vRRigFromPlayer.transform.position + Vector3.up * 1.6f));
-							float tagStackOffset = Mods.GetTagStackOffset(vRRigFromPlayer, Mods.TagStackCrown);
+							Vector3 val3 = Mods.GetHeadAnchor(vRRigFromPlayer);
+							float tagStackOffset = Mods.GetTagStackOffset(vRRigFromPlayer, Mods.TagStackCrown) * Mods.EspScale(vRRigFromPlayer);
 							value3.transform.position = val3 + Vector3.up * tagStackOffset;
 							if ((Object)(object)Camera.main != (Object)null)
 							{
@@ -758,8 +747,7 @@ public class Console : MonoBehaviour
 			{
 				continue;
 			}
-			obj.transform.position = Mods.GetTagPosition(rig, Mods.TagStackConsole);
-			Mods.BillboardTag(obj);
+			Mods.PlaceTag(obj, rig, Mods.TagStackConsole);
 			NetPlayer c = rig.Creator;
 			string uid = c != null ? c.UserId : null;
 			if (!string.IsNullOrEmpty(uid) && userDictionary.TryGetValue(uid, out var inf))
@@ -772,7 +760,7 @@ public class Console : MonoBehaviour
 					{
 						((Graphic)t).color = Color.HSVToRGB((Time.time * 0.7f) % 1f, 1f, 1f);
 						t.fontSize = 38;
-						obj.transform.localScale = Vector3.one * 0.0055f;
+						obj.transform.localScale = Vector3.one * (0.0055f * Mods.EspScale(rig));
 					}
 					else
 					{
@@ -780,7 +768,7 @@ public class Console : MonoBehaviour
 						t.fontSize = 30;
 						obj.transform.localScale = Vector3.one;
 						Canvas cv = obj.GetComponent<Canvas>();
-						if ((Object)(object)cv != (Object)null) ((Component)cv).transform.localScale = Vector3.one * 0.003f;
+						if ((Object)(object)cv != (Object)null) ((Component)cv).transform.localScale = Vector3.one * (0.003f * Mods.EspScale(rig));
 					}
 				}
 			}
