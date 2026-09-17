@@ -1322,12 +1322,6 @@ private static VRRig ghostRig;
 		TagRigVisualTick();
 		if (!LocalRigOverrideActive)
 		{
-			ControllerPredTick();
-			FlipTick();
-			SpinningTorsoTick();
-			FakeFBTTick();
-			DinnerboneTick();
-			NatsukiNeckTick();
 			SpiderMonkeyTick();
 		}
 		UpdateBoop();
@@ -5391,6 +5385,16 @@ private static VRRig ghostRig;
 		frontflipActive = false;
 	}
 
+	public static void ApplyRigVisuals()
+	{
+		ControllerPredTick();
+		FlipTick();
+		SpinningTorsoTick();
+		FakeFBTTick();
+		DinnerboneTick();
+		NatsukiNeckTick();
+	}
+
 	private static void FlipTick()
 	{
 		bool btn = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
@@ -5489,8 +5493,11 @@ private static VRRig ghostRig;
 		if (!dinnerboneEnabled) return;
 		VRRig rig = VRRig.LocalRig;
 		if (rig == null) return;
-		rig.transform.rotation = rig.transform.rotation * Quaternion.Euler(0f, 0f, 180f);
-		rig.transform.position += Vector3.down * 0.3f;
+		float scale = rig.scaleFactor;
+		if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
+			scale = 1f;
+		rig.transform.rotation = GTPlayerTransform.BodyRotation * Quaternion.Euler(0f, 0f, 180f);
+		rig.transform.position += rig.transform.rotation * Vector3.up * 0.25f * scale;
 	}
 	private static bool natsukiNeckEnabled;
 	private static Vector3 natsukiSavedPos;

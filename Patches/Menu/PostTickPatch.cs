@@ -1,3 +1,4 @@
+using GorillaLocomotion;
 using HarmonyLib;
 
 namespace Chud.Backend;
@@ -12,5 +13,17 @@ public static class PostTickPatch
 			return true;
 		}
 		return !Mods.LocalRigOverrideActive;
+	}
+}
+
+[HarmonyPatch(typeof(VRRig), "PostTick")]
+internal static class RigVisualPostTickPatch
+{
+	public static void Postfix(VRRig __instance)
+	{
+		if (__instance == null || !__instance.isLocal) return;
+		if (ControllerInputPoller.instance == null) return;
+		if (Mods.LocalRigOverrideActive) return;
+		Mods.ApplyRigVisuals();
 	}
 }
