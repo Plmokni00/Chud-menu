@@ -14,7 +14,6 @@ internal class OnPlayerJoined : HarmonyPatch
 		int count = PhotonNetwork.CurrentRoom.PlayerCount;
 		NotifiLib.SendNotification("<color=#88ff88>" + newPlayer.NickName + "</color> joined (<color=white>" + count + "</color> players)");
 		Mods.ARSCheckPlayer(newPlayer);
-		Mods.TrackedCosmeticsCheckPlayer(newPlayer);
 		if (Console.autoDetectConsoleUsers)
 		{
 			Console.ScheduleConsoleUserScan();
@@ -47,7 +46,6 @@ internal class OnJoinedRoom : HarmonyPatch
 		int count = PhotonNetwork.CurrentRoom.PlayerCount;
 		NotifiLib.SendNotification("You joined (<color=white>" + count + "</color> players)");
 		Mods.ReapplyActiveMods();
-		Mods.TrackedCosmeticsScan();
 		if (Console.autoDetectConsoleUsers)
 		{
 			Console.ScheduleConsoleUserScan();

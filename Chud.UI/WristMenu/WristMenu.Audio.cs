@@ -72,15 +72,15 @@ internal partial class WristMenu
 
 	public static void PlayButtonClickSound(bool rightHand)
 	{
-		if ((Object)(object)customButtonClick != (Object)null)
+		if (customButtonClick != (Object)null)
 		{
-			if ((Object)(object)buttonClickAudioSource == (Object)null)
+			if (buttonClickAudioSource == (Object)null)
 			{
 				GameObject val = new GameObject("ChudButtonAudio");
 				buttonClickAudioSource = val.AddComponent<AudioSource>();
 				buttonClickAudioSource.spatialBlend = 0f;
 				buttonClickAudioSource.playOnAwake = false;
-				Object.DontDestroyOnLoad((Object)(object)val);
+				Object.DontDestroyOnLoad(val);
 			}
 			buttonClickAudioSource.PlayOneShot(customButtonClick, 0.5f);
 			return;

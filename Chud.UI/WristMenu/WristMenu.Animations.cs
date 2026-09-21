@@ -11,7 +11,7 @@ internal partial class WristMenu
 {
 	public static IEnumerator OpenAni()
 	{
-		if ((Object)(object)menu == (Object)null)
+		if (menu == (Object)null)
 		{
 			yield break;
 		}
@@ -30,11 +30,11 @@ internal partial class WristMenu
 		foreach (Transform child in menu.transform)
 		{
 			BtnCollider bc = child.GetComponent<BtnCollider>();
-			if (bc == null || string.IsNullOrEmpty(bc.relatedText))
+			if (bc == null || string.IsNullOrEmpty(bc.buttonId))
 			{
 				continue;
 			}
-			switch (bc.relatedText)
+			switch (bc.buttonId)
 			{
 			case "PreviousPage":
 				prevButton = child;
@@ -60,7 +60,7 @@ internal partial class WristMenu
 		float bookDur = 0.18f;
 		while (elapsed < bookDur)
 		{
-			if ((Object)(object)menu == (Object)null)
+			if (menu == (Object)null)
 			{
 				yield break;
 			}
@@ -70,7 +70,7 @@ internal partial class WristMenu
 			elapsed += Time.deltaTime;
 			yield return null;
 		}
-		if ((Object)(object)menu != (Object)null)
+		if (menu != (Object)null)
 		{
 			menu.transform.localScale = targetScale;
 		}
@@ -89,7 +89,7 @@ internal partial class WristMenu
 
 	private static Transform FindCanvasText(string content)
 	{
-		if ((Object)(object)canvasObj == (Object)null)
+		if (canvasObj == (Object)null)
 		{
 			return null;
 		}
@@ -106,17 +106,17 @@ internal partial class WristMenu
 
 	private static void SetBuildItemScale(Transform cylinder, Vector3 scale, bool showText)
 	{
-		if ((Object)(object)cylinder == (Object)null)
+		if (cylinder == (Object)null)
 		{
 			return;
 		}
 		BtnCollider bc = cylinder.GetComponent<BtnCollider>();
-		if (bc == null || string.IsNullOrEmpty(bc.relatedText))
+		if (bc == null || string.IsNullOrEmpty(bc.buttonId))
 		{
 			return;
 		}
-		string id = bc.relatedText;
-		string textContent = id;
+		string id = bc.buttonId;
+		string textContent = bc.displayText;
 		if (id == "PreviousPage") textContent = "<";
 		else if (id == "NextPage") textContent = ">";
 		else if (id == "DisconnectingButton") textContent = "Disconnect";
@@ -134,18 +134,18 @@ internal partial class WristMenu
 
 	private static IEnumerator BuildItem(Transform cylinder, float dur)
 	{
-		if ((Object)(object)cylinder == (Object)null)
+		if (cylinder == (Object)null)
 		{
 			yield break;
 		}
 		BtnCollider bc = cylinder.GetComponent<BtnCollider>();
-		if (bc == null || string.IsNullOrEmpty(bc.relatedText))
+		if (bc == null || string.IsNullOrEmpty(bc.buttonId))
 		{
 			yield break;
 		}
-		string id = bc.relatedText;
+		string id = bc.buttonId;
 		Vector3 target = (id == "PreviousPage" || id == "NextPage") ? new Vector3(0.09f, 0.2f, 0.9f) : new Vector3(BUTTON_CYLINDER_SCALE_X, BUTTON_CYLINDER_SCALE_Y, BUTTON_CYLINDER_SCALE_Z);
-		string textContent = id;
+		string textContent = bc.displayText;
 		if (id == "PreviousPage") textContent = "<";
 		else if (id == "NextPage") textContent = ">";
 		else if (id == "DisconnectingButton") textContent = "Disconnect";
@@ -153,7 +153,7 @@ internal partial class WristMenu
 		float elapsed = 0f;
 		while (elapsed < dur)
 		{
-			if ((Object)(object)menu == (Object)null || (Object)(object)cylinder == (Object)null)
+			if (menu == (Object)null || cylinder == (Object)null)
 			{
 				yield break;
 			}
@@ -172,7 +172,7 @@ internal partial class WristMenu
 			elapsed += Time.deltaTime;
 			yield return null;
 		}
-		if ((Object)(object)cylinder != (Object)null)
+		if (cylinder != (Object)null)
 		{
 			cylinder.localScale = target;
 		}
@@ -188,7 +188,7 @@ internal partial class WristMenu
 
 	public static IEnumerator CloseAni()
 	{
-		if ((Object)(object)menu == (Object)null || Close)
+		if (menu == (Object)null || Close)
 		{
 			yield break;
 		}
@@ -203,7 +203,7 @@ internal partial class WristMenu
 		Vector3 targetScale = Vector3.zero;
 		while (elapsed < 0.3f)
 		{
-			if ((Object)(object)menu == (Object)null)
+			if (menu == (Object)null)
 			{
 				Close = false;
 				yield break;
@@ -216,21 +216,21 @@ internal partial class WristMenu
 			yield return null;
 		}
 		DestroyGradientResources();
-		if ((Object)(object)menu != (Object)null)
+		if (menu != (Object)null)
 		{
-			Object.Destroy((Object)(object)menu);
+			Object.Destroy(menu);
 		}
 		menu = null;
 		menuObj = null;
 		canvasObj = null;
-		if ((Object)(object)reference != (Object)null)
+		if (reference != (Object)null)
 		{
-			Object.Destroy((Object)(object)reference);
+			Object.Destroy(reference);
 		}
 		reference = null;
-		if ((Object)(object)_menuAnchor != (Object)null)
+		if (_menuAnchor != (Object)null)
 		{
-			Object.Destroy((Object)(object)_menuAnchor);
+			Object.Destroy(_menuAnchor);
 		}
 		_menuAnchor = null;
 		_menuFollowHand = null;

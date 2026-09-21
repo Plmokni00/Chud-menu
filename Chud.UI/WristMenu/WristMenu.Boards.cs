@@ -10,13 +10,13 @@ internal partial class WristMenu
 	{
 		for (int i = 0; i < BoardPaths.Length; i++)
 		{
-			if ((Object)(object)cachedBoardObjects[i] == (Object)null)
+			if (cachedBoardObjects[i] == (Object)null)
 			{
 				cachedBoardObjects[i] = GameObject.Find(BoardPaths[i]);
-				if ((Object)(object)cachedBoardObjects[i] != (Object)null)
+				if (cachedBoardObjects[i] != (Object)null)
 					cachedBoardTexts[i] = cachedBoardObjects[i].GetComponent<TextMeshPro>();
 			}
-			if ((Object)(object)cachedBoardTexts[i] != (Object)null)
+			if (cachedBoardTexts[i] != (Object)null)
 			{
 				if (string.IsNullOrEmpty(originalBoardTexts[i]))
 					originalBoardTexts[i] = cachedBoardTexts[i].text;
@@ -30,13 +30,13 @@ internal partial class WristMenu
 		for (int i = 0; i < BoardPaths.Length; i++)
 		{
 			if (string.IsNullOrEmpty(originalBoardTexts[i])) continue;
-			if ((Object)(object)cachedBoardObjects[i] == (Object)null)
+			if (cachedBoardObjects[i] == (Object)null)
 			{
 				cachedBoardObjects[i] = GameObject.Find(BoardPaths[i]);
-				if ((Object)(object)cachedBoardObjects[i] != (Object)null)
+				if (cachedBoardObjects[i] != (Object)null)
 					cachedBoardTexts[i] = cachedBoardObjects[i].GetComponent<TextMeshPro>();
 			}
-			if ((Object)(object)cachedBoardTexts[i] != (Object)null)
+			if (cachedBoardTexts[i] != (Object)null)
 				cachedBoardTexts[i].text = originalBoardTexts[i];
 		}
 	}

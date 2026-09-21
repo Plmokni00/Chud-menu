@@ -6,17 +6,23 @@ using UnityEngine;
 
 namespace Chud.Backend;
 
-public static class MenuManager
+public sealed class MenuManager
 {
-	public static List<MenuCategory> Categories = new List<MenuCategory>();
+	public static MenuManager Instance { get; } = new MenuManager();
 
-	public static string CurrentCategoryName = "Main";
+	public List<MenuCategory> Categories = new List<MenuCategory>();
 
-	public static MenuCategory CurrentCategory => Categories.Find((MenuCategory c) => c.Name == CurrentCategoryName);
+	public string CurrentCategoryName = "Main";
 
-	public static List<ButtonInfo> CurrentButtons => CurrentCategory?.Buttons;
+	public MenuCategory CurrentCategory => Categories.Find((MenuCategory c) => c.Name == CurrentCategoryName);
 
-	public static void AddCategory(string name, List<ButtonInfo> buttons = null)
+	public List<ButtonInfo> CurrentButtons => CurrentCategory?.Buttons;
+
+	private MenuManager()
+	{
+	}
+
+	public void AddCategory(string name, List<ButtonInfo> buttons = null)
 	{
 		if (!Categories.Any((MenuCategory c) => c.Name == name))
 		{
@@ -24,7 +30,7 @@ public static class MenuManager
 		}
 	}
 
-	public static void ToggleCategory(string name)
+	public void ToggleCategory(string name)
 	{
 		if (CurrentCategoryName == name)
 		{

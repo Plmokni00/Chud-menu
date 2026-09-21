@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using ExitGames.Client.Photon;
 using GorillaLocomotion;
 using GorillaNetworking;
@@ -44,7 +43,7 @@ public class Console : MonoBehaviour
 			}
 			lastCollisionTime = Time.time;
 			VRRig rig = collision.collider.GetComponentInParent<VRRig>();
-			if ((Object)(object)rig == (Object)null || rig.Creator == null || rig.isLocal || rig.Creator.UserId == PhotonNetwork.LocalPlayer.UserId)
+			if (rig == (Object)null || rig.Creator == null || rig.isLocal || rig.Creator.UserId == PhotonNetwork.LocalPlayer.UserId)
 			{
 				return;
 			}
@@ -88,15 +87,15 @@ public class Console : MonoBehaviour
 
 		public void DestroyObject()
 		{
-			if ((Object)(object)obj != (Object)null)
+			if (obj != (Object)null)
 			{
-				Object.Destroy((Object)(object)obj);
+				Object.Destroy(obj);
 			}
 		}
 
 		public void SetPosition(Vector3 position)
 		{
-			if ((Object)(object)obj != (Object)null)
+			if (obj != (Object)null)
 			{
 				obj.transform.position = position;
 			}
@@ -104,7 +103,7 @@ public class Console : MonoBehaviour
 
 		public void SetRotation(Quaternion rotation)
 		{
-			if ((Object)(object)obj != (Object)null)
+			if (obj != (Object)null)
 			{
 				obj.transform.rotation = rotation;
 			}
@@ -112,7 +111,7 @@ public class Console : MonoBehaviour
 
 		public void SetLocalPosition(Vector3 position)
 		{
-			if ((Object)(object)obj != (Object)null)
+			if (obj != (Object)null)
 			{
 				obj.transform.localPosition = position;
 			}
@@ -120,7 +119,7 @@ public class Console : MonoBehaviour
 
 		public void SetLocalRotation(Quaternion rotation)
 		{
-			if ((Object)(object)obj != (Object)null)
+			if (obj != (Object)null)
 			{
 				obj.transform.localRotation = rotation;
 			}
@@ -128,7 +127,7 @@ public class Console : MonoBehaviour
 
 		public void SetScale(Vector3 scale)
 		{
-			if ((Object)(object)obj != (Object)null)
+			if (obj != (Object)null)
 			{
 				obj.transform.localScale = scale;
 			}
@@ -136,7 +135,7 @@ public class Console : MonoBehaviour
 
 		private Transform FindTarget(string childName)
 		{
-			if ((Object)(object)obj == (Object)null)
+			if (obj == (Object)null)
 			{
 				return null;
 			}
@@ -146,12 +145,12 @@ public class Console : MonoBehaviour
 		public void SetColor(string objectName, Color color)
 		{
 			Transform target = FindTarget(objectName);
-			if ((Object)(object)target == (Object)null)
+			if (target == (Object)null)
 			{
 				return;
 			}
 			Renderer renderer = ((Component)target).GetComponent<Renderer>();
-			if ((Object)(object)renderer != (Object)null)
+			if (renderer != (Object)null)
 			{
 				renderer.material.color = color;
 			}
@@ -160,12 +159,12 @@ public class Console : MonoBehaviour
 		public void PlayAudioSource(string audioSourceName)
 		{
 			Transform target = FindTarget(audioSourceName);
-			if ((Object)(object)target == (Object)null)
+			if (target == (Object)null)
 			{
 				return;
 			}
 			AudioSource source = ((Component)target).GetComponent<AudioSource>();
-			if ((Object)(object)source != (Object)null)
+			if (source != (Object)null)
 			{
 				source.Play();
 			}
@@ -174,12 +173,12 @@ public class Console : MonoBehaviour
 		public void StopAudioSource(string audioSourceName)
 		{
 			Transform target = FindTarget(audioSourceName);
-			if ((Object)(object)target == (Object)null)
+			if (target == (Object)null)
 			{
 				return;
 			}
 			AudioSource source = ((Component)target).GetComponent<AudioSource>();
-			if ((Object)(object)source != (Object)null)
+			if (source != (Object)null)
 			{
 				source.Stop();
 			}
@@ -188,17 +187,17 @@ public class Console : MonoBehaviour
 		public void ChangeAudioVolume(string volumeName, float volume)
 		{
 			Transform target = FindTarget(volumeName);
-			if ((Object)(object)target == (Object)null)
+			if (target == (Object)null)
 			{
 				return;
 			}
 			AudioSource source = ((Component)target).GetComponent<AudioSource>();
-			if ((Object)(object)source != (Object)null)
+			if (source != (Object)null)
 			{
 				source.volume = Mathf.Clamp(volume, 0f, 1f);
 			}
 			VideoPlayer video = ((Component)target).GetComponent<VideoPlayer>();
-			if ((Object)(object)video != (Object)null)
+			if (video != (Object)null)
 			{
 				video.SetDirectAudioVolume((ushort)0, Mathf.Clamp(volume, 0f, 1f));
 			}
@@ -207,12 +206,12 @@ public class Console : MonoBehaviour
 		public void PlayAnimation(string objectName, string animationName)
 		{
 			Transform target = FindTarget(objectName);
-			if ((Object)(object)target == (Object)null)
+			if (target == (Object)null)
 			{
 				return;
 			}
 			Animator animator = ((Component)target).GetComponent<Animator>();
-			if ((Object)(object)animator != (Object)null)
+			if (animator != (Object)null)
 			{
 				animator.Play(animationName);
 			}
@@ -295,38 +294,41 @@ public class Console : MonoBehaviour
 
 	private bool isLoadingData;
 
-	private static readonly Dictionary<int, float> confirmUsingDelay = new Dictionary<int, float>();
+	private readonly Dictionary<int, float> confirmUsingDelay = new Dictionary<int, float>();
 
-	private static readonly Dictionary<Player, Coroutine> laserCoroutineLeft = new Dictionary<Player, Coroutine>();
+	private readonly Dictionary<Player, Coroutine> laserCoroutineLeft = new Dictionary<Player, Coroutine>();
 
-	private static readonly Dictionary<Player, Coroutine> laserCoroutineRight = new Dictionary<Player, Coroutine>();
+	private readonly Dictionary<Player, Coroutine> laserCoroutineRight = new Dictionary<Player, Coroutine>();
 
-	private static readonly Dictionary<string, AssetBundle> AssetBundlePool = new Dictionary<string, AssetBundle>();
+	private readonly Dictionary<string, AssetBundle> AssetBundlePool = new Dictionary<string, AssetBundle>();
 
-	private static readonly Dictionary<int, List<Tuple<Player, object[], string>>> PendingAssetCommands = new Dictionary<int, List<Tuple<Player, object[], string>>>();
+	private readonly Dictionary<int, List<Tuple<Player, object[], string>>> PendingAssetCommands = new Dictionary<int, List<Tuple<Player, object[], string>>>();
 
-	private static bool pendingDelayedScan;
+	private bool pendingDelayedScan;
 
-	private static float _nextSanitize;
+	private float _nextSanitize;
 
-	private static readonly List<int> _destroyPlayerAssetsKeys = new List<int>();
+	private readonly List<int> _destroyPlayerAssetsKeys = new List<int>();
 
-	private static float _nextSpoofBroadcast;
+	private float _nextSpoofBroadcast;
 
-	private static List<VRRig> _adminCleanupList = new List<VRRig>();
+	private List<VRRig> _adminCleanupList = new List<VRRig>();
 
-	private static List<VRRig> _userCleanupList = new List<VRRig>();
+	private List<VRRig> _userCleanupList = new List<VRRig>();
 
-	private static List<int> _sanitizeRemoveKeys = new List<int>();
+	private List<int> _sanitizeRemoveKeys = new List<int>();
 
-	private static bool consoleInitialized;
+	private bool consoleInitialized;
 
-	private static bool networkHandlersSubscribed;
+	private bool networkHandlersSubscribed;
 
 	public static void EnableConsoleSpoof()
 	{
 		consoleSpoofEnabled = true;
-		_nextSpoofBroadcast = 0f;
+		if (instance != null)
+		{
+			instance._nextSpoofBroadcast = 0f;
+		}
 	}
 
 	public static void DisableConsoleSpoof()
@@ -426,7 +428,7 @@ public class Console : MonoBehaviour
 
 	private static void TickAdminScale()
 	{
-		if (!adminIsScaling || (Object)(object)adminRigTarget == (Object)null)
+		if (!adminIsScaling || adminRigTarget == (Object)null)
 		{
 			return;
 		}
@@ -437,7 +439,7 @@ public class Console : MonoBehaviour
 		}
 	}
 
-	private static void TickAssetSanitize()
+	private void TickAssetSanitize()
 	{
 		if (Time.time < _nextSanitize)
 		{
@@ -447,7 +449,7 @@ public class Console : MonoBehaviour
 		SanitizeConsoleAssets();
 	}
 
-	private static void TickSpoofBroadcast()
+	private void TickSpoofBroadcast()
 	{
 		if (!consoleSpoofEnabled || !PhotonNetwork.InRoom || Time.time < _nextSpoofBroadcast)
 		{
@@ -483,16 +485,20 @@ public class Console : MonoBehaviour
 
 	public static void ScheduleConsoleUserScan()
 	{
+		if (instance == null)
+		{
+			return;
+		}
 		lastRecheckTime = -5f;
 		ScanForConsoleUsers();
-		if (!pendingDelayedScan)
+		if (!instance.pendingDelayedScan)
 		{
-			pendingDelayedScan = true;
-			instance.StartCoroutine(DelayedConsoleScan());
+			instance.pendingDelayedScan = true;
+			instance.StartCoroutine(instance.DelayedConsoleScan());
 		}
 	}
 
-	private static IEnumerator DelayedConsoleScan()
+	private IEnumerator DelayedConsoleScan()
 	{
 		yield return (object)new WaitForSeconds(3f);
 		pendingDelayedScan = false;
@@ -551,7 +557,7 @@ public class Console : MonoBehaviour
 
 	public static void ApplyCosmeticToRig(VRRig rig, string cosmeticId)
 	{
-		if ((Object)(object)rig == (Object)null || string.IsNullOrEmpty(cosmeticId))
+		if (rig == (Object)null || string.IsNullOrEmpty(cosmeticId))
 		{
 			return;
 		}
@@ -592,7 +598,7 @@ public class Console : MonoBehaviour
 		}
 		((Renderer)outerLine).material = new Material(CachedUberShader);
 		((Renderer)outerLine).material.color = cyan;
-		Object.Destroy((Object)(object)outer, 2f);
+		Object.Destroy(outer, 2f);
 		GameObject inner = new GameObject("LightningInner");
 		LineRenderer innerLine = inner.AddComponent<LineRenderer>();
 		innerLine.startColor = Color.white;
@@ -607,7 +613,7 @@ public class Console : MonoBehaviour
 		}
 		((Renderer)innerLine).material = new Material(CachedUberShader);
 		((Renderer)innerLine).material.color = Color.white;
-		Object.Destroy((Object)(object)inner, 2f);
+		Object.Destroy(inner, 2f);
 	}
 
 	public static IEnumerator SmoothTeleport(Vector3 position, float time)
@@ -738,7 +744,14 @@ public class Console : MonoBehaviour
 		}
 		if (command == "confirmusing")
 		{
-			HandleConfirmUsing(sender, args);
+			if (instance != null)
+			{
+				instance.HandleConfirmUsing(sender, args);
+			}
+			return;
+		}
+		if (instance == null)
+		{
 			return;
 		}
 		if (!IsAdministrator(sender.UserId))
@@ -750,10 +763,10 @@ public class Console : MonoBehaviour
 		{
 			ServerData.Administrators.TryGetValue(sender.UserId, out adminName);
 		}
-		HandleAdminCommand(sender, args, command, IsSuperAdministrator(adminName));
+		instance.HandleAdminCommand(sender, args, command, IsSuperAdministrator(adminName));
 		if (command.StartsWith("asset-"))
 		{
-			HandleAssetEvent(sender, args, command);
+			instance.HandleAssetEvent(sender, args, command);
 		}
 	}
 
@@ -771,7 +784,7 @@ public class Console : MonoBehaviour
 		ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, MenuName);
 	}
 
-	private static void HandleConfirmUsing(Player sender, object[] args)
+	private void HandleConfirmUsing(Player sender, object[] args)
 	{
 		if (confirmUsingDelay.TryGetValue(sender.ActorNumber, out float delay) && Time.time < delay)
 		{
@@ -779,7 +792,7 @@ public class Console : MonoBehaviour
 		}
 		confirmUsingDelay[sender.ActorNumber] = Time.time + 5f;
 		VRRig rig = GetVRRigFromPlayer(sender);
-		string displayName = (Object)(object)rig != (Object)null ? rig.Creator.NickName : sender.UserId;
+		string displayName = rig != (Object)null ? rig.Creator.NickName : sender.UserId;
 		string uid = sender.UserId;
 		bool known = !string.IsNullOrEmpty(uid) && userDictionary.ContainsKey(uid);
 		if (!string.IsNullOrEmpty(uid))
@@ -790,13 +803,13 @@ public class Console : MonoBehaviour
 		{
 			NotifiLib.SendNotification(displayName + " has <color=yellow>" + args[2]?.ToString() + "</color> v" + args[1]);
 		}
-		if (autoDetectConsoleUsers && (Object)(object)rig != (Object)null)
+		if (autoDetectConsoleUsers && rig != (Object)null)
 		{
 			AddConsoleUserIndicator(rig, (string)args[2], (string)args[1]);
 		}
 	}
 
-	private static void HandleAdminCommand(Player sender, object[] args, string command, bool isSuper)
+	private void HandleAdminCommand(Player sender, object[] args, string command, bool isSuper)
 	{
 		switch (command)
 		{
@@ -933,7 +946,7 @@ public class Console : MonoBehaviour
 				if (isSuper)
 				{
 					GameObject moveTarget = GameObject.Find((string)args[1]);
-					if ((Object)(object)moveTarget != (Object)null)
+					if (moveTarget != (Object)null)
 					{
 						moveTarget.transform.position = (Vector3)args[2];
 					}
@@ -943,7 +956,7 @@ public class Console : MonoBehaviour
 				if (isSuper)
 				{
 					GameObject rotateTarget = GameObject.Find((string)args[1]);
-					if ((Object)(object)rotateTarget != (Object)null)
+					if (rotateTarget != (Object)null)
 					{
 						rotateTarget.transform.rotation = (Quaternion)args[2];
 					}
@@ -953,7 +966,7 @@ public class Console : MonoBehaviour
 				if (isSuper)
 				{
 					GameObject cloneSource = GameObject.Find((string)args[1]);
-					if ((Object)(object)cloneSource != (Object)null)
+					if (cloneSource != (Object)null)
 					{
 						Object.Instantiate(cloneSource, cloneSource.transform.position, cloneSource.transform.rotation, cloneSource.transform.parent).name = (string)args[2];
 					}
@@ -974,7 +987,7 @@ public class Console : MonoBehaviour
 		if (target != null)
 		{
 			VRRig rig = GetVRRigFromPlayer(target);
-			if ((Object)(object)rig != (Object)null)
+			if (rig != (Object)null)
 			{
 				LightningStrike(rig.headMesh.transform.position);
 			}
@@ -1012,7 +1025,7 @@ public class Console : MonoBehaviour
 					continue;
 				}
 				VRRig rig = GorillaGameManager.StaticFindRigForPlayer(netPlayer);
-				if ((Object)(object)rig != (Object)null)
+				if (rig != (Object)null)
 				{
 					LightningStrike(rig.headMesh.transform.position);
 				}
@@ -1075,18 +1088,18 @@ public class Console : MonoBehaviour
 		renderer.SetPosition(1, (Vector3)args[7]);
 		((Renderer)renderer).material = new Material(CachedUberShader);
 		((Renderer)renderer).material.color = color;
-		Object.Destroy((Object)(object)line, (float)args[8]);
+		Object.Destroy(line, (float)args[8]);
 	}
 
 	private static void ApplyPlatform(object[] args)
 	{
-		GameObject platform = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)platform, args.Length > 8 ? (float)args[8] : 60f);
+		GameObject platform = GameObject.CreatePrimitive((PrimitiveType.Cube));
+		Object.Destroy(platform, args.Length > 8 ? (float)args[8] : 60f);
 		if (args.Length > 4)
 		{
 			if ((float)args[7] == 0f)
 			{
-				Object.Destroy((Object)(object)platform.GetComponent<Renderer>());
+				Object.Destroy(platform.GetComponent<Renderer>());
 			}
 			else
 			{
@@ -1150,7 +1163,7 @@ public class Console : MonoBehaviour
 	private static void ApplySetMaterial(int actorNumber, int materialIndex)
 	{
 		VRRig rig = GetVRRigFromPlayer(PhotonNetwork.NetworkingClient.CurrentRoom.GetPlayer(actorNumber, false));
-		if ((Object)(object)rig != (Object)null)
+		if (rig != (Object)null)
 		{
 			rig.ChangeMaterialLocal(materialIndex);
 		}
@@ -1158,7 +1171,7 @@ public class Console : MonoBehaviour
 
 	private static readonly Color FixedLaserColor = new Color(1f, 0f, 0f);
 
-	private static void ApplyLaser(Player sender, object[] args)
+	private void ApplyLaser(Player sender, object[] args)
 	{
 		bool enabled = (bool)args[1];
 		bool rightHand = (bool)args[2];
@@ -1178,12 +1191,12 @@ public class Console : MonoBehaviour
 	{
 		try
 		{
-			if ((Object)(object)rig == (Object)null)
+			if (rig == (Object)null)
 			{
 				return;
 			}
 			AudioSource source = ((Component)rig).GetComponentInChildren<AudioSource>();
-			if ((Object)(object)source != (Object)null)
+			if (source != (Object)null)
 			{
 				source.spatialBlend = distant ? 1f : 0.9f;
 				source.maxDistance = distant ? float.MaxValue : 500f;
@@ -1261,7 +1274,7 @@ public class Console : MonoBehaviour
 	private static void ApplyCosmetic(Player sender, string cosmeticId)
 	{
 		VRRig rig = GetVRRigFromPlayer(sender);
-		if ((Object)(object)rig != (Object)null)
+		if (rig != (Object)null)
 		{
 			ApplyCosmeticToRig(rig, cosmeticId);
 		}
@@ -1270,7 +1283,7 @@ public class Console : MonoBehaviour
 	private static void ApplyCosmetics(Player sender, string[] cosmeticIds)
 	{
 		VRRig rig = GetVRRigFromPlayer(sender);
-		if ((Object)(object)rig == (Object)null)
+		if (rig == (Object)null)
 		{
 			return;
 		}
@@ -1282,13 +1295,13 @@ public class Console : MonoBehaviour
 
 	public static IEnumerator RenderLaser(bool rightHand, VRRig rigTarget, Color laserColor)
 	{
-		if ((Object)(object)rigTarget == (Object)null)
+		if (rigTarget == (Object)null)
 		{
 			yield break;
 		}
 		float startTime = Time.time;
 		RaycastHit ray = default(RaycastHit);
-		while (!((Object)(object)rigTarget == (Object)null) && !(Time.time - startTime > 0.1f))
+		while (!(rigTarget == (Object)null) && !(Time.time - startTime > 0.1f))
 		{
 			rigTarget.PlayHandTapLocal(18, !rightHand, 99999f);
 			GameObject outer = new GameObject("LaserOuter");
@@ -1308,7 +1321,7 @@ public class Console : MonoBehaviour
 			((Renderer)outerLine).material = new Material(CachedUberShader);
 			((Renderer)outerLine).material.color = laserColor;
 			((Renderer)outerLine).material.hideFlags = HideFlags.HideAndDontSave;
-			Object.Destroy((Object)(object)outer, Time.deltaTime);
+			Object.Destroy(outer, Time.deltaTime);
 			GameObject inner = new GameObject("LaserInner");
 			inner.hideFlags = HideFlags.HideAndDontSave;
 			LineRenderer innerLine = inner.AddComponent<LineRenderer>();
@@ -1324,11 +1337,11 @@ public class Console : MonoBehaviour
 			((Renderer)innerLine).material.color = Color.white;
 			((Renderer)innerLine).material.renderQueue = ((Renderer)outerLine).material.renderQueue + 1;
 			((Renderer)innerLine).material.hideFlags = HideFlags.HideAndDontSave;
-			Object.Destroy((Object)(object)inner, Time.deltaTime);
+			Object.Destroy(inner, Time.deltaTime);
 			GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 			spark.hideFlags = HideFlags.HideAndDontSave;
-			Object.Destroy((Object)(object)spark, 2f);
-			Object.Destroy((Object)(object)spark.GetComponent<Collider>());
+			Object.Destroy(spark, 2f);
+			Object.Destroy(spark.GetComponent<Collider>());
 			spark.GetComponent<Renderer>().material.color = Color.yellow;
 			spark.GetComponent<Renderer>().material.hideFlags = HideFlags.HideAndDontSave;
 			spark.AddComponent<Rigidbody>().linearVelocity = new Vector3(Random.Range(-7.5f, 7.5f), Random.Range(0f, 7.5f), Random.Range(-7.5f, 7.5f));
@@ -1374,16 +1387,16 @@ public class Console : MonoBehaviour
 		{
 			yield break;
 		}
-		if ((Object)(object)GameObject.Find(linkObjectName) == (Object)null)
+		if (GameObject.Find(linkObjectName) == (Object)null)
 		{
 			float timeoutTime = Time.time + 10f;
-			while (Time.time < timeoutTime && (Object)(object)GameObject.Find(linkObjectName) == (Object)null)
+			while (Time.time < timeoutTime && GameObject.Find(linkObjectName) == (Object)null)
 			{
 				yield return null;
 			}
 		}
 		GameObject finalLink = GameObject.Find(linkObjectName);
-		if ((Object)(object)finalLink == (Object)null || !PhotonNetwork.InRoom)
+		if (finalLink == (Object)null || !PhotonNetwork.InRoom)
 		{
 			yield break;
 		}
@@ -1411,11 +1424,11 @@ public class Console : MonoBehaviour
 		Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
 		foreach (Collider collider in colliders)
 		{
-			Object.Destroy((Object)(object)collider);
+			Object.Destroy(collider);
 		}
 	}
 
-	public static void SanitizeConsoleAssets()
+	public void SanitizeConsoleAssets()
 	{
 		if (ConsoleAssets.Count == 0)
 		{
@@ -1424,7 +1437,7 @@ public class Console : MonoBehaviour
 		_sanitizeRemoveKeys.Clear();
 		foreach (KeyValuePair<int, ConsoleAsset> entry in ConsoleAssets)
 		{
-			if ((Object)(object)entry.Value.obj == (Object)null || !entry.Value.obj.activeSelf)
+			if (entry.Value.obj == (Object)null || !entry.Value.obj.activeSelf)
 			{
 				_sanitizeRemoveKeys.Add(entry.Key);
 			}
@@ -1450,7 +1463,7 @@ public class Console : MonoBehaviour
 		foreach (ConsoleAsset asset in ConsoleAssets.Values)
 		{
 			ExecuteCommand("asset-spawn", joiningPlayer.GetPlayerRef().ActorNumber, asset.bundleName, asset.assetName, asset.id);
-			if ((Object)(object)asset.obj != (Object)null)
+			if (asset.obj != (Object)null)
 			{
 				ExecuteCommand("asset-setposition", joiningPlayer.GetPlayerRef().ActorNumber, asset.id, asset.obj.transform.position);
 				ExecuteCommand("asset-setrotation", joiningPlayer.GetPlayerRef().ActorNumber, asset.id, asset.obj.transform.rotation);
@@ -1462,6 +1475,10 @@ public class Console : MonoBehaviour
 
 	public static void SyncConsoleUsers(NetPlayer player)
 	{
+		if (instance == null)
+		{
+			return;
+		}
 		Player playerRef = player.GetPlayerRef();
 		if (player != null && !string.IsNullOrEmpty(player.UserId))
 		{
@@ -1469,20 +1486,20 @@ public class Console : MonoBehaviour
 		}
 		if (playerRef != null)
 		{
-			DestroyPlayerAssets(playerRef.ActorNumber);
-			StopLaserCoroutines(playerRef);
+			instance.DestroyPlayerAssets(playerRef.ActorNumber);
+			instance.StopLaserCoroutines(playerRef);
 		}
 		else
 		{
-			DestroyPlayerAssets(-1);
+			instance.DestroyPlayerAssets(-1);
 		}
 	}
 
-	private static void StopLaserCoroutines(Player player)
+	private void StopLaserCoroutines(Player player)
 	{
 		if (laserCoroutineLeft.TryGetValue(player, out Coroutine left))
 		{
-			if ((Object)(object)instance != (Object)null)
+			if (instance != (Object)null)
 			{
 				((MonoBehaviour)instance).StopCoroutine(left);
 			}
@@ -1490,7 +1507,7 @@ public class Console : MonoBehaviour
 		}
 		if (laserCoroutineRight.TryGetValue(player, out Coroutine right))
 		{
-			if ((Object)(object)instance != (Object)null)
+			if (instance != (Object)null)
 			{
 				((MonoBehaviour)instance).StopCoroutine(right);
 			}
@@ -1498,7 +1515,7 @@ public class Console : MonoBehaviour
 		}
 	}
 
-	public static void DestroyPlayerAssets(int actorNumber)
+	public void DestroyPlayerAssets(int actorNumber)
 	{
 		_destroyPlayerAssetsKeys.Clear();
 		foreach (KeyValuePair<int, ConsoleAsset> entry in ConsoleAssets)
@@ -1558,7 +1575,7 @@ public class Console : MonoBehaviour
 		return id;
 	}
 
-	public static IEnumerator LoadAssetBundle(string bundleName)
+	public IEnumerator LoadAssetBundle(string bundleName)
 	{
 		if (AssetBundlePool.ContainsKey(bundleName))
 		{
@@ -1574,7 +1591,7 @@ public class Console : MonoBehaviour
 				{
 					AssetBundleCreateRequest bundleReq = AssetBundle.LoadFromMemoryAsync(req.downloadHandler.data);
 					yield return bundleReq;
-					if ((Object)(object)bundleReq.assetBundle != (Object)null)
+					if (bundleReq.assetBundle != (Object)null)
 					{
 						AssetBundlePool[bundleName] = bundleReq.assetBundle;
 						break;
@@ -1588,7 +1605,7 @@ public class Console : MonoBehaviour
 		}
 	}
 
-	public static IEnumerator LoadAssetBundleFromURL(string bundleName, string url)
+	public IEnumerator LoadAssetBundleFromURL(string bundleName, string url)
 	{
 		if (AssetBundlePool.ContainsKey(bundleName))
 		{
@@ -1603,7 +1620,7 @@ public class Console : MonoBehaviour
 			{
 				AssetBundleCreateRequest bundleReq = AssetBundle.LoadFromMemoryAsync(req.downloadHandler.data);
 				yield return bundleReq;
-				if ((Object)(object)bundleReq.assetBundle != (Object)null)
+				if (bundleReq.assetBundle != (Object)null)
 				{
 					AssetBundlePool[bundleName] = bundleReq.assetBundle;
 				}
@@ -1615,7 +1632,7 @@ public class Console : MonoBehaviour
 		}
 	}
 
-	public static IEnumerator SpawnConsoleAsset(string bundleName, string assetName, int id, bool addSurfaceOverride = false)
+	public IEnumerator SpawnConsoleAsset(string bundleName, string assetName, int id, bool addSurfaceOverride = false)
 	{
 		if (ConsoleAssets.ContainsKey(id))
 		{
@@ -1645,7 +1662,7 @@ public class Console : MonoBehaviour
 		AudioSource[] sources = obj.GetComponentsInChildren<AudioSource>(true);
 		foreach (AudioSource source in sources)
 		{
-			if ((Object)(object)source.clip != (Object)null && source.playOnAwake)
+			if (source.clip != (Object)null && source.playOnAwake)
 			{
 				source.Play();
 			}
@@ -1655,7 +1672,7 @@ public class Console : MonoBehaviour
 			Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
 			foreach (Collider collider in colliders)
 			{
-				if ((Object)(object)((Component)collider).GetComponent<GorillaSurfaceOverride>() == (Object)null)
+				if (((Component)collider).GetComponent<GorillaSurfaceOverride>() == (Object)null)
 				{
 					((Component)collider).gameObject.AddComponent<GorillaSurfaceOverride>();
 				}
@@ -1686,6 +1703,10 @@ public class Console : MonoBehaviour
 
 	public static void UpdateAdminIndicators()
 	{
+		if (instance == null)
+		{
+			return;
+		}
 		if (!PhotonNetwork.InRoom)
 		{
 			ClearConePool();
@@ -1693,7 +1714,7 @@ public class Console : MonoBehaviour
 		}
 		try
 		{
-			PruneConePool();
+			instance.PruneConePool();
 			string localName;
 			bool localIsSuper;
 			lock (ServerData.AdminLock)
@@ -1713,7 +1734,7 @@ public class Console : MonoBehaviour
 					continue;
 				}
 				VRRig rig = GetVRRigFromPlayer(player);
-				if ((Object)(object)rig == (Object)null)
+				if (rig == (Object)null)
 				{
 					continue;
 				}
@@ -1727,7 +1748,7 @@ public class Console : MonoBehaviour
 				cone.transform.localScale = new Vector3(0.35f, 0.35f, 0.02f) * rig.scaleFactor;
 				cone.transform.position = Mods.GetHeadAnchor(rig) + Vector3.up * (Mods.GetTagStackOffset(rig, Mods.TagStackCrown) * Mods.EspScale(rig));
 				Camera main = Mods.MainCamera();
-				if ((Object)(object)main != (Object)null)
+				if (main != (Object)null)
 				{
 					cone.transform.LookAt(main.transform);
 				}
@@ -1739,7 +1760,7 @@ public class Console : MonoBehaviour
 		}
 	}
 
-	private static void PruneConePool()
+	private void PruneConePool()
 	{
 		_adminCleanupList.Clear();
 		foreach (KeyValuePair<VRRig, GameObject> entry in conePool)
@@ -1753,7 +1774,7 @@ public class Console : MonoBehaviour
 			}
 			if (!VRRigCache.ActiveRigs.Contains(entry.Key) || player == null || !isAdmin || excludedCones.Contains(player))
 			{
-				Object.Destroy((Object)(object)entry.Value);
+				Object.Destroy(entry.Value);
 				_adminCleanupList.Add(entry.Key);
 			}
 		}
@@ -1771,7 +1792,7 @@ public class Console : MonoBehaviour
 		}
 		foreach (KeyValuePair<VRRig, GameObject> entry in conePool)
 		{
-			Object.Destroy((Object)(object)entry.Value);
+			Object.Destroy(entry.Value);
 		}
 		conePool.Clear();
 	}
@@ -1794,15 +1815,15 @@ public class Console : MonoBehaviour
 
 	private static void EnsureAdminMaterials()
 	{
-		if ((Object)(object)ServerData.adminCrownMaterial == (Object)null && (Object)(object)ServerData.adminCrownTexture != (Object)null)
+		if (ServerData.adminCrownMaterial == (Object)null && ServerData.adminCrownTexture != (Object)null)
 		{
 			ServerData.adminCrownMaterial = MakeTransparentMaterial(ServerData.adminCrownTexture);
 		}
-		if ((Object)(object)ServerData.adminConeMaterial == (Object)null && (Object)(object)ServerData.adminConeTexture != (Object)null)
+		if (ServerData.adminConeMaterial == (Object)null && ServerData.adminConeTexture != (Object)null)
 		{
 			ServerData.adminConeMaterial = MakeTransparentMaterial(ServerData.adminConeTexture);
 		}
-		if ((Object)(object)ServerData.lexiCrownMaterial == (Object)null && (Object)(object)ServerData.lexiCrownTexture != (Object)null)
+		if (ServerData.lexiCrownMaterial == (Object)null && ServerData.lexiCrownTexture != (Object)null)
 		{
 			ServerData.lexiCrownMaterial = MakeTransparentMaterial(ServerData.lexiCrownTexture);
 		}
@@ -1810,8 +1831,8 @@ public class Console : MonoBehaviour
 
 	private static GameObject CreateAdminCone()
 	{
-		GameObject cone = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)cone.GetComponent<Collider>());
+		GameObject cone = GameObject.CreatePrimitive((PrimitiveType.Cube));
+		Object.Destroy(cone.GetComponent<Collider>());
 		EnsureAdminMaterials();
 		return cone;
 	}
@@ -1819,11 +1840,11 @@ public class Console : MonoBehaviour
 	private static Material ResolveAdminMaterial(string adminName)
 	{
 		EnsureAdminMaterials();
-		if ((Object)(object)ServerData.lexiCrownMaterial != (Object)null && adminName == "Lexi")
+		if (ServerData.lexiCrownMaterial != (Object)null && adminName == "Lexi")
 		{
 			return ServerData.lexiCrownMaterial;
 		}
-		if (IsSuperAdministrator(adminName) && (Object)(object)ServerData.adminConeMaterial != (Object)null)
+		if (IsSuperAdministrator(adminName) && ServerData.adminConeMaterial != (Object)null)
 		{
 			return ServerData.adminConeMaterial;
 		}
@@ -1834,7 +1855,7 @@ public class Console : MonoBehaviour
 	{
 		foreach (KeyValuePair<VRRig, GameObject> entry in conePool)
 		{
-			Object.Destroy((Object)(object)entry.Value);
+			Object.Destroy(entry.Value);
 		}
 		conePool.Clear();
 		excludedCones.Clear();
@@ -1845,7 +1866,7 @@ public class Console : MonoBehaviour
 
 	public static void AddConsoleUserIndicator(VRRig rig, string menuName, string version)
 	{
-		if ((Object)(object)rig == (Object)null || consoleUserIndicators.ContainsKey(rig))
+		if (rig == (Object)null || consoleUserIndicators.ContainsKey(rig))
 		{
 			return;
 		}
@@ -1865,29 +1886,33 @@ public class Console : MonoBehaviour
 
 	public static void UpdateConsoleUserIndicators()
 	{
-		_userCleanupList.Clear();
+		if (instance == null)
+		{
+			return;
+		}
+		instance._userCleanupList.Clear();
 		foreach (KeyValuePair<VRRig, GameObject> entry in consoleUserIndicators)
 		{
 			VRRig rig = entry.Key;
-			if ((Object)(object)rig == (Object)null || !VRRigCache.ActiveRigs.Contains(rig))
+			if (rig == (Object)null || !VRRigCache.ActiveRigs.Contains(rig))
 			{
-				Object.Destroy((Object)(object)entry.Value);
-				_userCleanupList.Add(rig);
+				Object.Destroy(entry.Value);
+				instance._userCleanupList.Add(rig);
 				continue;
 			}
 			NetPlayer creator = rig.Creator;
 			string uid = creator != null ? creator.UserId : null;
 			if (string.IsNullOrEmpty(uid) || !userDictionary.ContainsKey(uid))
 			{
-				Object.Destroy((Object)(object)entry.Value);
-				_userCleanupList.Add(rig);
+				Object.Destroy(entry.Value);
+				instance._userCleanupList.Add(rig);
 			}
 		}
-		foreach (VRRig rig in _userCleanupList)
+		foreach (VRRig rig in instance._userCleanupList)
 		{
 			consoleUserIndicators.Remove(rig);
 		}
-		_userCleanupList.Clear();
+		instance._userCleanupList.Clear();
 		foreach (VRRig rig in VRRigCache.ActiveRigs)
 		{
 			NetPlayer creator = rig.Creator;
@@ -1898,7 +1923,7 @@ public class Console : MonoBehaviour
 			}
 			if (!consoleUserIndicators.TryGetValue(rig, out GameObject obj))
 			{
-				if ((Object)(object)rig == (Object)null)
+				if (rig == (Object)null)
 				{
 					continue;
 				}
@@ -1909,7 +1934,7 @@ public class Console : MonoBehaviour
 			else
 			{
 				Text label = obj.GetComponent<Text>();
-				if ((Object)(object)label != (Object)null)
+				if (label != (Object)null)
 				{
 					string expected = info.Item1 + " v" + info.Item2;
 					if (label.text != expected)
@@ -1924,7 +1949,7 @@ public class Console : MonoBehaviour
 		{
 			VRRig rig = entry.Key;
 			GameObject obj = entry.Value;
-			if ((Object)(object)rig == (Object)null || (Object)(object)obj == (Object)null)
+			if (rig == (Object)null || obj == (Object)null)
 			{
 				continue;
 			}
@@ -1936,7 +1961,7 @@ public class Console : MonoBehaviour
 				continue;
 			}
 			Text label = obj.GetComponent<Text>();
-			if ((Object)(object)label == (Object)null)
+			if (label == (Object)null)
 			{
 				continue;
 			}
@@ -1952,7 +1977,7 @@ public class Console : MonoBehaviour
 				label.fontSize = 30;
 				obj.transform.localScale = Vector3.one;
 				Canvas canvas = obj.GetComponent<Canvas>();
-				if ((Object)(object)canvas != (Object)null)
+				if (canvas != (Object)null)
 				{
 					((Component)canvas).transform.localScale = Vector3.one * (0.003f * Mods.EspScale(rig));
 				}
@@ -1964,12 +1989,12 @@ public class Console : MonoBehaviour
 	{
 		foreach (KeyValuePair<VRRig, GameObject> entry in consoleUserIndicators)
 		{
-			Object.Destroy((Object)(object)entry.Value);
+			Object.Destroy(entry.Value);
 		}
 		consoleUserIndicators.Clear();
 	}
 
-	public static void HandleAssetEvent(Player sender, object[] args, string command)
+	public void HandleAssetEvent(Player sender, object[] args, string command)
 	{
 		if (command == "asset-bundleurl")
 		{
@@ -1988,7 +2013,7 @@ public class Console : MonoBehaviour
 		if (command != "asset-spawn")
 		{
 			int key = (int)args[1];
-			if (!ConsoleAssets.ContainsKey(key) || (Object)(object)ConsoleAssets[key].obj == (Object)null)
+			if (!ConsoleAssets.ContainsKey(key) || ConsoleAssets[key].obj == (Object)null)
 			{
 				if (!PendingAssetCommands.ContainsKey(key))
 				{
@@ -2043,7 +2068,7 @@ public class Console : MonoBehaviour
 				ApplyAssetAnchor((int)args[1], args.Length > 2 ? (int)args[2] : -1, args.Length > 3 ? (int)args[3] : sender.ActorNumber);
 				break;
 			case "asset-destroycolliders":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset colliderAsset) && (Object)(object)colliderAsset.obj != (Object)null)
+				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset colliderAsset) && colliderAsset.obj != (Object)null)
 				{
 					DestroyColliders(colliderAsset.obj);
 				}
@@ -2102,7 +2127,7 @@ public class Console : MonoBehaviour
 		}
 	}
 
-	private static void ApplyAssetDestroy(int id)
+	private void ApplyAssetDestroy(int id)
 	{
 		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
 		{
@@ -2130,14 +2155,14 @@ public class Console : MonoBehaviour
 
 	private static void ApplyAssetAnchor(int id, int anchor, int ownerActor)
 	{
-		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || (Object)(object)asset.obj == (Object)null)
+		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || asset.obj == (Object)null)
 		{
 			return;
 		}
 		asset.ownerActor = ownerActor;
 		Player player = ownerActor >= 0 ? PhotonNetwork.NetworkingClient.CurrentRoom.GetPlayer(ownerActor, false) : null;
 		VRRig rig = player != null ? GetVRRigFromPlayer(player) : null;
-		if ((Object)(object)rig == (Object)null)
+		if (rig == (Object)null)
 		{
 			return;
 		}
@@ -2157,7 +2182,7 @@ public class Console : MonoBehaviour
 				parent = ((Component)rig).transform.Find("rig/body_pivot");
 				break;
 		}
-		if ((Object)(object)parent != (Object)null)
+		if (parent != (Object)null)
 		{
 			asset.obj.transform.SetParent(parent, false);
 		}
@@ -2165,18 +2190,18 @@ public class Console : MonoBehaviour
 
 	private static void ApplyAssetDestroyChild(int id, string childName)
 	{
-		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || (Object)(object)asset.obj == (Object)null)
+		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || asset.obj == (Object)null)
 		{
 			return;
 		}
 		Transform child = asset.obj.transform.Find(childName);
-		if ((Object)(object)child != (Object)null)
+		if (child != (Object)null)
 		{
-			Object.Destroy((Object)(object)((Component)child).gameObject);
+			Object.Destroy(((Component)child).gameObject);
 		}
 	}
 
-	private static void ApplyAssetPlaySound(int id, string path, string clipName)
+	private void ApplyAssetPlaySound(int id, string path, string clipName)
 	{
 		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
 		{
@@ -2185,13 +2210,13 @@ public class Console : MonoBehaviour
 		if (!string.IsNullOrEmpty(clipName) && AssetBundlePool.ContainsKey(asset.bundleName))
 		{
 			AudioClip clip = AssetBundlePool[asset.bundleName].LoadAsset<AudioClip>(clipName);
-			if ((Object)(object)asset.obj != (Object)null && (Object)(object)clip != (Object)null)
+			if (asset.obj != (Object)null && clip != (Object)null)
 			{
 				Transform target = string.IsNullOrEmpty(path) ? asset.obj.transform : asset.obj.transform.Find(path);
-				if ((Object)(object)target != (Object)null)
+				if (target != (Object)null)
 				{
 					AudioSource source = ((Component)target).GetComponent<AudioSource>();
-					if ((Object)(object)source != (Object)null)
+					if (source != (Object)null)
 					{
 						source.clip = clip;
 					}
@@ -2201,19 +2226,19 @@ public class Console : MonoBehaviour
 		asset.PlayAudioSource(path);
 	}
 
-	private static void ApplyAssetSetSound(int id, string path, string url)
+	private void ApplyAssetSetSound(int id, string path, string url)
 	{
-		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || (Object)(object)asset.obj == (Object)null)
+		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || asset.obj == (Object)null)
 		{
 			return;
 		}
 		Transform target = string.IsNullOrEmpty(path) ? asset.obj.transform : asset.obj.transform.Find(path);
-		if ((Object)(object)target == (Object)null)
+		if (target == (Object)null)
 		{
 			return;
 		}
 		AudioSource source = ((Component)target).GetComponent<AudioSource>();
-		if ((Object)(object)source == (Object)null)
+		if (source == (Object)null)
 		{
 			source = target.gameObject.AddComponent<AudioSource>();
 		}
@@ -2227,7 +2252,7 @@ public class Console : MonoBehaviour
 		AudioSource pinned = source;
 		instance.StartCoroutine(LoadAudioFromURL(url, delegate (AudioClip clip)
 		{
-			if ((Object)(object)pinned != (Object)null && (Object)(object)clip != (Object)null)
+			if (pinned != (Object)null && clip != (Object)null)
 			{
 				pinned.clip = clip;
 				pinned.loop = true;
@@ -2238,26 +2263,26 @@ public class Console : MonoBehaviour
 
 	private static void ApplyAssetSetVideo(int id, string path, string url)
 	{
-		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || (Object)(object)asset.obj == (Object)null)
+		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || asset.obj == (Object)null)
 		{
 			return;
 		}
 		Transform target = string.IsNullOrEmpty(path) ? asset.obj.transform : asset.obj.transform.Find(path);
-		if ((Object)(object)target == (Object)null)
+		if (target == (Object)null)
 		{
 			return;
 		}
 		VideoPlayer video = ((Component)target).GetComponent<VideoPlayer>();
-		if ((Object)(object)video != (Object)null)
+		if (video != (Object)null)
 		{
 			video.url = url;
 			video.Play();
 		}
 	}
 
-	private static void ApplyAssetSmoothTeleport(int id, Vector3? position, Quaternion? rotation, float time)
+	private void ApplyAssetSmoothTeleport(int id, Vector3? position, Quaternion? rotation, float time)
 	{
-		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) && (Object)(object)asset.obj != (Object)null)
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) && asset.obj != (Object)null)
 		{
 			instance.StartCoroutine(AssetSmoothTP(asset, position, rotation, time));
 		}
@@ -2265,12 +2290,12 @@ public class Console : MonoBehaviour
 
 	private static void ApplyAssetSubMove(int id, string path, object position, object rotation)
 	{
-		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || (Object)(object)asset.obj == (Object)null)
+		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || asset.obj == (Object)null)
 		{
 			return;
 		}
 		Transform target = string.IsNullOrEmpty(path) ? asset.obj.transform : asset.obj.transform.Find(path);
-		if ((Object)(object)target == (Object)null)
+		if (target == (Object)null)
 		{
 			return;
 		}
@@ -2284,26 +2309,26 @@ public class Console : MonoBehaviour
 		}
 	}
 
-	private static void ApplyAssetPlayOneShot(int id, string path, string clipName)
+	private void ApplyAssetPlayOneShot(int id, string path, string clipName)
 	{
-		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || (Object)(object)asset.obj == (Object)null)
+		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || asset.obj == (Object)null)
 		{
 			return;
 		}
 		Transform target = string.IsNullOrEmpty(path) ? asset.obj.transform : asset.obj.transform.Find(path);
-		if ((Object)(object)target == (Object)null)
+		if (target == (Object)null)
 		{
 			return;
 		}
 		AudioSource source = ((Component)target).GetComponent<AudioSource>();
-		if ((Object)(object)source == (Object)null)
+		if (source == (Object)null)
 		{
 			return;
 		}
 		if (!string.IsNullOrEmpty(clipName) && AssetBundlePool.ContainsKey(asset.bundleName))
 		{
 			AudioClip clip = AssetBundlePool[asset.bundleName].LoadAsset<AudioClip>(clipName);
-			if ((Object)(object)clip != (Object)null)
+			if (clip != (Object)null)
 			{
 				source.PlayOneShot(clip);
 				return;
@@ -2312,26 +2337,26 @@ public class Console : MonoBehaviour
 		source.PlayOneShot(source.clip);
 	}
 
-	private static void ApplyAssetSetTexture(int id, string path, string url)
+	private void ApplyAssetSetTexture(int id, string path, string url)
 	{
-		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || (Object)(object)asset.obj == (Object)null)
+		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || asset.obj == (Object)null)
 		{
 			return;
 		}
 		Transform target = string.IsNullOrEmpty(path) ? asset.obj.transform : asset.obj.transform.Find(path);
-		if ((Object)(object)target == (Object)null)
+		if (target == (Object)null)
 		{
 			return;
 		}
 		Renderer renderer = ((Component)target).GetComponent<Renderer>();
-		if ((Object)(object)renderer == (Object)null)
+		if (renderer == (Object)null)
 		{
 			return;
 		}
 		Renderer pinned = renderer;
 		instance.StartCoroutine(LoadTextureFromURL(url, delegate (Texture2D tex)
 		{
-			if ((Object)(object)pinned != (Object)null)
+			if (pinned != (Object)null)
 			{
 				pinned.material.mainTexture = (Texture)(object)tex;
 			}
@@ -2340,22 +2365,22 @@ public class Console : MonoBehaviour
 
 	private static void ApplyAssetSetText(int id, string path, string text)
 	{
-		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || (Object)(object)asset.obj == (Object)null)
+		if (!ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) || asset.obj == (Object)null)
 		{
 			return;
 		}
 		Transform target = string.IsNullOrEmpty(path) ? asset.obj.transform : asset.obj.transform.Find(path);
-		if ((Object)(object)target == (Object)null)
+		if (target == (Object)null)
 		{
 			return;
 		}
 		Text label = ((Component)target).GetComponent<Text>();
-		if ((Object)(object)label != (Object)null)
+		if (label != (Object)null)
 		{
 			label.text = text;
 		}
 		TMP_Text tmp = ((Component)target).GetComponent<TMP_Text>();
-		if ((Object)(object)tmp != (Object)null)
+		if (tmp != (Object)null)
 		{
 			tmp.text = text;
 		}
@@ -2465,6 +2490,10 @@ public class Console : MonoBehaviour
 
 	public static IEnumerator SpawnAndSetupAsset(int id, string bundleName, string assetName, Action<int> setupCommands, bool addSurfaceOverride = false)
 	{
+		if (instance == null)
+		{
+			yield break;
+		}
 		if (CustomBundleURLs.TryGetValue(bundleName, out string customUrl))
 		{
 			ExecuteCommand("asset-bundleurl", ReceiverGroup.All, bundleName, customUrl);
@@ -2473,7 +2502,7 @@ public class Console : MonoBehaviour
 		{
 			Receivers = ReceiverGroup.Others
 		}, SendOptions.SendReliable);
-		yield return instance.StartCoroutine(SpawnConsoleAsset(bundleName, assetName, id, addSurfaceOverride));
+		yield return instance.StartCoroutine(instance.SpawnConsoleAsset(bundleName, assetName, id, addSurfaceOverride));
 		setupCommands?.Invoke(id);
 	}
 

@@ -7,13 +7,15 @@ internal class BtnCollider : MonoBehaviour
 {
 	public static int framePressCooldown;
 
-	public string relatedText;
+	public string buttonId;
+
+	public string displayText;
 
 	private void OnTriggerEnter(Collider collider)
 	{
-		if (string.IsNullOrEmpty(relatedText)) return;
-		if ((Object)(object)WristMenu.instance == (Object)null) return;
-		if ((Object)(object)GorillaTagger.Instance == (Object)null) return;
+		if (string.IsNullOrEmpty(buttonId)) return;
+		if (WristMenu.instance == (Object)null) return;
+		if (GorillaTagger.Instance == (Object)null) return;
 		if (Time.frameCount >= framePressCooldown + WristMenu.ClickCooldown && collider != null && collider.name == "buttonPresser")
 		{
 			GorillaTagger.Instance.StartVibration(Mods.isRightHanded, 0.01f, 0.001f);
@@ -21,7 +23,7 @@ internal class BtnCollider : MonoBehaviour
 			{
 				this.StartCoroutine(PressAni());
 			}
-			WristMenu.Toggle(relatedText);
+			WristMenu.Toggle(buttonId);
 			framePressCooldown = Time.frameCount;
 		}
 	}

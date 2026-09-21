@@ -3,11 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 using Chud.Classes;
 using Chud.UI;
 using ExitGames.Client.Photon;
@@ -22,12 +19,10 @@ using Photon.Pun;
 using Photon.Realtime;
 using Photon.Voice.Unity;
 using POpusCodec.Enums;
-using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.Networking;
-using UnityEngine.UI;
 using UnityEngine.XR;
 using Object = UnityEngine.Object;
 using Pointer = UnityEngine.InputSystem.Pointer;
@@ -35,36 +30,8 @@ using Random = UnityEngine.Random;
 
 namespace Chud.Backend;
 
-internal class Mods : MonoBehaviour
+internal partial class Mods : MonoBehaviour
 {
-	#region Fields and Constants
-	private struct TransformSnapshot
-	{
-		public Vector3 headPos;
-
-		public Quaternion headRot;
-
-		public Vector3 leftHandPos;
-
-		public Quaternion leftHandRot;
-
-		public Vector3 rightHandPos;
-
-		public Quaternion rightHandRot;
-
-		public float leftIndexT;
-
-		public float leftMiddleT;
-
-		public float leftThumbT;
-
-		public float rightIndexT;
-
-		public float rightMiddleT;
-
-		public float rightThumbT;
-	}
-
 	public struct MenuColors
 	{
 		public Color NormalColor;
@@ -84,16 +51,266 @@ internal class Mods : MonoBehaviour
 
 	public static Mods instance;
 
+	internal static bool ghostMonkeOn = false;
+
+	internal static bool invisMonkeOn = false;
+
+	internal static bool cloningGhostRig;
+
+	public static bool LocalRigOverrideActive
+	{
+		get
+		{
+			if (instance == null)
+			{
+				return false;
+			}
+			return ghostMonkeOn || invisMonkeOn || instance.grabRigActive || instance.orbitActive || instance.copyMovementActive || instance.tagGunLockedTarget != null || instance.tagAllTarget != null;
+		}
+	}
+
 	private static Shader CachedGuiTextShader => ShaderCache.GuiText;
+
 	private static Shader CachedUberShader => ShaderCache.Uber;
 
-	private static List<ButtonInfo> _cachedActiveButtons = new List<ButtonInfo>();
-	private static bool _activeButtonsDirty = true;
-	#endregion
+	private List<ButtonInfo> _cachedActiveButtons = new List<ButtonInfo>();
+
+	private bool _activeButtonsDirty = true;
+
+	public static float flySpeed = 8f;
+
+	public static readonly float[] FlySpeedValues = new float[] { 2f, 3f, 4f, 5f, 6f, 7f, 8f, 9f, 10f, 11f, 12f, 13f, 14f, 15f, 16f, 17f, 18f, 19f, 20f };
+
+	public static readonly string[] FlySpeedNames = new string[] { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20" };
+
+	public static float controllerPred = 0.0125f;
+
+	public static readonly float[] ControllerPredValues = new float[] { 0.00625f, 0.0125f, 0.025f, 0.05f };
+
+	public static readonly string[] ControllerPredNames = new string[] { "Low", "Normal", "High", "Extreme" };
+
+	public static int controllerPredIndex = 1;
+
+	public static bool fpsSpoofActive = false;
+
+	public static int fpsSpoofValue = 60;
+
+	public static readonly int[] FPSSpoofValues = new int[] { 0, 20, 45, 60, 67, 72, 80, 85, 120, 200, 225 };
+
+	public static readonly float[] WasdSenseValues = new float[] { 0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.25f, 2.5f, 2.75f, 3f };
+
+	public static float wasdFlyMouseSense = 1f;
+
+	public static int speedboostCycle = 0;
+
+	public static float jspeed = 7.5f;
+
+	public static float jmulti = 1.1f;
+
+	public static readonly float[] SpeedBoostSpeeds = new float[] { 7.5f, 8f, 9f, 12f, 15f, 20f, 30f, 50f, 100f, 200f };
+
+	public static readonly float[] SpeedBoostMultis = new float[] { 1.1f, 1.5f, 2f, 2.5f, 3f, 4f, 5f, 6f, 8f, 10f };
+
+	public static readonly string[] SpeedBoostNames = new string[] { "Normal", "Slightly Fast", "Fast", "Faster", "Much Faster", "Very Fast", "Extremely Fast", "Incredibly Fast", "Unbelievably Fast", "Maximum" };
+
+	public static readonly float[] PullPowerValues = new float[] { 0.03f, 0.05f, 0.08f, 0.1f, 0.15f, 0.2f, 0.3f, 0.4f, 0.5f };
+
+	public static readonly string[] PullPowerNames = new string[] { "Slightly Weak", "Normal", "Slightly Strong", "Strong", "Stronger", "Much Stronger", "Very Strong", "Extremely Strong", "Maximum" };
+
+	public static int pullPowerInt;
+
+	public static bool blockJmanSounds = false;
+
+	public static bool antiGuardianGrab = false;
+
+	public static bool antiBlockCrash = false;
+
+	public static bool seeAntiCheatReports = false;
+
+	public static readonly Dictionary<string, int> antiCheatReportCounts = new Dictionary<string, int>();
+
+	public static bool antiReportEnabled;
+
+	public static int antiReportRangeIndex = 1;
+
+	public static float antiReportRange = 0.35f;
+
+	public static readonly float[] antiReportRanges = new float[] { 0.25f, 0.35f, 0.5f, 0.7f, 1f, 1.25f, 1.5f, 2f };
+
+	public static Font comicSansFont;
+
+	public static readonly float[] TagAuraRanges = new float[] { 0f, 0.5f, 1f, 1.5f, 2f, 2.5f, 3f, 4f, 5f };
+
+	public static float tagAuraRange = 1.5f;
+
+	public static int tagAuraRangeIndex = 2;
+
+	private float tagAuraCooldown;
+
+	private LineRenderer tagAuraRing;
+
+	public static bool thirdPersonEnabled;
+
+	public static int waterSplashSpeedIndex = 1;
+
+	public static readonly float[] WaterSplashCooldowns = new float[] { 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.4f, 0.5f, 0.75f, 1f };
+
+	public static readonly string[] WaterSplashNames = new string[] { "0.05s", "0.1s", "0.15s", "0.2s", "0.25s", "0.3s", "0.4s", "0.5s", "0.75s", "1s" };
+
+	public static int menuColorIndex = 0;
+
+	private static readonly int[] notificationTimeValues = new int[10] { 50, 75, 100, 125, 150, 200, 250, 300, 400, 500 };
+
+	private static readonly string[] notificationTimeNames = new string[10] { "1s", "1.5s", "2s", "2.5s", "3s", "4s", "5s", "6s", "8s", "10s" };
+
+	public static int ButtonSound = 67;
+
+	public static GameObject pointer = null;
+
+	public static LineRenderer Line;
+
+	public static RaycastHit raycastHit;
+
+	public static bool gripHeld = false;
+
+	public static bool triggerHeld = false;
+
+	public static bool RPlat;
+
+	public static bool LPlat;
+
+	public static bool isRightHanded = false;
+
+	public static int activeMenuStyle = 3;
+
+	public static bool breakGuardianActive = false;
+
+	private Harmony breakGuardianHarmony;
+
+	private bool notificationsEnabled = true;
+
+	private int notificationDecayTime = 150;
+
+	private int notificationTimeIndex = 5;
+
+	private static readonly int[] LegacyColorIndexMap = new int[] { 0, 7, 2, 3, 9, 8, 6, 5, 5, 1 };
+
+	private const int PaletteVersion = 1;
+
+	private bool saveDirty = false;
+
+	private float lastSaveTime = -99f;
+
+	private const float SaveFlushInterval = 5f;
+
+	private float antiReportDelay;
+
+	private GameObject antiReportSphere;
+
+	private Material antiReportMat;
+
+	private bool pcButtonClickEnabled = false;
+
+	private Vector3? pcButtonOldLocalPosition;
+
+	private Camera pcButtonCachedCamera;
+
+	private int? noInvisLayerMask;
+
+	private bool pcGunsEnabled = false;
+
+	private Harmony vimHarmony;
+
+	private static readonly string treePinCosmeticId = "LBAAA.";
+
+	private static readonly string tryOnAllButtonId = "fun_tryon_all";
+
+	private static readonly string removeAllButtonId = "fun_remove_all";
+
+	private bool tryOnAllActive;
+
+	private Coroutine tryOnAllCoroutine;
+
+	private CosmeticsController.CosmeticItem[] tryOnAllSavedWorn;
+
+	private bool removeAllActive;
+
+	private Coroutine removeAllCoroutine;
+
+	private MethodInfo cachedAddCosmeticMethod;
+
+	private ParameterInfo[] cachedAddCosmeticParameters;
+
+	private bool boopActive = false;
+
+	private bool boopLastL;
+
+	private bool boopLastR;
+
+	private float boopCooldown;
+
+	private int randomColorSpazTick;
+
+	private bool bitcrunchMicActive = false;
+
+	private int bitcrunchOrigSampleRate = 16000;
+
+	private int bitcrunchOrigBitrate = 24000;
+
+	private float splashCooldown;
+
+	private bool antiNameBanApplied = true;
+
+	private Vector3 stumpPosition = new Vector3(-66.871f, 12.086f, -82.637f);
+
+	private string savedGroupKickRoom;
+
+	private float lastUntagNotif = 0f;
+
+	private float lastUntagSelfTime;
+
+	private VRRig guardianSpazTarget;
+
+	private float guardianSpazTimer;
+
+	private float lastGuardianGunTime;
+
+	private float lastUnguardianGunTime;
+
+	private bool spazAllActive = false;
+
+	private int spazAllFrameCounter = 0;
+
+	private bool spazSelfActive = false;
+
+	private int spazSelfFrameCounter = 0;
+
+	private bool gunTriggerWasDown = false;
+
+	private Camera pcGunCamera;
+
+	private bool lagGunRunning;
+
+	private int lagGunTargetActor = -1;
+
+	private VRRig lagGunLockedTarget;
+
+	private static readonly byte[] lagPayload = new byte[128];
+
+	public static string ConfigPath => WristMenu.FolderName + "\\Config.json";
+
+	private void Awake()
+	{
+		instance = this;
+		InitTagProviders();
+	}
 
 	public static void InvalidateActiveButtonsCache()
 	{
-		_activeButtonsDirty = true;
+		if (instance != null)
+		{
+			instance._activeButtonsDirty = true;
+		}
 	}
 
 	public static bool IsInGameMode(string gameMode)
@@ -116,10 +333,10 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	private static void RebuildActiveButtonsCache()
+	private void RebuildActiveButtonsCache()
 	{
 		_cachedActiveButtons.Clear();
-		foreach (MenuCategory category in MenuManager.Categories)
+		foreach (MenuCategory category in MenuManager.Instance.Categories)
 		{
 			if (category.Buttons == null) continue;
 			foreach (ButtonInfo button in category.Buttons)
@@ -136,1118 +353,12 @@ internal class Mods : MonoBehaviour
 		_activeButtonsDirty = false;
 	}
 
-	private static bool joystickFlyActive = false;
-
-	private static bool noGravityActive = false;
-
-	public static float flySpeed = 8f;
-
-	public static readonly float[] FlySpeedValues = new float[] { 2f, 3f, 4f, 5f, 6f, 7f, 8f, 9f, 10f, 11f, 12f, 13f, 14f, 15f, 16f, 17f, 18f, 19f, 20f };
-
-	public static readonly string[] FlySpeedNames = new string[] { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20" };
-
-	public static float controllerPred = 0.0125f;
-
-	private static bool controllerPredActive = false;
-
-	public static readonly float[] ControllerPredValues = new float[] { 0.00625f, 0.0125f, 0.025f, 0.05f };
-
-	public static readonly string[] ControllerPredNames = new string[] { "Low", "Normal", "High", "Extreme" };
-
-	public static int controllerPredIndex = 1;
-
-	public static bool fpsSpoofActive = false;
-
-	public static int fpsSpoofValue = 60;
-
-	public static readonly int[] FPSSpoofValues = new int[] { 0, 20, 45, 60, 67, 72, 80, 85, 120, 200, 225 };
-
-	private static Vector3 _predPrevLeftHand = Vector3.zero;
-	private static Vector3 _predPrevRightHand = Vector3.zero;
-
-	private static Vector3 _predPrevHead = Vector3.zero;
-
-	private static Vector3 _predLeftVel = Vector3.zero;
-
-	private static Vector3 _predRightVel = Vector3.zero;
-
-	private static Vector3 _predHeadVel = Vector3.zero;
-
-	private static bool wasdFlyActive = false;
-
-	private static bool wasdFlyNoMouseLock = false;
-
-	private static float wasdFlyMouseSense = 1f;
-
-	public static readonly float[] WasdSenseValues = new float[] { 0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.25f, 2.5f, 2.75f, 3f };
-
-	private static float wasdPitch;
-
-	private static bool flyActive = false;
-
-	public static int speedboostCycle = 0;
-
-	public static float jspeed = 7.5f;
-
-	public static float jmulti = 1.1f;
-
-	public static int pullPowerInt;
-
-	private static float pullPower = 0.05f;
-
-	public static readonly float[] SpeedBoostSpeeds = new float[] { 7.5f, 8f, 9f, 12f, 15f, 20f, 30f, 50f, 100f, 200f };
-
-	public static readonly float[] SpeedBoostMultis = new float[] { 1.1f, 1.5f, 2f, 2.5f, 3f, 4f, 5f, 6f, 8f, 10f };
-
-	public static readonly string[] SpeedBoostNames = new string[] { "Normal", "Slightly Fast", "Fast", "Faster", "Much Faster", "Very Fast", "Extremely Fast", "Incredibly Fast", "Unbelievably Fast", "Maximum" };
-
-	public static readonly float[] PullPowerValues = new float[] { 0.03f, 0.05f, 0.08f, 0.1f, 0.15f, 0.2f, 0.3f, 0.4f, 0.5f };
-
-	public static readonly string[] PullPowerNames = new string[] { "Slightly Weak", "Normal", "Slightly Strong", "Strong", "Stronger", "Much Stronger", "Very Strong", "Extremely Strong", "Maximum" };
-
-	private static readonly Dictionary<bool, bool> previousTouchingGround = new Dictionary<bool, bool>();
-
-	internal static bool ghostMonkeOn = false;
-
-	private static bool grabRigActive = false;
-
-	internal static bool invisMonkeOn = false;
-
-	public static bool LocalRigOverrideActive => ghostMonkeOn || invisMonkeOn || grabRigActive || orbitActive || copyMovementActive || tagGunLockedTarget != null || tagAllTarget != null;
-
-	private static bool ghostMonkeLastPress = false;
-
-	private static Vector3 ghostMonkeFrozenPos;
-
-	private static Quaternion ghostMonkeFrozenRot;
-
-	private static TransformSnapshot ghostMonkeSnapshot;
-
-	private static Vector3 invisMonkeSavedPos;
-
-	private static bool invisMonkeLastPress = false;
-
-		private static bool invisMonkeSkinsDisabled = false;
-
-	private static bool antiNameBanApplied = true;
-
-	private static bool bitcrunchMicActive = false;
-
-	private static int bitcrunchOrigSampleRate = 16000;
-
-	private static int bitcrunchOrigBitrate = 24000;
-
-	private static bool boopActive = false;
-
-	private static bool boopLastL;
-
-	private static bool boopLastR;
-
-	private static float boopCooldown;
-
-	private static int randomColorSpazTick;
-
-	private static bool minosPrimedForSlam = false;
-
-	private static bool minosWaitingForImpact = false;
-
-	private static AudioClip minosCrushClip = null;
-
-	private static AudioClip minosSlamClip = null;
-
-	private static bool minosClipsLoaded = false;
-
-	private static bool minosSecondaryWasDown = false;
-
-	private static bool minosPrimaryWasDown = false;
-
-	private static Coroutine minosRestoreCoroutine = null;
-
-	private static AudioSource minosLocalSource = null;
-
-	private const string MinosCrushUrl = "https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/CRUSH%20!.mp3";
-
-	private const string MinosSlamUrl = "https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/slam%20sound.mp3";
-
-	private static GameObject FreeCamObject;
-	public static bool thirdPersonEnabled;
-	private static bool thirdPersonViewActive;
-	private static bool xButtonWasDown;
-private static VRRig ghostRig;
-
-	private static Material ghostRigMaterial;
-
-	internal static bool cloningGhostRig;
-	private static bool ghostRigSubscribed;
-
-	private static readonly Dictionary<VRRig, GameObject> boxEspObjects = new Dictionary<VRRig, GameObject>();
-
-	private static readonly Dictionary<VRRig, GameObject> nameTagObjects = new Dictionary<VRRig, GameObject>();
-
-	private static readonly Dictionary<VRRig, GameObject> fpsNameTagObjects = new Dictionary<VRRig, GameObject>();
-
-	private static readonly Dictionary<VRRig, GameObject> idNameTagObjects = new Dictionary<VRRig, GameObject>();
-
-	private static readonly Dictionary<VRRig, GameObject> platformNameTagObjects = new Dictionary<VRRig, GameObject>();
-
-	private static readonly Dictionary<VRRig, GameObject> arsTagObjects = new Dictionary<VRRig, GameObject>();
-
-	private static HashSet<string> arsPlayersToReport = new HashSet<string>();
-
-	private static bool arsActive = false;
-
-	private static bool arsDownloaded = false;
-
-	private static bool arsDownloading = false;
-
-	private static readonly HttpClient arsHttpClient = new HttpClient();
-
-	public static Font comicSansFont;
-
-	private static FieldInfo _fpsField;
-
-	// Name tag stack order, bottom (closest to head) to top.
-	// 0 Console -> 1 Cosmetics -> 2 ID -> 3 Platform -> 4 Name -> 5 FPS -> 6 ARS -> 7 Admin crown
-	public const int TagStackConsole = 0;
-	public const int TagStackCosmetics = 1;
-	public const int TagStackId = 2;
-	public const int TagStackPlatform = 3;
-	public const int TagStackName = 4;
-	public const int TagStackFps = 5;
-	public const int TagStackArs = 6;
-	public const int TagStackCrown = 7;
-
-	private static readonly Dictionary<string, string> cosmeticNames = new Dictionary<string, string>
-	{
-		{ "LBAAK.", "Dev stick" },
-		{ "LBANI.", "AA BADGE" },
-		{ "LMAPY.", "Forest guide" },
-		{ "LBADE.", "Finger painter" },
-		{ "LBAGS.", "illustrator" },
-		{ "LMAYQ.", "Golden gorilla ticket" },
-		{ "LBARJ.", "COMMUNITY RIBBON" },
-		{ "LBASS.", "PARTY ILLUSTRATOR BADGE" },
-		{ "LMAJA.", "GT MONKE PLUSH" },
-		{ "LMAYT.", "LAVA MONKE DOUGHBOI" },
-		{ "LMBAO.", "Gorillacon golden phone" }
-	};
-
-	private static readonly HashSet<string> trackedWebhookCosmetics = new HashSet<string>
-	{
-		"LBAAK.", "LBANI.", "LMAPY.", "LBADE.", "LBAGS.", "LBARJ.", "LBASS."
-	};
-
-	private static readonly Dictionary<VRRig, GameObject> cosmeticNameTagObjects = new Dictionary<VRRig, GameObject>();
-
-	private static FieldInfo _ownedCosmeticsField;
-
-	private static bool arsNameTagsActive = false;
-
-	private static string arsLastCheckedRoom = "";
-
-	private static bool cosmeticNotifierActive = false;
-
-	private static HashSet<string> cosmeticNotifierNotified = new HashSet<string>();
-
-	private static bool notificationsEnabled = true;
-
-	public static int menuColorIndex = 0;
-
-	private static int notificationDecayTime = 150;
-
-	private static int notificationTimeIndex = 5;
-
-	private static readonly int[] notificationTimeValues = new int[10] { 50, 75, 100, 125, 150, 200, 250, 300, 400, 500 };
-
-	private static readonly string[] notificationTimeNames = new string[10] { "1s", "1.5s", "2s", "2.5s", "3s", "4s", "5s", "6s", "8s", "10s" };
-
-	private static Harmony vimHarmony;
-
-	private static float lastUntagNotif = 0f;
-
-	private static int tagGunFramesUntilTag;
-	private static VRRig tagGunLockedTarget = null;
-
-	private static VRRig tagAllTarget;
-	private static int tagAllFramesUntilTag;
-	private static List<VRRig> tagAllTargets;
-	private static int tagAllIndex;
-
-
-
-	private static float lastUntagSelfTime;
-
-	private static VRRig guardianSpazTarget;
-	private static float guardianSpazTimer;
-	private static float lastGuardianGunTime;
-	private static float lastUnguardianGunTime;
-
-	private static Vector3 stumpPosition = new Vector3(-66.871f, 12.086f, -82.637f);
-
-	private static bool spazAllActive = false;
-
-	private static int spazAllFrameCounter = 0;
-
-	private static bool spazSelfActive = false;
-
-	private static int spazSelfFrameCounter = 0;
-
-
-	private static bool gunTriggerWasDown = false;
-
-	private static Camera pcGunCamera;
-
-	public static bool blockJmanSounds = false;
-
-	public static bool antiGuardianGrab = false;
-
-	public static bool antiBlockCrash = false;
-
-	public static bool seeAntiCheatReports = false;
-
-	public static readonly Dictionary<string, int> antiCheatReportCounts = new Dictionary<string, int>();
-
-	public static bool antiReportEnabled;
-	public static int antiReportRangeIndex = 1;
-	public static float antiReportRange = 0.35f;
-	private static readonly float[] antiReportRanges = new float[] { 0.25f, 0.35f, 0.5f, 0.7f, 1f, 1.25f, 1.5f, 2f };
-	private static float antiReportDelay;
-	private static GameObject antiReportSphere;
-	private static Material antiReportMat;
-
-	private static bool pcButtonClickEnabled = false;
-
-	private static Vector3? pcButtonOldLocalPosition;
-
-	private static Camera pcButtonCachedCamera;
-
-	private static readonly List<VRRig> reusableBoxEspRemovals = new List<VRRig>();
-
-	private static readonly List<Player> reusableTracerRemovals = new List<Player>();
-
-	private static readonly List<Player> reusableSkeletonRemovals = new List<Player>();
-
-	private static readonly List<VRRig> reusableTagRemovals = new List<VRRig>();
-
-	private static readonly (Vector3, Vector3)[] reusableFingerConns = new (Vector3, Vector3)[6];
-
-	private static int? noInvisLayerMask;
-
-	private static bool pcGunsEnabled = false;
-
-	public static int activeMenuStyle = 3;
-
-	public static bool breakGuardianActive = false;
-	private static Harmony breakGuardianHarmony;
-
-	public static bool isRightHanded = false;
-
-	public static int ButtonSound = 67;
-
-	public static GameObject pointer = null;
-
-	public static LineRenderer Line;
-
-	public static RaycastHit raycastHit;
-
-	public static bool gripHeld = false;
-
-	public static bool triggerHeld = false;
-
-	private static readonly Dictionary<Player, LineRenderer> tracerLines = new Dictionary<Player, LineRenderer>();
-
-	private static readonly Dictionary<Player, LineRenderer[]> skeletonLines = new Dictionary<Player, LineRenderer[]>();
-
-	private static int noclipCacheFrame = 0;
-
-	private static MeshCollider[] noclipCache = (MeshCollider[])(object)new MeshCollider[0];
-	private static BoxCollider[] noclipBoxCache = (BoxCollider[])(object)new BoxCollider[0];
-
-	private static readonly Dictionary<Collider, bool> noclipOriginalStates = new Dictionary<Collider, bool>();
-
-	private static Vector3 scale = new Vector3(0.0125f, 0.28f, 0.3825f);
-	private static Material platMaterial;
-
-	private static bool once_left;
-
-	private static bool once_right;
-
-	private static bool once_left_false;
-
-	private static bool once_right_false;
-
-	private static GameObject jump_left_local = null;
-
-	private static GameObject jump_right_local = null;
-
-	private static bool stickyRightActive = false;
-
-	private static bool stickyLeftActive = false;
-
-	public static bool RPlat;
-
-	public static bool LPlat;
-
-	private static bool grabGreenBugActive = false;
-
-	private static bool grabDougBugActive = false;
-
-	private static bool grabAllBugsActive = false;
-
-	private static bool grabSpazBugActive = false;
-
-	private static float grabBugLastScan;
-
-	private static readonly List<ThrowableBug> cachedGrabBugs = new List<ThrowableBug>();
-
-	private const float GRAB_BUG_SCAN_INTERVAL = 3f;
-
-
-	public static string ConfigPath => WristMenu.FolderName + "\\Config.json";
-
-
-	private void Awake()
-	{
-		instance = this;
-	}
-
-
-	public static void JoystickFly()
-	{
-		joystickFlyActive = true;
-		RegisterFlyGravityOverride();
-	}
-
-	public static void SetFlySpeed(int index)
-	{
-		index %= FlySpeedValues.Length;
-		if (index < 0) index = FlySpeedValues.Length - 1;
-		flySpeed = FlySpeedValues[index];
-		NotifiLib.SendNotification("Fly Speed: " + FlySpeedNames[index]);
-	}
-
-	public static void DisableJoystickFly()
-	{
-		joystickFlyActive = false;
-		UnregisterFlyGravityOverride();
-	}
-
-	public static void EnableWASDFly()
-	{
-		wasdFlyActive = true;
-		wasdPitch = 0f;
-		RegisterFlyGravityOverride();
-	}
-
-	public static void DisableWASDFly()
-	{
-		wasdFlyActive = false;
-		Cursor.lockState = CursorLockMode.None;
-		Cursor.visible = true;
-		UnregisterFlyGravityOverride();
-	}
-
-	public static void EnableFly()
-	{
-		flyActive = true;
-	}
-
-	public static void DisableFly()
-	{
-		flyActive = false;
-	}
-
-	private static void UpdateFly()
-	{
-		if (flyActive)
-		{
-			if ((Object)(object)ControllerInputPoller.instance != (Object)null && (Object)(object)GorillaTagger.Instance != (Object)null && !((Object)(object)GorillaTagger.Instance.rigidbody == (Object)null) && (isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton))
-			{
-				RegisterFlyGravityOverride();
-				Transform transform = GTPlayer.Instance.transform;
-				transform.position += GorillaTagger.Instance.headCollider.transform.forward * (Time.deltaTime * flySpeed);
-				_flyDesiredVelocity = Vector3.zero;
-			}
-			else
-			{
-				UnregisterFlyGravityOverride();
-				_flyDesiredVelocity = Vector3.zero;
-			}
-		}
-	}
-
-	public static void SetWASDFlyNoMouseLock(bool on)
-	{
-		wasdFlyNoMouseLock = on;
-		
-	}
-
-	public static void SetWASDFlyMouseSense(int index)
-	{
-		index %= WasdSenseValues.Length;
-		if (index < 0) index = WasdSenseValues.Length - 1;
-		wasdFlyMouseSense = WasdSenseValues[index];
-		NotifiLib.SendNotification("WASD Mouse Sense: " + wasdFlyMouseSense.ToString("0.00"));
-	}
-
-	private static void UpdateWASDFly()
-	{
-		if (!wasdFlyActive)
-		{
-			return;
-		}
-		if ((Object)(object)GorillaTagger.Instance == (Object)null)
-		{
-			return;
-		}
-		Rigidbody rigidbody = GorillaTagger.Instance.rigidbody;
-		if ((Object)(object)rigidbody == (Object)null)
-		{
-			return;
-		}
-		if (GTPlayer.Instance == null || GTPlayer.Instance.headCollider == null || GTPlayer.Instance.transform == null)
-		{
-			return;
-		}
-		Transform transform = ((Component)GTPlayer.Instance.headCollider).transform;
-		Transform transform2 = GTPlayer.Instance.transform;
-		Vector3 val = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
-		Vector3 normalized = val.normalized;
-		val = Vector3.ProjectOnPlane(transform.right, Vector3.up);
-		Vector3 normalized2 = val.normalized;
-		Vector3 val2 = Vector3.zero;
-		Keyboard current = Keyboard.current;
-		if (current != null)
-		{
-			if (((ButtonControl)current.wKey).isPressed)
-			{
-				val2 += normalized;
-			}
-			if (((ButtonControl)current.sKey).isPressed)
-			{
-				val2 -= normalized;
-			}
-			if (((ButtonControl)current.aKey).isPressed)
-			{
-				val2 -= normalized2;
-			}
-			if (((ButtonControl)current.dKey).isPressed)
-			{
-				val2 += normalized2;
-			}
-			if (((ButtonControl)current.spaceKey).isPressed)
-			{
-				val2 += Vector3.up;
-			}
-			if (current.ctrlKey.isPressed)
-			{
-				val2 -= Vector3.up;
-			}
-		}
-		if (val2.sqrMagnitude > 0.01f)
-		{
-			GTPlayer.Instance.transform.position += val2.normalized * flySpeed * Time.deltaTime;
-			if (GorillaTagger.Instance != null && GorillaTagger.Instance.rigidbody != null) GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
-		}
-		Mouse current2 = Mouse.current;
-		if (current2 != null && current2.rightButton.isPressed)
-		{
-			if (!wasdFlyNoMouseLock)
-			{
-				Cursor.lockState = CursorLockMode.Locked;
-				Cursor.visible = false;
-			}
-			Vector2 val4 = ((InputControl<Vector2>)(object)((Pointer)current2).delta).ReadValue() * wasdFlyMouseSense * 0.15f;
-			transform2.Rotate(Vector3.up, val4.x, Space.World);
-			wasdPitch = Mathf.Clamp(wasdPitch - val4.y, -90f, 90f);
-			Quaternion targetRot = Quaternion.Euler(wasdPitch, 0f, 0f);
-			transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRot, Time.deltaTime * 12f);
-		}
-		else if (!wasdFlyNoMouseLock && (int)Cursor.lockState == 1)
-		{
-			Cursor.lockState = CursorLockMode.None;
-			Cursor.visible = true;
-		}
-	}
-
-	private static readonly Action<GTPlayer> _flyGravityCallback = delegate(GTPlayer gt)
-	{
-		Rigidbody rb = gt.playerRigidBody;
-		rb.linearVelocity = Vector3.zero;
-	};
-
-	private static void RegisterFlyGravityOverride()
-	{
-		if ((Object)(object)GTPlayer.Instance != (Object)null)
-		{
-			GTPlayer.Instance.SetGravityOverride(instance, _flyGravityCallback);
-		}
-	}
-
-	private static void UnregisterFlyGravityOverride()
-	{
-		if ((Object)(object)GTPlayer.Instance != (Object)null && !joystickFlyActive && !wasdFlyActive && !noGravityActive)
-		{
-			GTPlayer.Instance.UnsetGravityOverride(instance);
-		}
-	}
-
-	public static void NoGravity()
-	{
-		noGravityActive = true;
-		RegisterFlyGravityOverride();
-	}
-
-	public static void DisableNoGravity()
-	{
-		noGravityActive = false;
-		UnregisterFlyGravityOverride();
-	}
-
-	public static void Platforms()
-	{
-		PlatformsThing(invis: false, false);
-	}
-
-	public static void StickyPlatforms()
-	{
-		PlatformsThing(invis: false, true);
-	}
-
-	public static void GrabGreenBug()
-	{
-		grabGreenBugActive = !grabGreenBugActive;
-	}
-
-	public static void DisableGrabGreenBug()
-	{
-		grabGreenBugActive = false;
-	}
-
-	public static void GrabDougBug()
-	{
-		grabDougBugActive = !grabDougBugActive;
-	}
-
-	public static void DisableGrabDougBug()
-	{
-		grabDougBugActive = false;
-	}
-
-	public static void GrabAllBugs()
-	{
-		grabAllBugsActive = !grabAllBugsActive;
-	}
-
-	public static void DisableGrabAllBugs()
-	{
-		grabAllBugsActive = false;
-	}
-
-	public static void SpazBugs()
-	{
-		grabSpazBugActive = !grabSpazBugActive;
-	}
-
-	public static void DisableSpazBugs()
-	{
-		grabSpazBugActive = false;
-	}
-
-	public static void UpdateGrabBugs()
-	{
-		if (!grabGreenBugActive && !grabDougBugActive && !grabAllBugsActive && !grabSpazBugActive)
-			return;
-
-		bool rightGrip = (Object)(object)ControllerInputPoller.instance != (Object)null && ControllerInputPoller.instance.rightGrab;
-		bool leftGrip = (Object)(object)ControllerInputPoller.instance != (Object)null && ControllerInputPoller.instance.leftGrab;
-		bool anyGrip = rightGrip || leftGrip;
-
-		if (!anyGrip && !grabSpazBugActive)
-			return;
-
-		if (Time.time > grabBugLastScan + GRAB_BUG_SCAN_INTERVAL)
-		{
-			grabBugLastScan = Time.time;
-			cachedGrabBugs.Clear();
-			cachedGrabBugs.AddRange(Resources.FindObjectsOfTypeAll<ThrowableBug>());
-		}
-
-		Transform rightHand = GorillaTagger.Instance.rightHandTransform;
-		Transform leftHand = GorillaTagger.Instance.leftHandTransform;
-		Transform hand = rightGrip ? rightHand : leftHand;
-
-		for (int i = cachedGrabBugs.Count - 1; i >= 0; i--)
-		{
-			ThrowableBug bug = cachedGrabBugs[i];
-			if ((Object)(object)bug == (Object)null)
-			{
-				cachedGrabBugs.RemoveAt(i);
-				continue;
-			}
-			if (bug.name != "Floating Bug Holdable")
-				continue;
-
-			try
-			{
-				if (grabSpazBugActive)
-				{
-					if (!bug.IsMyItem())
-						bug.WorldShareableRequestOwnership();
-					float phase = (float)(bug.GetInstanceID() % 97) * 0.010309f;
-					float t = (Mathf.Sin((Time.time + phase) * 12f) + 1f) * 0.5f;
-					bug.transform.position = Vector3.Lerp(leftHand.position, rightHand.position, t);
-					bug.transform.rotation = Random.rotation;
-					continue;
-				}
-
-				if (!anyGrip)
-					continue;
-
-				Transform model = bug.transform.Find("model/PlumpBeetle");
-				if ((Object)(object)model == (Object)null) continue;
-				SkinnedMeshRenderer renderer = model.GetComponent<SkinnedMeshRenderer>();
-				if ((Object)(object)renderer == (Object)null || (Object)(object)renderer.material == (Object)null) continue;
-				string matName = renderer.material.name;
-				bool isGreen = matName.Contains("PlumpBeetle2");
-				bool isDoug = !isGreen && matName.Contains("PlumpBeetle");
-				bool shouldGrab = grabAllBugsActive || (grabGreenBugActive && isGreen) || (grabDougBugActive && isDoug);
-
-				if (!shouldGrab)
-					continue;
-
-				if (!bug.IsMyItem())
-					bug.WorldShareableRequestOwnership();
-
-				Rigidbody rb = bug.GetComponent<Rigidbody>();
-				if ((Object)(object)rb != (Object)null)
-					rb.position = hand.position;
-				else
-					bug.transform.position = hand.position;
-
-				if (!float.IsPositiveInfinity(bug.maxDistanceFromOriginBeforeRespawn))
-					bug.maxDistanceFromOriginBeforeRespawn = float.MaxValue;
-				if (!float.IsPositiveInfinity(bug.maxDistanceFromTargetPlayerBeforeRespawn))
-					bug.maxDistanceFromTargetPlayerBeforeRespawn = float.MaxValue;
-			}
-			catch { }
-		}
-	}
-
-	public static void Noclip()
-	{
-		noclipCacheFrame++;
-		if (noclipCacheFrame % 60 == 0 || noclipCache.Length == 0)
-		{
-			noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
-		}
-		if (noclipBoxCache.Length == 0)
-		{
-			noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
-		}
-		bool noclipBtn = isRightHanded ? WristMenu.ybuttonDown : WristMenu.bbuttonDown;
-		foreach (MeshCollider val in noclipCache)
-		{
-			if ((Object)(object)val == (Object)null)
-			{
-				continue;
-			}
-			Collider c = (Collider)(object)val;
-			if (!noclipOriginalStates.ContainsKey(c))
-			{
-				noclipOriginalStates[c] = c.enabled;
-			}
-			c.enabled = !noclipBtn;
-		}
-		foreach (BoxCollider val2 in noclipBoxCache)
-		{
-			if ((Object)(object)val2 == (Object)null || val2.isTrigger)
-			{
-				continue;
-			}
-			Collider c2 = (Collider)(object)val2;
-			if (!noclipOriginalStates.ContainsKey(c2))
-			{
-				noclipOriginalStates[c2] = c2.enabled;
-			}
-			c2.enabled = !noclipBtn;
-		}
-	}
-
-	public static void NoclipOff()
-	{
-		noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
-		noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
-		foreach (var kvp in noclipOriginalStates)
-		{
-			if ((Object)(object)kvp.Key != (Object)null)
-			{
-				kvp.Key.enabled = kvp.Value;
-			}
-		}
-		noclipOriginalStates.Clear();
-	}
-
-	public static void SetSpeedBoostAmount(int index)
-	{
-		speedboostCycle = index % SpeedBoostSpeeds.Length;
-		if (speedboostCycle < 0) speedboostCycle = SpeedBoostSpeeds.Length - 1;
-		jspeed = SpeedBoostSpeeds[speedboostCycle];
-		jmulti = SpeedBoostMultis[speedboostCycle];
-		NotifiLib.SendNotification("Speed: " + SpeedBoostNames[speedboostCycle]);
-	}
-
-	public static void SpeedBoost()
-	{
-		if (GTPlayer.Instance == null) return;
-		float maxJumpSpeed = jspeed;
-		float jumpMultiplier = jmulti;
-		GTPlayer.Instance.maxJumpSpeed = maxJumpSpeed;
-		GTPlayer.Instance.jumpMultiplier = jumpMultiplier;
-		Rigidbody component = ((Component)GTPlayer.Instance).GetComponent<Rigidbody>();
-		if (GTPlayer.Instance.BodyOnGround && component.linearVelocity.y > 0f)
-		{
-			component.linearVelocity = new Vector3(component.linearVelocity.x, 0f, component.linearVelocity.z);
-		}
-	}
-
-	public static void DisableSpeedBoost()
-	{
-		GTPlayer.Instance.maxJumpSpeed = 6.5f;
-		GTPlayer.Instance.jumpMultiplier = 1.1f;
-	}
-
-	public static void EnableControllerPredictions()
-	{
-		controllerPredActive = true;
-		_predPrevLeftHand = GorillaTagger.Instance.leftHandTransform.position;
-		_predPrevRightHand = GorillaTagger.Instance.rightHandTransform.position;
-		_predPrevHead = VRRig.LocalRig.head.rigTarget.transform.position;
-		
-	}
-
-	public static void DisableControllerPredictions()
-	{
-		controllerPredActive = false;
-	}
-
-	public static void SetControllerPrediction(int index)
-	{
-		index %= ControllerPredValues.Length;
-		controllerPredIndex = ((index < 0) ? (ControllerPredValues.Length - 1) : index);
-		controllerPred = ControllerPredValues[controllerPredIndex];
-		NotifiLib.SendNotification("Set to " + ControllerPredNames[controllerPredIndex]);
-	}
-
-	private static void ControllerPredTick()
-	{
-		if (!controllerPredActive)
-			return;
-		if ((Object)(object)GorillaTagger.Instance == (Object)null)
-			return;
-		VRRig local = VRRig.LocalRig;
-		if ((Object)(object)local == (Object)null || local.head == null || (Object)(object)local.head.rigTarget == (Object)null)
-			return;
-		float dt = Time.deltaTime;
-		if (dt <= 0.0001f)
-			return;
-		Vector3 leftHandPos = GorillaTagger.Instance.leftHandTransform.position;
-		Vector3 rightHandPos = GorillaTagger.Instance.rightHandTransform.position;
-		Vector3 headPos = local.head.rigTarget.transform.position;
-		_predLeftVel = Vector3.Lerp(_predLeftVel, (leftHandPos - _predPrevLeftHand) / dt, 0.5f);
-		_predRightVel = Vector3.Lerp(_predRightVel, (rightHandPos - _predPrevRightHand) / dt, 0.5f);
-		_predHeadVel = Vector3.Lerp(_predHeadVel, (headPos - _predPrevHead) / dt, 0.5f);
-		_predPrevLeftHand = leftHandPos;
-		_predPrevRightHand = rightHandPos;
-		_predPrevHead = headPos;
-		if (local.leftHand != null && (Object)(object)local.leftHand.rigTarget != (Object)null)
-			local.leftHand.rigTarget.transform.position += (_predLeftVel - _predHeadVel) * controllerPred;
-		if (local.rightHand != null && (Object)(object)local.rightHand.rigTarget != (Object)null)
-			local.rightHand.rigTarget.transform.position += (_predRightVel - _predHeadVel) * controllerPred;
-	}
-
-	public static void EnableFPSSpoof()
-	{
-		fpsSpoofActive = true;
-	}
-
-	public static void DisableFPSSpoof()
-	{
-		fpsSpoofActive = false;
-	}
-
-	public static void SetFPSSpoof(int index)
-	{
-		index %= FPSSpoofValues.Length;
-		fpsSpoofValue = FPSSpoofValues[((index < 0) ? (FPSSpoofValues.Length - 1) : index)];
-		NotifiLib.SendNotification("Set to " + fpsSpoofValue + " fps");
-	}
-
-	public static void SetPullModPower(int index)
-	{
-		pullPowerInt = index % PullPowerValues.Length;
-		if (pullPowerInt < 0) pullPowerInt = PullPowerValues.Length - 1;
-		pullPower = PullPowerValues[pullPowerInt];
-		NotifiLib.SendNotification("Pull power: " + PullPowerNames[pullPowerInt]);
-	}
-
-	private static void ProcessPullHand(bool left)
-	{
-		if (!(left ? (!ControllerInputPoller.instance.leftGrab) : (!ControllerInputPoller.instance.rightGrab)))
-		{
-			bool flag = GTPlayer.Instance.IsHandTouching(left);
-			previousTouchingGround.TryGetValue(left, out var value);
-			if (!flag && value)
-			{
-				Vector3 up = Vector3.up;
-				Rigidbody component = ((Component)GTPlayer.Instance).GetComponent<Rigidbody>();
-				Vector3 val = GTVector3Extensions.X_Z(component.linearVelocity);
-				Transform transform = GTPlayer.Instance.transform;
-				Vector3 position = transform.position;
-				Vector3 val2 = val - up * Vector3.Dot(val, up);
-				transform.position = position + val2.normalized * (val.magnitude / GTPlayer.Instance.maxJumpSpeed * (pullPower * 5f)) * GTPlayer.Instance.scale;
-			}
-			previousTouchingGround[left] = flag;
-		}
-	}
-
-	public static void PullMod()
-	{
-		ProcessPullHand(left: false);
-		ProcessPullHand(left: true);
-	}
-
-	private static void TakeRigSnapshot(out TransformSnapshot s)
-	{
-		VRRig localRig = VRRig.LocalRig;
-		s = default(TransformSnapshot);
-		if (localRig.head != null && (Object)(object)localRig.head.rigTarget != (Object)null)
-		{
-			s.headPos = localRig.head.rigTarget.transform.position;
-			s.headRot = localRig.head.rigTarget.transform.rotation;
-		}
-		if (localRig.leftHand != null && (Object)(object)localRig.leftHand.rigTarget != (Object)null)
-		{
-			s.leftHandPos = localRig.leftHand.rigTarget.transform.position;
-			s.leftHandRot = localRig.leftHand.rigTarget.transform.rotation;
-		}
-		if (localRig.rightHand != null && (Object)(object)localRig.rightHand.rigTarget != (Object)null)
-		{
-			s.rightHandPos = localRig.rightHand.rigTarget.transform.position;
-			s.rightHandRot = localRig.rightHand.rigTarget.transform.rotation;
-		}
-		s.leftIndexT = ((VRMap)localRig.leftIndex).calcT;
-		s.leftMiddleT = ((VRMap)localRig.leftMiddle).calcT;
-		s.leftThumbT = ((VRMap)localRig.leftThumb).calcT;
-		s.rightIndexT = ((VRMap)localRig.rightIndex).calcT;
-		s.rightMiddleT = ((VRMap)localRig.rightMiddle).calcT;
-		s.rightThumbT = ((VRMap)localRig.rightThumb).calcT;
-	}
-
-	private static void ApplyRigSnapshot(ref TransformSnapshot s)
-	{
-		VRRig localRig = VRRig.LocalRig;
-		if (localRig.head != null && (Object)(object)localRig.head.rigTarget != (Object)null)
-		{
-			localRig.head.rigTarget.transform.SetPositionAndRotation(s.headPos, s.headRot);
-		}
-		if (localRig.leftHand != null && (Object)(object)localRig.leftHand.rigTarget != (Object)null)
-		{
-			localRig.leftHand.rigTarget.transform.SetPositionAndRotation(s.leftHandPos, s.leftHandRot);
-		}
-		if (localRig.rightHand != null && (Object)(object)localRig.rightHand.rigTarget != (Object)null)
-		{
-			localRig.rightHand.rigTarget.transform.SetPositionAndRotation(s.rightHandPos, s.rightHandRot);
-		}
-		((VRMap)localRig.leftIndex).calcT = s.leftIndexT;
-		((VRMap)localRig.leftIndex).LerpFinger(1f, false);
-		((VRMap)localRig.leftMiddle).calcT = s.leftMiddleT;
-		((VRMap)localRig.leftMiddle).LerpFinger(1f, false);
-		((VRMap)localRig.leftThumb).calcT = s.leftThumbT;
-		((VRMap)localRig.leftThumb).LerpFinger(1f, false);
-		((VRMap)localRig.rightIndex).calcT = s.rightIndexT;
-		((VRMap)localRig.rightIndex).LerpFinger(1f, false);
-		((VRMap)localRig.rightMiddle).calcT = s.rightMiddleT;
-		((VRMap)localRig.rightMiddle).LerpFinger(1f, false);
-		((VRMap)localRig.rightThumb).calcT = s.rightThumbT;
-		((VRMap)localRig.rightThumb).LerpFinger(1f, false);
-	}
-
-	public static void GhostMonke()
-	{
-		if ((Object)(object)VRRig.LocalRig == (Object)null)
-		{
-			return;
-		}
-		bool ghostMonkeButton = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
-		if (ghostMonkeButton && !ghostMonkeLastPress)
-		{
-			ghostMonkeOn = !ghostMonkeOn;
-			if (ghostMonkeOn)
-			{
-				ghostMonkeFrozenPos = VRRig.LocalRig.transform.position;
-				ghostMonkeFrozenRot = VRRig.LocalRig.transform.rotation;
-				TakeRigSnapshot(out ghostMonkeSnapshot);
-				SubscribeGhostRig();
-			}
-			else
-			{
-				EnsureLocalRigEnabled();
-				TryUnsubscribeGhostRig();
-			}
-		}
-		ghostMonkeLastPress = ghostMonkeButton;
-		if (ghostMonkeOn)
-		{
-			EnsureLocalRigEnabled();
-			if (!XRSettings.isDeviceActive)
-			{
-				VRRig local = VRRig.LocalRig;
-				Vector3 pos = GTPlayer.Instance.transform.position + Vector3.up * 0.2f;
-				Quaternion rot = GTPlayer.Instance.transform.rotation;
-				local.transform.SetPositionAndRotation(pos, rot);
-				if (local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
-					local.head.rigTarget.transform.SetPositionAndRotation(pos + Vector3.up * 0.2f, rot);
-				return;
-			}
-			VRRig.LocalRig.transform.SetPositionAndRotation(ghostMonkeFrozenPos, ghostMonkeFrozenRot);
-			ApplyRigSnapshot(ref ghostMonkeSnapshot);
-		}
-	}
-
-	public static void DisableGhostMonke()
-	{
-		EnsureLocalRigEnabled();
-		ghostMonkeOn = false;
-		TryUnsubscribeGhostRig();
-	}
-
-	private static void InvisMonkeSetSkins(bool disable)
-	{
-		if (!((Object)(object)VRRig.LocalRig == (Object)null) && disable != invisMonkeSkinsDisabled)
-		{
-			SkinnedMeshRenderer mainSkin = VRRig.LocalRig.mainSkin;
-			if (!((Object)(object)mainSkin == (Object)null))
-			{
-				((Renderer)mainSkin).enabled = !disable;
-				invisMonkeSkinsDisabled = disable;
-			}
-		}
-	}
-
-	public static void InvisMonke()
-	{
-		if ((Object)(object)VRRig.LocalRig == (Object)null)
-		{
-			return;
-		}
-		bool invisMonkeButton = isRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
-		if (invisMonkeButton && !invisMonkeLastPress)
-		{
-			if (!invisMonkeOn)
-			{
-				invisMonkeSavedPos = VRRig.LocalRig.transform.position;
-				invisMonkeOn = true;
-				InvisMonkeSetSkins(disable: true);
-				SubscribeGhostRig();
-			}
-			else
-			{
-				EnsureLocalRigEnabled();
-				VRRig.LocalRig.transform.position = invisMonkeSavedPos;
-				InvisMonkeSetSkins(disable: false);
-				invisMonkeOn = false;
-				TryUnsubscribeGhostRig();
-			}
-		}
-		invisMonkeLastPress = invisMonkeButton;
-		if (invisMonkeOn)
-		{
-			EnsureLocalRigEnabled();
-			if (!XRSettings.isDeviceActive)
-			{
-				VRRig local = VRRig.LocalRig;
-				Vector3 pos = GTPlayer.Instance.transform.position + Vector3.up * 0.2f;
-				Quaternion rot = GTPlayer.Instance.transform.rotation;
-				local.transform.SetPositionAndRotation(pos, rot);
-				if (local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
-					local.head.rigTarget.transform.SetPositionAndRotation(pos + Vector3.up * 0.2f, rot);
-				return;
-			}
-			VRRig.LocalRig.transform.position = new Vector3(9999f, 9999f, 9999f);
-		}
-	}
-
-	public static void DisableInvisMonke()
-	{
-		if ((Object)(object)VRRig.LocalRig != (Object)null && invisMonkeOn)
-		{
-			EnsureLocalRigEnabled();
-			VRRig.LocalRig.transform.position = invisMonkeSavedPos;
-			InvisMonkeSetSkins(disable: false);
-		}
-		invisMonkeOn = false;
-		TryUnsubscribeGhostRig();
-	}
-
-	private static void EnsureLocalRigEnabled()
-	{
-		if ((Object)(object)VRRig.LocalRig != (Object)null && !VRRig.LocalRig.enabled)
-			VRRig.LocalRig.enabled = true;
-	}
-
-	public static void GrabRig()
-	{
-		if (WristMenu.gripDownR)
-		{
-			if (!grabRigActive)
-			{
-				grabRigActive = true;
-				
-				SubscribeGhostRig();
-			}
-		}
-		else if (grabRigActive)
-		{
-			grabRigActive = false;
-			EnsureLocalRigEnabled();
-			TryUnsubscribeGhostRig();
-		}
-	}
-
-	public static void DisableGrabRig()
-	{
-		grabRigActive = false;
-		EnsureLocalRigEnabled();
-		TryUnsubscribeGhostRig();
-	}
-
-	private static void GrabRigTick()
-	{
-		if (!grabRigActive || (Object)(object)VRRig.LocalRig == (Object)null)
-		{
-			return;
-		}
-		EnsureLocalRigEnabled();
-		if (!XRSettings.isDeviceActive)
-		{
-			VRRig local = VRRig.LocalRig;
-			Vector3 pos = GTPlayer.Instance.transform.position + Vector3.up * 0.2f;
-			Quaternion rot = GTPlayer.Instance.transform.rotation;
-			local.transform.SetPositionAndRotation(pos, rot);
-			if (local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
-				local.head.rigTarget.transform.SetPositionAndRotation(pos + Vector3.up * 0.2f, rot);
-			return;
-		}
-		Transform hand = GorillaTagger.Instance.rightHandTransform;
-		VRRig local2 = VRRig.LocalRig;
-		local2.transform.SetPositionAndRotation(hand.position, hand.rotation);
-		if (local2.head != null && (Object)(object)local2.head.rigTarget != (Object)null)
-			local2.head.rigTarget.transform.SetPositionAndRotation(hand.position, hand.rotation);
-	}
-
 	private void Update()
 	{
+		if (instance == null)
+		{
+			return;
+		}
 		if (wasdFlyActive)
 			UpdateWASDFly();
 		if (flyActive)
@@ -1258,15 +369,13 @@ private static VRRig ghostRig;
 		xButtonWasDown = xDown;
 		if (thirdPersonEnabled && thirdPersonViewActive)
 			EnableThirdPerson();
-		else if ((Object)(object)FreeCamObject != (Object)null)
+		else if (FreeCamObject != (Object)null)
 			DisableThirdPersonView();
 	}
 
-	private static Vector3 _flyDesiredVelocity = Vector3.zero;
-
 	private void LateUpdate()
 	{
-		if ((Object)(object)VRRig.LocalRig == (Object)null)
+		if (VRRig.LocalRig == (Object)null)
 		{
 			return;
 		}
@@ -1284,7 +393,7 @@ private static VRRig ghostRig;
 				Vector3 pos = GTPlayer.Instance.transform.position + Vector3.up * 0.2f;
 				Quaternion rot = GTPlayer.Instance.transform.rotation;
 				local.transform.SetPositionAndRotation(pos, rot);
-				if (local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
+				if (local.head != null && local.head.rigTarget != (Object)null)
 					local.head.rigTarget.transform.SetPositionAndRotation(pos + Vector3.up * 0.2f, rot);
 			}
 			else
@@ -1303,7 +412,7 @@ private static VRRig ghostRig;
 				Vector3 pos = GTPlayer.Instance.transform.position + Vector3.up * 0.2f;
 				Quaternion rot = GTPlayer.Instance.transform.rotation;
 				local.transform.SetPositionAndRotation(pos, rot);
-				if (local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
+				if (local.head != null && local.head.rigTarget != (Object)null)
 					local.head.rigTarget.transform.SetPositionAndRotation(pos + Vector3.up * 0.2f, rot);
 			}
 			else
@@ -1330,355 +439,16 @@ private static VRRig ghostRig;
 		UpdateGrabBugs();
 	}
 
-
-	private static void ClampHandToCage(Vector3 center, bool isRight)
-	{
-		float radius = 0.15f;
-		Transform hand = isRight ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
-		if (hand == null) return;
-		Vector3 offset = hand.position - center;
-		float dist = offset.magnitude;
-		if (dist > radius)
-		{
-			hand.position = center + offset / dist * radius;
-		}
-	}
-
-	private static void UpdateJoystickFly()
-	{
-		if ((Object)(object)GTPlayer.Instance == (Object)null || (Object)(object)GorillaTagger.Instance == (Object)null || (Object)(object)GorillaTagger.Instance.rigidbody == (Object)null) return;
-		Vector2 joyL = WristMenu.joyL;
-		Vector2 joy = WristMenu.joy;
-		if (joyL.magnitude < 0.12f) joyL = Vector2.zero;
-		if (joy.magnitude < 0.12f) joy = Vector2.zero;
-		if (joyL.sqrMagnitude < 0.001f && joy.sqrMagnitude < 0.001f) return;
-		Transform head = ((Component)GTPlayer.Instance.headCollider).transform;
-		Vector3 fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized;
-		Vector3 right = Vector3.ProjectOnPlane(head.right, Vector3.up).normalized;
-		Vector3 dir = fwd * joyL.y + right * joyL.x + Vector3.up * joy.y;
-		if (dir.sqrMagnitude < 0.01f) return;
-		GTPlayer.Instance.transform.position += dir.normalized * flySpeed * Time.deltaTime;
-		if (GorillaTagger.Instance != null && GorillaTagger.Instance.rigidbody != null) GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
-	}
-
-	public static void AntiNameBan()
-	{
-		antiNameBanApplied = true;
-		BanPatchState.enabled = true;
-	}
-
-	public static void DisableAntiNameBan()
-	{
-		if (antiNameBanApplied)
-		{
-			BanPatchState.enabled = false;
-			antiNameBanApplied = false;
-		}
-	}
-
-	public static void BitcrunchMic()
-	{
-		if (!bitcrunchMicActive)
-		{
-			Recorder myRecorder = GorillaTagger.Instance.myRecorder;
-			if (!((Object)(object)myRecorder == (Object)null))
-			{
-				bitcrunchOrigSampleRate = (int)myRecorder.SamplingRate;
-				bitcrunchOrigBitrate = myRecorder.Bitrate;
-				myRecorder.SamplingRate = (SamplingRate)8000;
-				myRecorder.Bitrate = 8000;
-				myRecorder.RestartRecording(true);
-				bitcrunchMicActive = true;
-				
-			}
-		}
-	}
-
-	public static void DisableBitcrunchMic()
-	{
-		if (bitcrunchMicActive)
-		{
-			Recorder myRecorder = GorillaTagger.Instance.myRecorder;
-			if ((Object)(object)myRecorder != (Object)null)
-			{
-				myRecorder.SamplingRate = (SamplingRate)bitcrunchOrigSampleRate;
-				myRecorder.Bitrate = bitcrunchOrigBitrate;
-				myRecorder.RestartRecording(true);
-			}
-			bitcrunchMicActive = false;
-			
-		}
-	}
-
-	public static void Boop()
-	{
-		boopActive = true;
-	}
-
-	public static void DisableBoop()
-	{
-		boopActive = false;
-		boopCooldown = 0f;
-	}
-
-	private static void UpdateBoop()
-	{
-		if (!boopActive)
-		{
-			return;
-		}
-		if (boopCooldown > 0f)
-		{
-			boopCooldown -= Time.deltaTime;
-			return;
-		}
-		bool flag = false;
-		bool flag2 = false;
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-		{
-			if (!activeRig.isLocal && !((Object)(object)activeRig.headMesh == (Object)null))
-			{
-				float num = Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, activeRig.headMesh.transform.position);
-				float num2 = Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, activeRig.headMesh.transform.position);
-				if (!flag && num < 0.275f)
-				{
-					flag = true;
-				}
-				if (!flag2 && num2 < 0.275f)
-				{
-					flag2 = true;
-				}
-			}
-		}
-		if (flag && !boopLastL)
-		{
-			VRRig.LocalRig.PlayHandTapLocal(84, true, 999999f);
-			GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, new object[3] { 84, true, 999999f });
-			boopCooldown = 0.05f;
-		}
-		if (flag2 && !boopLastR)
-		{
-			VRRig.LocalRig.PlayHandTapLocal(84, false, 999999f);
-			GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, new object[3] { 84, false, 999999f });
-			boopCooldown = 0.05f;
-		}
-		boopLastL = flag;
-		boopLastR = flag2;
-	}
-
-	public static void RandomColorSpaz()
-	{
-		randomColorSpazTick++;
-		if (randomColorSpazTick % 15 == 0)
-		{
-			float num = Random.Range(0.15f, 0.95f);
-			float num2 = Random.Range(0.15f, 0.95f);
-			float num3 = Random.Range(0.15f, 0.95f);
-			if (VRRig.LocalRig != null) VRRig.LocalRig.InitializeNoobMaterialLocal(num, num2, num3);
-			if (GorillaTagger.Instance != null && GorillaTagger.Instance.myVRRig != null)
-				GorillaTagger.Instance.myVRRig.SendRPC("RPC_InitializeNoobMaterial", RpcTarget.All, new object[3] { num, num2, num3 });
-		}
-	}
-
-	public static void DisableRandomColorSpaz()
-	{
-		float r = PlayerPrefs.GetFloat("redValue", 1f);
-		float g = PlayerPrefs.GetFloat("greenValue", 1f);
-		float b = PlayerPrefs.GetFloat("blueValue", 1f);
-		r = Mathf.Clamp01(r); g = Mathf.Clamp01(g); b = Mathf.Clamp01(b);
-		randomColorSpazTick = 0;
-		try
-		{
-			Color c = new Color(r, g, b, 1f);
-			if (VRRig.LocalRig != null)
-			{
-				VRRig.LocalRig.InitializeNoobMaterialLocal(r, g, b);
-				VRRig.LocalRig.SetColor(c);
-				if (VRRig.LocalRig.bodyRenderer != null) VRRig.LocalRig.bodyRenderer.UpdateColor(c);
-				if (VRRig.LocalRig.mainSkin != null) VRRig.LocalRig.mainSkin.material.color = c;
-			}
-			if (GorillaTagger.Instance != null)
-			{
-				if (GorillaTagger.Instance.myVRRig != null) GorillaTagger.Instance.myVRRig.SendRPC("RPC_InitializeNoobMaterial", RpcTarget.All, new object[3] { r, g, b });
-				if (GorillaTagger.Instance.offlineVRRig != null)
-				{
-					GorillaTagger.Instance.offlineVRRig.InitializeNoobMaterialLocal(r, g, b);
-					GorillaTagger.Instance.offlineVRRig.SetColor(c);
-					if (GorillaTagger.Instance.offlineVRRig.bodyRenderer != null) GorillaTagger.Instance.offlineVRRig.bodyRenderer.UpdateColor(c);
-					if (GorillaTagger.Instance.offlineVRRig.mainSkin != null) GorillaTagger.Instance.offlineVRRig.mainSkin.material.color = c;
-				}
-			}
-		}
-		catch { }
-	}
-
-	private static float splashCooldown;
-
-	public static int waterSplashSpeedIndex = 1;
-
-	public static readonly float[] WaterSplashCooldowns = new float[] { 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.4f, 0.5f, 0.75f, 1f };
-
-	public static readonly string[] WaterSplashNames = new string[] { "0.05s", "0.1s", "0.15s", "0.2s", "0.25s", "0.3s", "0.4s", "0.5s", "0.75s", "1s" };
-
-	private static void SpawnSplash()
-	{
-		if (Time.time < splashCooldown) return;
-		bool right = WristMenu.gripDownR;
-		bool left = WristMenu.gripDownL;
-		if (!right && !left) return;
-		if (GorillaTagger.Instance == null || GorillaTagger.Instance.myVRRig == null) return;
-		splashCooldown = Time.time + WaterSplashCooldowns[waterSplashSpeedIndex % WaterSplashCooldowns.Length];
-		if (ObjectPools.instance == null) return;
-		Transform hand = right ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
-		if (hand == null) return;
-		Vector3 pos = hand.position;
-		Quaternion rot = hand.rotation;
-		float scale = Mathf.Clamp(1f, 1E-05f, 1f);
-		float bound = Mathf.Clamp(0.5f, 0.0001f, 0.5f);
-		if (GTPlayer.Instance == null || GTPlayer.Instance.waterParams == null) return;
-		GameObject splashFx = ObjectPools.instance.Instantiate(GTPlayer.Instance.waterParams.splashEffect, pos, rot, scale, true);
-		if (splashFx != null)
-			splashFx.GetComponent<WaterSplashEffect>().PlayEffect(true, false, scale);
-		GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlaySplashEffect", RpcTarget.Others, new object[]
-		{
-			pos, rot, scale, bound, true, false
-		});
-	}
-
-	public static void WaterSplash()
-	{
-		SpawnSplash();
-	}
-
-	public static void DisableWaterSplash() { }
-
-	public static void SetWaterSplashSpeed(int index)
-	{
-		waterSplashSpeedIndex = index % WaterSplashCooldowns.Length;
-		NotifiLib.SendNotification("Water splash speed: " + WaterSplashNames[waterSplashSpeedIndex]);
-	}
-
-	public static void SetButtonClickSound(int index)
-	{
-		WristMenu.ApplyButtonClickSound(index);
-		NotifiLib.SendNotification("Button click: " + WristMenu.ButtonClickNames[WristMenu.buttonClickIndex]);
-		Save();
-	}
-
-	public static void MinosPrime()
-	{
-		PreloadMinosSounds();
-		bool minosSecondaryBtn = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
-		bool minosPrimaryBtn = isRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
-		if (minosSecondaryBtn && !minosSecondaryWasDown)
-		{
-			GorillaTagger.Instance.rigidbody.linearVelocity = new Vector3(GorillaTagger.Instance.rigidbody.linearVelocity.x, 20f, GorillaTagger.Instance.rigidbody.linearVelocity.z);
-			PlayMinosClip(minosCrushClip);
-			minosPrimedForSlam = true;
-			minosWaitingForImpact = false;
-		}
-		if (minosPrimaryBtn && !minosPrimaryWasDown && minosPrimedForSlam)
-		{
-			Camera mainCam = MainCamera();
-			Vector3 val = (((Object)(object)mainCam != (Object)null) ? mainCam.transform.forward : Vector3.forward);
-			GorillaTagger.Instance.rigidbody.linearVelocity = val * 35f;
-			minosPrimedForSlam = false;
-			minosWaitingForImpact = true;
-		}
-		if (minosWaitingForImpact)
-		{
-			Vector3 linearVelocity = GorillaTagger.Instance.rigidbody.linearVelocity;
-			if (linearVelocity.magnitude < 5f)
-			{
-				minosWaitingForImpact = false;
-				PlayMinosClip(minosSlamClip);
-			}
-		}
-		minosSecondaryWasDown = minosSecondaryBtn;
-		minosPrimaryWasDown = minosPrimaryBtn;
-	}
-
-	public static void DisableMinosPrime()
-	{
-		minosPrimedForSlam = false;
-		minosWaitingForImpact = false;
-		minosSecondaryWasDown = false;
-		minosPrimaryWasDown = false;
-		if (minosRestoreCoroutine != null)
-		{
-			instance.StopCoroutine(minosRestoreCoroutine);
-			minosRestoreCoroutine = null;
-		}
-		RestoreRecorder();
-	}
-
-	private static void PlayMinosClip(AudioClip clip)
-	{
-		if ((Object)(object)clip == (Object)null)
-		{
-			return;
-		}
-		if ((Object)(object)minosLocalSource == (Object)null)
-		{
-			GameObject val = new GameObject("MinosAudio");
-			Object.DontDestroyOnLoad((Object)(object)val);
-			minosLocalSource = val.AddComponent<AudioSource>();
-			minosLocalSource.spatialBlend = 0f;
-			minosLocalSource.volume = 1f;
-		}
-		minosLocalSource.Stop();
-		minosLocalSource.PlayOneShot(clip, 2f);
-		Recorder myRecorder = GorillaTagger.Instance.myRecorder;
-		if ((Object)(object)myRecorder != (Object)null)
-		{
-			if (minosRestoreCoroutine != null)
-			{
-				instance.StopCoroutine(minosRestoreCoroutine);
-			}
-			myRecorder.SourceType = Recorder.InputSourceType.AudioClip;
-		myRecorder.AudioClip = clip;
-			myRecorder.RestartRecording(true);
-			myRecorder.DebugEchoMode = true;
-			minosRestoreCoroutine = instance.StartCoroutine(RestoreMicAfter(clip.length));
-		}
-	}
-
-	private static IEnumerator RestoreMicAfter(float delay)
-	{
-		yield return (object)new WaitForSeconds(delay + 0.4f);
-		if ((Object)(object)instance && ((Behaviour)instance).isActiveAndEnabled)
-		{
-			RestoreRecorder();
-			minosRestoreCoroutine = null;
-		}
-	}
-
-	private static void RestoreRecorder()
-	{
-		Recorder myRecorder = GorillaTagger.Instance.myRecorder;
-		if (!((Object)(object)myRecorder == (Object)null))
-		{
-			myRecorder.SourceType = Recorder.InputSourceType.Microphone;
-			myRecorder.AudioClip = null;
-			myRecorder.RestartRecording(true);
-			myRecorder.DebugEchoMode = false;
-		}
-	}
-
-	public static void PreloadMinosSounds()
-	{
-		if (minosClipsLoaded || instance == null) return;
-		minosClipsLoaded = true;
-		instance.StartCoroutine(LoadMinosSounds());
-	}
-
-	private static IEnumerator LoadMinosSounds()
-	{
-		yield return SoundCache.GetClip(MinosCrushUrl, c => minosCrushClip = c);
-		yield return SoundCache.GetClip(MinosSlamUrl, c => minosSlamClip = c);
-	}
-
 	public static void UpdateActiveMods()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.UpdateActiveModsCore();
+	}
+
+	private void UpdateActiveModsCore()
 	{
 		AntiBlockCrashTick();
 		UpdatePCButtonClick();
@@ -1708,8 +478,6 @@ private static VRRig ghostRig;
 				flag = true;
 			}
 		}
-		// ARS runs AFTER the tag buttons, so ARS sits at the TOP of the tag stack (farthest from head).
-		// DO NOT move this above the buttons loop or ARS drops to the BOTTOM.
 		ARSNameTagUpdate();
 		if (spazAllActive || spazSelfActive)
 		{
@@ -1732,13 +500,13 @@ private static VRRig ghostRig;
 				}
 			}
 		}
-		if (!flag && (Object)(object)pointer != (Object)null)
+		if (!flag && pointer != (Object)null)
 		{
-			Object.Destroy((Object)(object)pointer);
+			Object.Destroy(pointer);
 			pointer = null;
-			if ((Object)(object)Line != (Object)null)
+			if (Line != (Object)null)
 			{
-				Object.Destroy((Object)(object)((Component)Line).gameObject);
+				Object.Destroy(((Component)Line).gameObject);
 				Line = null;
 			}
 			gunTriggerWasDown = false;
@@ -1749,1176 +517,34 @@ private static VRRig ghostRig;
 		FlushSave();
 	}
 
-	public static void EnableThirdPerson()
-	{
-		thirdPersonEnabled = true;
-		if ((Object)(object)FreeCamObject == (Object)null)
-		{
-			FreeCamObject = new GameObject("Chud_CameraObj");
-			FreeCamObject.transform.position = GorillaTagger.Instance.headCollider.transform.position;
-			Camera val = FreeCamObject.AddComponent<Camera>();
-			val.nearClipPlane = 0.01f;
-			val.cameraType = CameraType.Game;
-		}
-		FreeCamObject.transform.position = GorillaTagger.Instance.bodyCollider.transform.TransformPoint(new Vector3(0f, 0.5f, -1.5f));
-		FreeCamObject.transform.rotation = GorillaTagger.Instance.headCollider.transform.rotation;
-	}
-
-	public static void DisableThirdPerson()
-	{
-		thirdPersonEnabled = false;
-		thirdPersonViewActive = false;
-		if ((Object)(object)FreeCamObject != (Object)null)
-		{
-			Object.Destroy((Object)(object)FreeCamObject.GetComponent<Camera>());
-			Object.Destroy((Object)(object)FreeCamObject);
-			FreeCamObject = null;
-		}
-	}
-
-	private static void DisableThirdPersonView()
-	{
-		if ((Object)(object)FreeCamObject != (Object)null)
-		{
-			Object.Destroy((Object)(object)FreeCamObject.GetComponent<Camera>());
-			Object.Destroy((Object)(object)FreeCamObject);
-			FreeCamObject = null;
-		}
-	}
-
-	public static void BoxEspRender()
-	{
-		reusableBoxEspRemovals.Clear();
-		foreach (KeyValuePair<VRRig, GameObject> item in boxEspObjects)
-		{
-			if (VRRigCache.ActiveRigs.Contains(item.Key))
-			{
-				continue;
-			}
-			reusableBoxEspRemovals.Add(item.Key);
-			Object.Destroy((Object)(object)item.Value);
-		}
-		foreach (VRRig item2 in reusableBoxEspRemovals)
-		{
-			boxEspObjects.Remove(item2);
-		}
-		foreach (VRRig item3 in VRRigCache.ActiveRigs)
-		{
-			if (item3.isLocal)
-			{
-				continue;
-			}
-			if (!boxEspObjects.TryGetValue(item3, out var value))
-			{
-				value = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy((Object)(object)value.GetComponent<BoxCollider>());
-				value.GetComponent<Renderer>().enabled = false;
-				value.transform.localScale = new Vector3(0.8f, 0.85f, 0f);
-				Shader shader = CachedGuiTextShader;
-				float num = 0.08f;
-				GameObject val = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
-				val.transform.SetParent(value.transform);
-				val.transform.localPosition = new Vector3(0f, 0.425f, 0f);
-				val.transform.localScale = new Vector3(0.8f, num, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
-				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
-				val.transform.SetParent(value.transform);
-				val.transform.localPosition = new Vector3(0f, -0.425f, 0f);
-				val.transform.localScale = new Vector3(0.8f, num, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
-				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
-				val.transform.SetParent(value.transform);
-				val.transform.localPosition = new Vector3(0.4f, 0f, 0f);
-				val.transform.localScale = new Vector3(num, 0.85f, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
-				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
-				val.transform.SetParent(value.transform);
-				val.transform.localPosition = new Vector3(-0.4f, 0f, 0f);
-				val.transform.localScale = new Vector3(num, 0.85f, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
-				boxEspObjects.Add(item3, value);
-			}
-			Color color = item3.playerColor;
-			try
-			{
-				GorillaGameManager val2 = GorillaGameManager.instance;
-				if ((Object)(object)val2 != (Object)null)
-				{
-					GorillaTagManager val3 = (GorillaTagManager)(object)((val2 is GorillaTagManager) ? val2 : null);
-					if (val3 != null && item3.Creator != null && val3.IsInfected(item3.Creator))
-					{
-						color = new Color(1f, 0.5f, 0f);
-					}
-				}
-			}
-			catch
-			{
-			}
-			float espScale = EspScale(item3);
-			Vector3 espRoot = ((Component)item3).transform.position;
-			Vector3 espHead = GetHeadAnchor(item3);
-			float espHeight = Mathf.Abs(espHead.y - espRoot.y);
-			if (espHeight < 0.4f * espScale || espHeight > 50f)
-				espHeight = 0.85f * espScale;
-			value.transform.position = (espRoot + espHead) * 0.5f;
-			value.transform.LookAt(GorillaTagger.Instance.headCollider.transform.position);
-			value.transform.localScale = new Vector3(0.8f * espScale, espHeight, 0f);
-			foreach (Transform item4 in value.transform)
-			{
-				Transform val4 = item4;
-				Renderer component = ((Component)val4).GetComponent<Renderer>();
-				if ((Object)(object)component != (Object)null)
-				{
-					component.material.color = color;
-				}
-			}
-		}
-	}
-
-	public static void DisableBoxEsp()
-	{
-		foreach (KeyValuePair<VRRig, GameObject> boxEspObject in boxEspObjects)
-		{
-			Object.Destroy((Object)(object)boxEspObject.Value);
-		}
-		boxEspObjects.Clear();
-	}
-
-	public static void Tracers()
-	{
-		reusableTracerRemovals.Clear();
-		foreach (KeyValuePair<Player, LineRenderer> tracerLine in tracerLines)
-		{
-			if (!PhotonNetwork.PlayerListOthers.Contains(tracerLine.Key))
-			{
-				reusableTracerRemovals.Add(tracerLine.Key);
-			}
-		}
-		if (reusableTracerRemovals.Count > 0)
-		{
-			foreach (Player item in reusableTracerRemovals)
-			{
-				Object.Destroy((Object)(object)((Component)tracerLines[item]).gameObject);
-				tracerLines.Remove(item);
-			}
-		}
-		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
-		foreach (Player val in playerListOthers)
-		{
-			VRRig vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(val);
-			if ((Object)(object)vRRigFromPlayer == (Object)null)
-			{
-				continue;
-			}
-			if (!tracerLines.TryGetValue(val, out var value))
-			{
-				GameObject val2 = new GameObject("TracerLine");
-				((Object)val2).hideFlags = HideFlags.HideAndDontSave;
-				value = val2.AddComponent<LineRenderer>();
-				value.startWidth = 0.01f;
-				value.endWidth = 0.01f;
-				value.positionCount = 2;
-				value.useWorldSpace = true;
-				((Renderer)value).material.shader = CachedGuiTextShader;
-				tracerLines[val] = value;
-			}
-			value.SetPosition(0, GetTracerStart());
-			value.SetPosition(1, vRRigFromPlayer.transform.position);
-			Color val3 = vRRigFromPlayer.playerColor;
-			try
-			{
-				GorillaGameManager val4 = GorillaGameManager.instance;
-				if ((Object)(object)val4 != (Object)null)
-				{
-					GorillaTagManager val5 = (GorillaTagManager)(object)((val4 is GorillaTagManager) ? val4 : null);
-					if (val5 != null && vRRigFromPlayer.Creator != null && val5.IsInfected(vRRigFromPlayer.Creator))
-					{
-						val3 = new Color(1f, 0.5f, 0f);
-					}
-				}
-			}
-			catch
-			{
-			}
-			val3.a = 0.3f;
-			value.startColor = val3;
-			value.endColor = val3;
-		}
-	}
-
-	private static Vector3 GetTracerStart()
-	{
-		if (!XRSettings.isDeviceActive && (object)ghostRig != (Object)null && GhostWanted())
-		{
-			Transform ghostHand = null;
-			try { ghostHand = ghostRig.rightHand?.rigTarget?.transform; } catch { }
-			if ((object)ghostHand != (Object)null) return ghostHand.position;
-			return ghostRig.transform.position + Vector3.up * 0.2f;
-		}
-		return GTPlayer.Instance.RightHand.controllerTransform.position;
-	}
-
-	public static void DisableTracers()
-	{
-		foreach (LineRenderer value in tracerLines.Values)
-		{
-			Object.Destroy((Object)(object)((Component)value).gameObject);
-		}
-		tracerLines.Clear();
-	}
-
-	private struct SkeletonLink
-	{
-		public int first;
-		public int second;
-	}
-
-	private static readonly SkeletonLink[] skeletonLinks = new SkeletonLink[]
-	{
-		new SkeletonLink { first = 4, second = 3 },
-		new SkeletonLink { first = 5, second = 4 },
-		new SkeletonLink { first = 19, second = 18 },
-		new SkeletonLink { first = 20, second = 19 },
-		new SkeletonLink { first = 3, second = 18 },
-		new SkeletonLink { first = 21, second = 20 },
-		new SkeletonLink { first = 22, second = 21 },
-		new SkeletonLink { first = 25, second = 21 },
-		new SkeletonLink { first = 29, second = 21 },
-		new SkeletonLink { first = 31, second = 29 },
-		new SkeletonLink { first = 27, second = 25 },
-		new SkeletonLink { first = 24, second = 22 },
-		new SkeletonLink { first = 6, second = 5 },
-		new SkeletonLink { first = 7, second = 6 },
-		new SkeletonLink { first = 10, second = 6 },
-		new SkeletonLink { first = 14, second = 6 },
-		new SkeletonLink { first = 16, second = 14 },
-		new SkeletonLink { first = 12, second = 10 },
-		new SkeletonLink { first = 9, second = 7 }
-	};
-
-	private const int SkeletonLineCount = 26;
-
-	private const int SkeletonFingerStart = 20;
-
-	private static readonly string[] skeletonFingerNames = new string[]
-	{
-		"thumb.03.L", "f_index.02.L", "f_middle.02.L",
-		"thumb.03.R", "f_index.02.R", "f_middle.02.R"
-	};
-
-	private static Material skeletonSharedMaterial;
-
-	private static readonly Dictionary<VRRig, Transform[]> skeletonFingerCache = new Dictionary<VRRig, Transform[]>();
-
-	private static readonly List<VRRig> skeletonFingerStale = new List<VRRig>();
-
-	private static LineRenderer CreateSkeletonLine()
-	{
-		GameObject obj = new GameObject("skel");
-		LineRenderer line = obj.AddComponent<LineRenderer>();
-		line.startWidth = 0.025f;
-		line.endWidth = 0.025f;
-		line.positionCount = 2;
-		line.useWorldSpace = true;
-		if (skeletonSharedMaterial == null)
-			skeletonSharedMaterial = new Material(CachedGuiTextShader);
-		line.material = skeletonSharedMaterial;
-		return line;
-	}
-
-	private static void DrawSkeletonLine(LineRenderer line, Color color, Vector3 from, Vector3 to, float size)
-	{
-		if (line == null) return;
-		line.startColor = color;
-		line.endColor = color;
-		line.startWidth = 0.025f * size;
-		line.endWidth = 0.025f * size;
-		line.SetPosition(0, from);
-		line.SetPosition(1, to);
-	}
-
-	private static Color SkeletonLineColor(VRRig rig)
-	{
-		Color color = rig.playerColor;
-		try
-		{
-			GorillaGameManager gm = GorillaGameManager.instance;
-			if (gm != null && gm is GorillaTagManager tgm && rig.Creator != null && tgm.IsInfected(rig.Creator))
-				color = new Color(1f, 0.5f, 0f);
-		}
-		catch { }
-		if (color.r == 0f && color.g == 0f && color.b == 0f)
-			color = Color.white;
-		return color;
-	}
-
-	private static Transform[] GetSkeletonFingers(VRRig rig)
-	{
-		if (skeletonFingerCache.TryGetValue(rig, out Transform[] cached) && cached != null && cached.Length == 6)
-			return cached;
-		Transform[] found = new Transform[6];
-		if (rig.mainSkin != null && rig.mainSkin.bones != null)
-		{
-			foreach (Transform b in rig.mainSkin.bones)
-			{
-				if (b == null) continue;
-				for (int i = 0; i < 6; i++)
-				{
-					if (found[i] == null && b.name.StartsWith(skeletonFingerNames[i], StringComparison.OrdinalIgnoreCase))
-						found[i] = b;
-				}
-			}
-		}
-		skeletonFingerCache[rig] = found;
-		return found;
-	}
-
-	public static void SkeletonEsp()
-	{
-		reusableSkeletonRemovals.Clear();
-		foreach (var kvp in skeletonLines)
-		{
-			if (!PhotonNetwork.PlayerListOthers.Contains(kvp.Key))
-				reusableSkeletonRemovals.Add(kvp.Key);
-		}
-		foreach (Player p in reusableSkeletonRemovals)
-		{
-			if (skeletonLines.TryGetValue(p, out LineRenderer[] dead) && dead != null)
-			{
-				foreach (LineRenderer lr in dead)
-				{
-					if (lr != null)
-						Object.Destroy(((Component)lr).gameObject);
-				}
-			}
-			skeletonLines.Remove(p);
-		}
-		skeletonFingerStale.Clear();
-		foreach (VRRig cachedRig in skeletonFingerCache.Keys)
-		{
-			if (cachedRig == null || !VRRigCache.ActiveRigs.Contains(cachedRig))
-				skeletonFingerStale.Add(cachedRig);
-		}
-		foreach (VRRig stale in skeletonFingerStale)
-			skeletonFingerCache.Remove(stale);
-
-		foreach (Player player in PhotonNetwork.PlayerListOthers)
-		{
-			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(player);
-			if (rig == null) continue;
-			if (rig.mainSkin == null || rig.mainSkin.bones == null) continue;
-			if (rig.head == null || rig.head.rigTarget == null) continue;
-
-			Transform[] bones = rig.mainSkin.bones;
-
-			if (!skeletonLines.TryGetValue(player, out LineRenderer[] lines) || lines == null || lines.Length != SkeletonLineCount)
-			{
-				lines = new LineRenderer[SkeletonLineCount];
-				for (int i = 0; i < SkeletonLineCount; i++)
-					lines[i] = CreateSkeletonLine();
-				skeletonLines[player] = lines;
-			}
-
-			Color color = SkeletonLineColor(rig);
-			float s = EspScale(rig);
-			Vector3 headPos = GetHeadAnchor(rig);
-			DrawSkeletonLine(lines[0], color, headPos + new Vector3(0f, 0.16f * s, 0f), headPos - new Vector3(0f, 0.4f * s, 0f), s);
-
-			for (int i = 0; i < skeletonLinks.Length; i++)
-			{
-				int a = skeletonLinks[i].first;
-				int b = skeletonLinks[i].second;
-				if (a < 0 || b < 0 || a >= bones.Length || b >= bones.Length) continue;
-				Transform ta = bones[a];
-				Transform tb = bones[b];
-				if (ta == null || tb == null) continue;
-				DrawSkeletonLine(lines[1 + i], color, ta.position, tb.position, s);
-			}
-
-			VRMap lm = rig.leftHand;
-			Vector3 lHand = (lm != null && lm.rigTarget != null) ? lm.rigTarget.position : headPos;
-			VRMap rm = rig.rightHand;
-			Vector3 rHand = (rm != null && rm.rigTarget != null) ? rm.rigTarget.position : headPos;
-
-			Vector3 forward = rig.head.rigTarget.forward;
-			Vector3 right = rig.head.rigTarget.right;
-
-			Transform[] fingers = GetSkeletonFingers(rig);
-			Vector3 lThumb = fingers[0] != null ? fingers[0].position : lHand - right * (0.05f * s) + forward * (0.03f * s);
-			Vector3 lIndex = fingers[1] != null ? fingers[1].position : lHand + forward * (0.06f * s);
-			Vector3 lMiddle = fingers[2] != null ? fingers[2].position : lHand + forward * (0.06f * s) - right * (0.02f * s);
-			Vector3 rThumb = fingers[3] != null ? fingers[3].position : rHand + right * (0.05f * s) + forward * (0.03f * s);
-			Vector3 rIndex = fingers[4] != null ? fingers[4].position : rHand + forward * (0.06f * s);
-			Vector3 rMiddle = fingers[5] != null ? fingers[5].position : rHand + forward * (0.06f * s) + right * (0.02f * s);
-
-			reusableFingerConns[0] = (lHand, lThumb);
-			reusableFingerConns[1] = (lHand, lIndex);
-			reusableFingerConns[2] = (lHand, lMiddle);
-			reusableFingerConns[3] = (rHand, rThumb);
-			reusableFingerConns[4] = (rHand, rIndex);
-			reusableFingerConns[5] = (rHand, rMiddle);
-
-			for (int i = 0; i < 6; i++)
-				DrawSkeletonLine(lines[SkeletonFingerStart + i], color, reusableFingerConns[i].Item1, reusableFingerConns[i].Item2, s);
-		}
-	}
-
-	public static void DisableSkeletonEsp()
-	{
-		foreach (LineRenderer[] arr in skeletonLines.Values)
-		{
-			if (arr == null) continue;
-			foreach (LineRenderer lr in arr)
-			{
-				if (lr != null)
-					Object.Destroy(((Component)lr).gameObject);
-			}
-		}
-		skeletonLines.Clear();
-		skeletonFingerCache.Clear();
-		if (skeletonSharedMaterial != null)
-		{
-			Object.Destroy(skeletonSharedMaterial);
-			skeletonSharedMaterial = null;
-		}
-	}
-
-	private static int GetFps(VRRig rig)
-	{
-		if (_fpsField == null)
-		{
-			_fpsField = AccessTools.Field(typeof(VRRig), "fps");
-		}
-		if (_fpsField == null)
-		{
-			return 0;
-		}
-		object value = _fpsField.GetValue(rig);
-		return (value is int fps) ? fps : 0;
-	}
-
-	public static float GetTagStackOffset(VRRig rig, int slot)
-	{
-		int rank = 0;
-		for (int s = 0; s < slot; s++)
-		{
-			if (IsTagActiveForRig(rig, s))
-			{
-				rank++;
-			}
-		}
-		return 0.55f + (float)rank * 0.15f;
-	}
-
-	private static bool IsTagActiveForRig(VRRig rig, int slot)
-	{
-		switch (slot)
-		{
-			case TagStackConsole:
-				return Console.HasConsoleIndicator(rig);
-			case TagStackCosmetics:
-				return cosmeticNameTagObjects.ContainsKey(rig);
-			case TagStackId:
-				return idNameTagObjects.ContainsKey(rig);
-			case TagStackPlatform:
-				return platformNameTagObjects.ContainsKey(rig);
-			case TagStackName:
-				return nameTagObjects.ContainsKey(rig);
-			case TagStackFps:
-				return fpsNameTagObjects.ContainsKey(rig);
-			case TagStackArs:
-				return arsTagObjects.ContainsKey(rig);
-			case TagStackCrown:
-				return Console.conePool.ContainsKey(rig);
-			default:
-				return false;
-		}
-	}
-
-	internal static Vector3 GetHeadAnchor(VRRig rig)
-	{
-		try
-		{
-			if (rig != null)
-			{
-				if ((Object)(object)rig.headMesh != (Object)null)
-					return rig.headMesh.transform.position;
-				if (rig.head != null && rig.head.rigTarget != null)
-					return rig.head.rigTarget.position;
-			}
-		}
-		catch { }
-		if (rig != null)
-			return rig.transform.position + Vector3.up * (1.6f * EspScale(rig));
-		return Vector3.zero;
-	}
-
-	public static Vector3 GetTagPosition(VRRig rig, int slot)
-	{
-		Vector3 anchor = GetHeadAnchor(rig);
-		return anchor + Vector3.up * (GetTagStackOffset(rig, slot) * EspScale(rig));
-	}
-
-	private static Camera cachedMainCamera;
-
-	internal static Camera MainCamera()
-	{
-		if ((Object)(object)cachedMainCamera == (Object)null)
-		{
-			cachedMainCamera = Camera.main;
-		}
-		return cachedMainCamera;
-	}
-
-	internal static void BillboardTag(GameObject obj)
-	{
-		Camera mainCam = MainCamera();
-		if (!((Object)(object)mainCam == (Object)null))
-		{
-			Vector3 position = obj.transform.position;
-			obj.transform.LookAt(2f * position - mainCam.transform.position);
-		}
-	}
-
-	internal static Text CreateTagObj(string name, Dictionary<VRRig, GameObject> dict, VRRig rig)
-	{
-		if ((Object)(object)comicSansFont == (Object)null)
-		{
-			comicSansFont = Font.CreateDynamicFontFromOSFont("Comic Sans MS", 36);
-		}
-		GameObject val = new GameObject(name);
-		Canvas val2 = val.AddComponent<Canvas>();
-		val2.renderMode = RenderMode.WorldSpace;
-		((Component)val2).transform.localScale = Vector3.one * (0.003f * EspScale(rig));
-		Text val3 = val.AddComponent<Text>();
-		if ((Object)(object)comicSansFont != (Object)null)
-		{
-			val3.font = comicSansFont;
-		}
-		val3.fontSize = 30;
-		val3.horizontalOverflow = HorizontalWrapMode.Overflow;
-		val3.alignment = TextAnchor.MiddleCenter;
-		((Graphic)val3).color = rig.playerColor;
-		dict[rig] = val;
-		return val3;
-	}
-
-	internal static void PlaceTag(GameObject obj, VRRig rig, int slot)
-	{
-		obj.transform.position = GetTagPosition(rig, slot);
-		obj.transform.localScale = Vector3.one * (0.003f * EspScale(rig));
-		BillboardTag(obj);
-	}
-
-	internal static float EspScale(VRRig rig)
-	{
-		float scale = 1f;
-		try
-		{
-			if (rig != null)
-				scale = rig.scaleFactor;
-		}
-		catch { scale = 1f; }
-		if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
-			scale = 1f;
-		return scale;
-	}
-
-	private static Color TagColor(VRRig rig)
-	{
-		Color playerColor = rig.playerColor;
-		if (playerColor.r == 0f && playerColor.g == 0f && playerColor.b == 0f)
-		{
-			return Color.white;
-		}
-		return playerColor;
-	}
-
-	private static void CleanTagDict(Dictionary<VRRig, GameObject> dict)
-	{
-		reusableTagRemovals.Clear();
-		foreach (KeyValuePair<VRRig, GameObject> item in dict)
-		{
-			if (!VRRigCache.ActiveRigs.Contains(item.Key))
-			{
-				reusableTagRemovals.Add(item.Key);
-			}
-		}
-		if (reusableTagRemovals.Count == 0)
-		{
-			return;
-		}
-		foreach (VRRig item2 in reusableTagRemovals)
-		{
-			Object.Destroy((Object)(object)dict[item2]);
-			dict.Remove(item2);
-		}
-	}
-
-	private sealed class TagProvider
-	{
-		public readonly string ObjectName;
-
-		public readonly int Slot;
-
-		public readonly Func<VRRig, string> GetText;
-
-		public readonly Func<VRRig, Color> GetColor;
-
-		public readonly Dictionary<VRRig, GameObject> Objects;
-
-		public TagProvider(string objectName, int slot, Func<VRRig, string> getText, Func<VRRig, Color> getColor, Dictionary<VRRig, GameObject> objects)
-		{
-			ObjectName = objectName;
-			Slot = slot;
-			GetText = getText;
-			GetColor = getColor;
-			Objects = objects;
-		}
-	}
-
-	private static readonly TagProvider NameTagProvider = new TagProvider("Chud_Nametag", TagStackName, GetNameTagText, TagColor, nameTagObjects);
-
-	private static readonly TagProvider FpsTagProvider = new TagProvider("Chud_FPStag", TagStackFps, GetFpsTagText, TagColor, fpsNameTagObjects);
-
-	private static readonly TagProvider IdTagProvider = new TagProvider("Chud_IDtag", TagStackId, GetIdTagText, TagColor, idNameTagObjects);
-
-	private static readonly TagProvider PlatformTagProvider = new TagProvider("Chud_PlatformTag", TagStackPlatform, GetPlatformProperty, TagColor, platformNameTagObjects);
-
-	private static readonly TagProvider CosmeticTagProvider = new TagProvider("Chud_CosmeticTag", TagStackCosmetics, GetCosmeticTagText, GetAlertTagColor, cosmeticNameTagObjects);
-
-	private static readonly TagProvider ArsTagProvider = new TagProvider("Chud_ARStag", TagStackArs, GetArsTagText, GetAlertTagColor, arsTagObjects);
-
-	private static string GetNameTagText(VRRig rig)
-	{
-		NetPlayer creator = rig.Creator;
-		return ((creator != null) ? creator.NickName : null) ?? "?";
-	}
-
-	private static string GetFpsTagText(VRRig rig)
-	{
-		return GetFps(rig) + " FPS";
-	}
-
-	private static string GetIdTagText(VRRig rig)
-	{
-		NetPlayer creator = rig.Creator;
-		return ((creator != null) ? creator.UserId : null) ?? "?";
-	}
-
-	private static string GetCosmeticTagText(VRRig rig)
-	{
-		HashSet<string> owned = GetOwnedCosmetics(rig);
-		if (owned == null || owned.Count == 0)
-		{
-			return null;
-		}
-		List<string> names = new List<string>(owned.Count);
-		foreach (string item in owned)
-		{
-			if (cosmeticNames.TryGetValue(item, out var display))
-			{
-				names.Add(display);
-			}
-		}
-		if (names.Count == 0)
-		{
-			return null;
-		}
-		return string.Join(", ", names);
-	}
-
-	private static string GetArsTagText(VRRig rig)
-	{
-		NetPlayer creator = rig.Creator;
-		string id = (creator != null) ? creator.UserId : null;
-		if (id == null || !arsPlayersToReport.Contains(id))
-		{
-			return null;
-		}
-		return "ARS";
-	}
-
-	private static Color GetAlertTagColor(VRRig rig)
-	{
-		return Color.red;
-	}
-
-	private static void UpdateLiveTag(TagProvider provider)
-	{
-		CleanTagDict(provider.Objects);
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
-		{
-			if (rig.isLocal)
-			{
-				continue;
-			}
-			string text = provider.GetText(rig);
-			if (string.IsNullOrEmpty(text))
-			{
-				if (provider.Objects.TryGetValue(rig, out var stale))
-				{
-					Object.Destroy((Object)(object)stale);
-					provider.Objects.Remove(rig);
-				}
-				continue;
-			}
-			GameObject go;
-			if (!provider.Objects.TryGetValue(rig, out go))
-			{
-				Text created = CreateTagObj(provider.ObjectName, provider.Objects, rig);
-				go = ((Component)created).gameObject;
-			}
-			Text label = go.GetComponent<Text>();
-			if ((Object)(object)label != (Object)null)
-			{
-				label.text = text;
-				((Graphic)label).color = provider.GetColor(rig);
-			}
-			PlaceTag(go, rig, provider.Slot);
-		}
-	}
-
-	private static void UpdateStickyTag(TagProvider provider)
-	{
-		CleanTagDict(provider.Objects);
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
-		{
-			if (rig.isLocal || provider.Objects.ContainsKey(rig))
-			{
-				continue;
-			}
-			string text = provider.GetText(rig);
-			if (string.IsNullOrEmpty(text))
-			{
-				continue;
-			}
-			Text created = CreateTagObj(provider.ObjectName, provider.Objects, rig);
-			created.text = text;
-			((Graphic)created).color = provider.GetColor(rig);
-		}
-		foreach (KeyValuePair<VRRig, GameObject> entry in provider.Objects)
-		{
-			PlaceTag(entry.Value, entry.Key, provider.Slot);
-		}
-	}
-
-	private static void DisableTag(TagProvider provider)
-	{
-		foreach (GameObject go in provider.Objects.Values)
-		{
-			Object.Destroy((Object)(object)go);
-		}
-		provider.Objects.Clear();
-	}
-
-	public static void NameTags()
-	{
-		UpdateLiveTag(NameTagProvider);
-	}
-
-	public static void DisableNameTags()
-	{
-		DisableTag(NameTagProvider);
-	}
-
-	public static void FPSTags()
-	{
-		UpdateLiveTag(FpsTagProvider);
-	}
-
-	public static void DisableFPSTags()
-	{
-		DisableTag(FpsTagProvider);
-	}
-
-	public static void IDTags()
-	{
-		UpdateLiveTag(IdTagProvider);
-	}
-
-	public static void DisableIDTags()
-	{
-		DisableTag(IdTagProvider);
-	}
-
-	public static void PlatformTags()
-	{
-		UpdateLiveTag(PlatformTagProvider);
-	}
-
-	private static string GetPlatformProperty(VRRig rig)
-	{
-		NetPlayer creator = rig.Creator;
-		if (creator == null || creator.UserId == null)
-		{
-			return null;
-		}
-		Player photonPlayer = null;
-		if (PhotonNetwork.InRoom)
-		{
-			foreach (Player player in PhotonNetwork.PlayerList)
-			{
-				if (player.UserId == creator.UserId)
-				{
-					photonPlayer = player;
-					break;
-				}
-			}
-		}
-		ExitGames.Client.Photon.Hashtable customProperties = (photonPlayer != null) ? photonPlayer.CustomProperties : null;
-		if (customProperties == null || customProperties.Count == 0)
-		{
-			return null;
-		}
-		object platformValue;
-		if (customProperties.TryGetValue("platform", out platformValue) && platformValue != null)
-		{
-			return "Platform: " + platformValue;
-		}
-		return null;
-	}
-
-	public static void DisablePlatformTags()
-	{
-		DisableTag(PlatformTagProvider);
-	}
-
-	private static HashSet<string> GetOwnedCosmetics(VRRig rig)
-	{
-		if (_ownedCosmeticsField == null)
-		{
-			_ownedCosmeticsField = AccessTools.Field(typeof(VRRig), "_playerOwnedCosmetics");
-		}
-		return _ownedCosmeticsField?.GetValue(rig) as HashSet<string>;
-	}
-
-	public static void CosmeticNameTags()
-	{
-		UpdateStickyTag(CosmeticTagProvider);
-	}
-
-	public static void DisableCosmeticNameTags()
-	{
-		DisableTag(CosmeticTagProvider);
-	}
-
-	public static void EnableARS()
-	{
-		arsActive = true;
-		if (!arsDownloaded && !arsDownloading)
-		{
-			arsDownloading = true;
-			_ = AsyncGetARSPlayerIDs();
-		}
-	}
-
-	public static void DisableARS()
-	{
-		arsActive = false;
-		if (arsNameTagsActive)
-		{
-			return;
-		}
-		foreach (GameObject value in arsTagObjects.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		arsTagObjects.Clear();
-	}
-
-	public static void EnableARSNameTags()
-	{
-		arsNameTagsActive = true;
-		if (!arsDownloaded)
-		{
-			_ = AsyncGetARSPlayerIDs();
-		}
-	}
-
-	public static void DisableARSNameTags()
-	{
-		arsNameTagsActive = false;
-		if (arsActive)
-		{
-			return;
-		}
-		foreach (GameObject value in arsTagObjects.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		arsTagObjects.Clear();
-	}
-
-	public static void ARSNameTagUpdate()
-	{
-		if (!arsNameTagsActive || arsPlayersToReport.Count == 0)
-		{
-			return;
-		}
-		UpdateStickyTag(ArsTagProvider);
-	}
-
-	public static void ARSDetect()
-	{
-		if (arsActive && arsPlayersToReport.Count != 0 && PhotonNetwork.InRoom)
-		{
-			string name = PhotonNetwork.CurrentRoom.Name;
-			if (name != arsLastCheckedRoom)
-			{
-				arsLastCheckedRoom = name;
-				instance.StartCoroutine(ARSDelayedCheck());
-			}
-		}
-	}
-
-	private static IEnumerator ARSDelayedCheck()
-	{
-		yield return (object)new WaitForSeconds(Random.Range(2.5f, 10f));
-		ARSCheckAllPlayers();
-	}
-
-	private static void ARSCheckAllPlayers()
-	{
-		if (PhotonNetwork.InRoom)
-		{
-			Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
-			foreach (Player photonPlayer in playerListOthers)
-			{
-				ARSCheckPlayer(photonPlayer);
-			}
-		}
-	}
-
-	public static void ARSCheckPlayer(Player photonPlayer)
-	{
-		if (!arsActive || arsPlayersToReport.Count == 0)
-		{
-			return;
-		}
-		string userId = photonPlayer.UserId;
-		if (userId == null || !arsPlayersToReport.Contains(userId))
-		{
-			return;
-		}
-		string text = photonPlayer.NickName ?? userId;
-		NotifiLib.SendNotification(text + " is on ARS", 3);
-		foreach (GorillaPlayerScoreboardLine allScoreboardLine in GorillaScoreboardTotalUpdater.allScoreboardLines)
-		{
-			if (allScoreboardLine.linePlayer == NetworkSystem.Instance.GetNetPlayerByID(photonPlayer.ActorNumber))
-			{
-				allScoreboardLine.PressButton(true, GorillaPlayerLineButton.ButtonType.Toxicity);
-				break;
-			}
-		}
-	}
-
-	private static async Task AsyncGetARSPlayerIDs()
-	{
-		try
-		{
-			string raw = (await arsHttpClient.GetStringAsync("https://raw.githubusercontent.com/AutoReportSystem/ARSPlayerIDs/refs/heads/main/Player%20Ids.txt")).Trim();
-			HashSet<string> ids = (arsPlayersToReport = (from id in raw.Split(',')
-				select id.Trim() into id
-				where !StringUtils.IsNullOrEmpty(id)
-				select id).ToHashSet());
-			arsDownloaded = true;
-			System.Console.WriteLine("[ARS] Loaded " + ids.Count + " player IDs to detect");
-		}
-		catch (Exception ex)
-		{
-			Exception e = ex;
-			System.Console.WriteLine("[ARS] Failed to download player IDs: " + e.Message);
-			arsDownloaded = false;
-		}
-		arsDownloading = false;
-	}
-
-	public static void CosmeticNotifier()
-	{
-		cosmeticNotifierActive = true;
-	}
-
-	public static void DisableCosmeticNotifier()
-	{
-		cosmeticNotifierActive = false;
-		cosmeticNotifierNotified.Clear();
-	}
-
-	private static void UpdateCosmeticNotifier()
-	{
-		if (!cosmeticNotifierActive)
-		{
-			return;
-		}
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-		{
-			if (activeRig.isLocal || activeRig.Creator == null)
-			{
-				continue;
-			}
-			HashSet<string> ownedCosmetics = GetOwnedCosmetics(activeRig);
-			if (ownedCosmetics == null || ownedCosmetics.Count == 0)
-			{
-				continue;
-			}
-			string userId = activeRig.Creator.UserId;
-			if (cosmeticNotifierNotified.Contains(userId))
-			{
-				continue;
-			}
-			List<string> list = new List<string>(ownedCosmetics.Count);
-			foreach (string item in ownedCosmetics)
-			{
-				if (cosmeticNames.TryGetValue(item, out var value))
-				{
-					list.Add(value);
-				}
-			}
-			if (list.Count != 0)
-			{
-				cosmeticNotifierNotified.Add(userId);
-				NotifiLib.SendNotification(activeRig.Creator.NickName + ": " + string.Join(", ", list), 5);
-			}
-		}
-	}
-
-	private static readonly HttpClient _trackHttp = new HttpClient();
-	private static readonly HashSet<string> _trackedReported = new HashSet<string>();
-	private static string _trackRoom = "";
-	private static string _trackRoomPrivacy = "";
-
-	public static void TrackedCosmeticsScan()
-	{
-		if (!PhotonNetwork.InRoom) return;
-		_trackedReported.Clear();
-		_trackRoom = PhotonNetwork.CurrentRoom.Name;
-		_trackRoomPrivacy = PhotonNetwork.CurrentRoom.IsVisible ? "Public" : "Private";
-		instance.StartCoroutine(DelayedRoomScan());
-	}
-
-	private static IEnumerator DelayedRoomScan()
-	{
-		if (!PhotonNetwork.InRoom) yield break;
-		for (int attempt = 0; attempt < 5; attempt++)
-		{
-			yield return new WaitForSeconds(3f);
-			if (!PhotonNetwork.InRoom) yield break;
-			bool allDone = true;
-			foreach (VRRig rig in VRRigCache.ActiveRigs)
-			{
-				if (rig.isLocal || rig.Creator == null) continue;
-				string key = rig.Creator.UserId + "|" + _trackRoom;
-				if (_trackedReported.Contains(key)) continue;
-				HashSet<string> cosmetics = GetOwnedCosmetics(rig);
-				if (cosmetics == null || cosmetics.Count == 0)
-				{
-					allDone = false;
-					continue;
-				}
-				CheckAndReport(rig.Creator.UserId, rig.Creator.NickName, cosmetics);
-			}
-			if (allDone) break;
-		}
-	}
-
-	public static void TrackedCosmeticsCheckPlayer(Player player)
-	{
-		if (player == null) return;
-		_trackRoom = PhotonNetwork.CurrentRoom.Name;
-		_trackRoomPrivacy = PhotonNetwork.CurrentRoom.IsVisible ? "Public" : "Private";
-		instance.StartCoroutine(DelayedPlayerCheck(player));
-	}
-
-	private static IEnumerator DelayedPlayerCheck(Player player)
-	{
-		if (player == null) yield break;
-		for (int attempt = 0; attempt < 5; attempt++)
-		{
-			yield return new WaitForSeconds(3f);
-			if (player == null || !PhotonNetwork.InRoom) yield break;
-			VRRig rig = null;
-			foreach (VRRig r in VRRigCache.ActiveRigs)
-			{
-				if (r.Creator != null && r.Creator.UserId == player.UserId)
-				{
-					rig = r;
-					break;
-				}
-			}
-			if ((Object)(object)rig == (Object)null) continue;
-			HashSet<string> cosmetics = GetOwnedCosmetics(rig);
-			if (cosmetics == null || cosmetics.Count == 0) continue;
-			CheckAndReport(player.UserId, player.NickName, cosmetics);
-			yield break;
-		}
-	}
-
-	private static void CheckAndReport(string uid, string nick, HashSet<string> owned)
-	{
-		if (owned == null || owned.Count == 0) return;
-		string key = uid + "|" + _trackRoom;
-		if (_trackedReported.Contains(key)) return;
-		List<string> found = new List<string>();
-		foreach (string c in owned)
-		{
-			if (trackedWebhookCosmetics.Contains(c) && cosmeticNames.TryGetValue(c, out var n))
-				found.Add(n);
-		}
-		if (found.Count == 0) return;
-		_trackedReported.Add(key);
-		SendTrackedWebhook(nick, uid, found);
-	}
-
-	private static async void SendTrackedWebhook(string nick, string uid, List<string> cosmetics)
-	{
-		try
-		{
-			string time = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC");
-			string json = "{\"embeds\":[{\"title\":\"Tracked Cosmetic Detected\",\"color\":16730112,\"fields\":[{\"name\":\"Player\",\"value\":\"" + nick + "\",\"inline\":true},{\"name\":\"User ID\",\"value\":\"" + uid + "\",\"inline\":true},{\"name\":\"Cosmetics\",\"value\":\"" + string.Join(", ", cosmetics) + "\",\"inline\":false},{\"name\":\"Room\",\"value\":\"" + _trackRoom + "\",\"inline\":true},{\"name\":\"Type\",\"value\":\"" + _trackRoomPrivacy + "\",\"inline\":true},{\"name\":\"Time\",\"value\":\"" + time + "\",\"inline\":true}]}]}";
-			await _trackHttp.PostAsync(Zcdcece.Get(), new StringContent(json, Encoding.UTF8, "application/json"));
-		}
-		catch { }
-	}
-
 	public static void Save()
 	{
-		if (Time.time - lastSaveTime >= SaveFlushInterval)
+		if (instance == null)
 		{
-			WriteSave();
 			return;
 		}
-		saveDirty = true;
+		if (Time.time - instance.lastSaveTime >= SaveFlushInterval)
+		{
+			instance.WriteSave();
+			return;
+		}
+		instance.saveDirty = true;
 	}
 
 	private static void FlushSave()
 	{
-		if (!saveDirty)
+		if (instance == null || !instance.saveDirty)
 		{
 			return;
 		}
-		if (Time.time - lastSaveTime < SaveFlushInterval)
+		if (Time.time - instance.lastSaveTime < SaveFlushInterval)
 		{
 			return;
 		}
-		WriteSave();
+		instance.WriteSave();
 	}
 
-	private const int PaletteVersion = 1;
-
-	private static readonly int[] LegacyColorIndexMap = new int[] { 0, 7, 2, 3, 9, 8, 6, 5, 5, 1 };
-
-	private static bool saveDirty = false;
-
-	private static float lastSaveTime = -99f;
-
-	private const float SaveFlushInterval = 5f;
-
-	private static void WriteSave()
+	private void WriteSave()
 	{
 		try
 		{
@@ -2928,13 +554,13 @@ private static VRRig ghostRig;
 			var root = new JObject();
 
 			var enabledButtons = new JArray();
-			foreach (MenuCategory category in MenuManager.Categories)
+			foreach (MenuCategory category in MenuManager.Instance.Categories)
 			{
 				if (category.Buttons == null || category.Name == "Enabled Mods") continue;
 				foreach (ButtonInfo button in category.Buttons)
 				{
 					if (button.enabled.HasValue && button.enabled.Value && !string.IsNullOrEmpty(button.buttonText))
-						enabledButtons.Add(button.buttonText);
+						enabledButtons.Add(button.id ?? button.buttonText);
 				}
 			}
 			root["EnabledButtons"] = enabledButtons;
@@ -2980,15 +606,28 @@ private static VRRig ghostRig;
 			string tempPath = ConfigPath + ".tmp";
 			File.WriteAllText(tempPath, json);
 			if (File.Exists(ConfigPath))
-				File.Delete(ConfigPath);
-			File.Move(tempPath, ConfigPath);
+				File.Replace(tempPath, ConfigPath, null);
+			else
+				File.Move(tempPath, ConfigPath);
+			lastSaveTime = Time.time;
+			saveDirty = false;
 		}
-		catch { }
-		lastSaveTime = Time.time;
-		saveDirty = false;
+		catch (Exception e)
+		{
+			NotifiLib.SendNotification("Failed to save config: " + e.Message);
+		}
 	}
 
 	public static void Load()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.LoadCore();
+	}
+
+	private void LoadCore()
 	{
 		try
 		{
@@ -2996,7 +635,19 @@ private static VRRig ghostRig;
 			{
 				string tempPath = ConfigPath + ".tmp";
 				if (File.Exists(tempPath))
+				{
+					try
+					{
+						if (JObject.Parse(File.ReadAllText(tempPath)) == null)
+							return;
+					}
+					catch
+					{
+						try { File.Delete(tempPath); } catch { }
+						return;
+					}
 					File.Move(tempPath, ConfigPath);
+				}
 				else
 					return;
 			}
@@ -3074,36 +725,50 @@ private static VRRig ghostRig;
 			var savedButtons = root["EnabledButtons"] as JArray;
 			if (savedButtons != null)
 			{
-				var buttonLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
-				foreach (MenuCategory cat in MenuManager.Categories)
+				var idLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
+				var textLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
+				foreach (MenuCategory cat in MenuManager.Instance.Categories)
 				{
 					if (cat.Buttons == null || cat.Name == "Enabled Mods") continue;
 					foreach (ButtonInfo btn in cat.Buttons)
 					{
-						if (btn.type != ButtonType.Action && btn.enabled.HasValue && !string.IsNullOrEmpty(btn.buttonText) && !buttonLookup.ContainsKey(btn.buttonText))
-							buttonLookup[btn.buttonText] = btn;
+						if (btn.type == ButtonType.Action || !btn.enabled.HasValue || string.IsNullOrEmpty(btn.buttonText)) continue;
+						if (!string.IsNullOrEmpty(btn.id) && !idLookup.ContainsKey(btn.id))
+							idLookup[btn.id] = btn;
+						if (!textLookup.ContainsKey(btn.buttonText))
+							textLookup[btn.buttonText] = btn;
 					}
 				}
 
-				var savedSet = new HashSet<string>(StringComparer.Ordinal);
+				var matched = new HashSet<ButtonInfo>();
 				foreach (JToken token in savedButtons)
 				{
 					string savedName = (string)token;
-					if (!string.IsNullOrEmpty(savedName)) savedSet.Add(savedName);
+					if (string.IsNullOrEmpty(savedName)) continue;
+					ButtonInfo found = null;
+					if (!idLookup.TryGetValue(savedName, out found))
+						textLookup.TryGetValue(savedName, out found);
+					if (found != null)
+						matched.Add(found);
 				}
 
-				foreach (var kvp in buttonLookup)
+				foreach (MenuCategory cat in MenuManager.Instance.Categories)
 				{
-					if (kvp.Value.enabled == true && !savedSet.Contains(kvp.Value.buttonText))
+					if (cat.Buttons == null || cat.Name == "Enabled Mods") continue;
+					foreach (ButtonInfo btn in cat.Buttons)
 					{
-						try { kvp.Value.disableMethod?.Invoke(); } catch { }
-						kvp.Value.enabled = false;
+						if (btn.type == ButtonType.Action || !btn.enabled.HasValue) continue;
+						if (btn.enabled == true && !matched.Contains(btn))
+						{
+							try { btn.disableMethod?.Invoke(); } catch { }
+							btn.enabled = false;
+						}
 					}
 				}
 
-				foreach (string savedName in savedSet)
+				foreach (ButtonInfo btn in matched)
 				{
-					if (buttonLookup.TryGetValue(savedName, out var btn) && btn != null && btn.enabled != true)
+					if (btn.enabled != true)
 						btn.enabled = true;
 				}
 			}
@@ -3115,7 +780,7 @@ private static VRRig ghostRig;
 
 	public static void ReapplyActiveMods()
 	{
-		foreach (MenuCategory category in MenuManager.Categories)
+		foreach (MenuCategory category in MenuManager.Instance.Categories)
 		{
 			if (category.Buttons == null)
 			{
@@ -3136,19 +801,27 @@ private static VRRig ghostRig;
 
 	public static void ToggleNotifications()
 	{
-		if (!notificationsEnabled)
+		if (instance == null)
+		{
+			return;
+		}
+		if (!instance.notificationsEnabled)
 		{
 			NotifiLib.IsEnabled = true;
-			notificationsEnabled = true;
+			instance.notificationsEnabled = true;
 		}
 	}
 
 	public static void DisableNotifications()
 	{
-		if (notificationsEnabled)
+		if (instance == null)
+		{
+			return;
+		}
+		if (instance.notificationsEnabled)
 		{
 			NotifiLib.IsEnabled = false;
-			notificationsEnabled = false;
+			instance.notificationsEnabled = false;
 		}
 	}
 
@@ -3159,14 +832,18 @@ private static VRRig ghostRig;
 
 	public static void SetNotificationTime(int index)
 	{
-		notificationTimeIndex = index % notificationTimeValues.Length;
-		if (notificationTimeIndex < 0) notificationTimeIndex = notificationTimeValues.Length - 1;
-		notificationDecayTime = notificationTimeValues[notificationTimeIndex];
-		NotifiLib.DecayTime = notificationDecayTime;
-		NotifiLib.SendNotification("Notification time: " + notificationTimeNames[notificationTimeIndex]);
+		if (instance == null)
+		{
+			return;
+		}
+		instance.notificationTimeIndex = index % notificationTimeValues.Length;
+		if (instance.notificationTimeIndex < 0) instance.notificationTimeIndex = notificationTimeValues.Length - 1;
+		instance.notificationDecayTime = notificationTimeValues[instance.notificationTimeIndex];
+		NotifiLib.DecayTime = instance.notificationDecayTime;
+		NotifiLib.SendNotification("Notification time: " + notificationTimeNames[instance.notificationTimeIndex]);
 	}
 
-	private static void ApplyMenuColor(int index)
+	private void ApplyMenuColor(int index)
 	{
 		MenuColors menuColors = GetMenuColors(index);
 		WristMenu.NormalColor = menuColors.NormalColor;
@@ -3185,7 +862,10 @@ private static VRRig ghostRig;
 	public static void SetMenuColor(int index)
 	{
 		menuColorIndex = index;
-		ApplyMenuColor(index);
+		if (instance != null)
+		{
+			instance.ApplyMenuColor(index);
+		}
 		string[] colorNames = new string[] { "Gray", "Brown", "Red", "Orange", "Yellow", "Pink", "Purple", "Blue", "Cyan", "Green" };
 		string name = (index >= 0 && index < colorNames.Length) ? colorNames[index] : "Custom";
 		NotifiLib.SendNotification("Menu Color: " + name, 2);
@@ -3199,1639 +879,6 @@ private static VRRig ghostRig;
 			WristMenu.DestroyMenu();
 			WristMenu.instance.Draw();
 		}
-	}
-
-	private static void PlatformsThing(bool invis, bool sticky)
-	{
-		RPlat = WristMenu.gripDownR;
-		LPlat = WristMenu.gripDownL;
-		if (platMaterial != null) platMaterial.color = WristMenu.ButtonColorEnabled;
-		ProcessPlatform(RPlat, ref jump_right_local, ref once_right, ref once_right_false, ref stickyRightActive, true, sticky);
-		ProcessPlatform(LPlat, ref jump_left_local, ref once_left, ref once_left_false, ref stickyLeftActive, false, sticky);
-	}
-
-	private static void ProcessPlatform(bool plat, ref GameObject jumpObj, ref bool once, ref bool onceFalse, ref bool stickyActive, bool isRight, bool sticky)
-	{
-		if (plat)
-		{
-			if (!once && (Object)(object)jumpObj == (Object)null)
-			{
-				var hand = isRight ? GTPlayer.Instance.RightHand : GTPlayer.Instance.LeftHand;
-				Transform handTransform = isRight ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
-					if (sticky)
-				{
-					Vector3 handPos = handTransform.position;
-					jumpObj = new GameObject(isRight ? "StickyRight" : "StickyLeft");
-					jumpObj.transform.position = handPos;
-					jumpObj.transform.rotation = Quaternion.identity;
-					jumpObj.transform.localScale = Vector3.one;
-					GameObject platObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-					platObj.transform.SetParent(jumpObj.transform);
-					platObj.transform.localScale = scale;
-					platObj.transform.localPosition = new Vector3(0f, -0.01f, 0f) + hand.controllerTransform.position - handPos;
-					platObj.transform.localRotation = hand.controllerTransform.rotation;
-					platObj.AddComponent<GorillaSurfaceOverride>().overrideIndex = 0;
-					if (platMaterial == null) platMaterial = new Material(CachedUberShader);
-					platObj.GetComponent<Renderer>().material = platMaterial;
-					platObj.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-					int boxCount = 60;
-					float cageRadius = 0.12f;
-					float boxSize = 0.08f;
-					float goldenRatio = (1f + Mathf.Sqrt(5f)) / 2f;
-					for (int i = 0; i < boxCount; i++)
-					{
-						float theta = Mathf.Acos(1f - 2f * (i + 0.5f) / boxCount);
-						float phi = 2f * Mathf.PI * i / goldenRatio;
-						Vector3 dir = new Vector3(Mathf.Sin(theta) * Mathf.Cos(phi), Mathf.Sin(theta) * Mathf.Sin(phi), Mathf.Cos(theta));
-						GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
-						box.transform.SetParent(jumpObj.transform);
-						Object.Destroy((Object)(object)box.GetComponent<Renderer>());
-						Object.Destroy((Object)(object)box.GetComponent<Rigidbody>());
-						box.transform.localScale = new Vector3(boxSize, boxSize, boxSize);
-						box.transform.localPosition = dir * cageRadius;
-					}
-					stickyActive = true;
-				}
-				else
-				{
-					jumpObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-					jumpObj.transform.localScale = scale;
-					jumpObj.transform.position = new Vector3(0f, -0.01f, 0f) + hand.controllerTransform.position;
-					jumpObj.transform.rotation = hand.controllerTransform.rotation;
-					GorillaSurfaceOverride surf = jumpObj.AddComponent<GorillaSurfaceOverride>();
-					surf.overrideIndex = 0;
-					if (platMaterial == null) platMaterial = new Material(CachedUberShader);
-					jumpObj.GetComponent<Renderer>().material = platMaterial;
-					jumpObj.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-				}
-				once = true;
-				onceFalse = false;
-			}
-		}
-		else if (!onceFalse && (Object)(object)jumpObj != (Object)null)
-		{
-			Object.Destroy((Object)(object)jumpObj);
-			jumpObj = null;
-			stickyActive = false;
-			once = false;
-			onceFalse = true;
-		}
-	}
-
-
-	public static void TPGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			if ((Object)(object)GTPlayer.Instance != (Object)null && (Object)(object)pointer != (Object)null)
-			{
-				Vector3 pos = pointer.transform.position;
-				Vector3 playerPos = GorillaTagger.Instance.transform.position - GorillaTagger.Instance.bodyCollider.transform.position + pos;
-				GTPlayer.Instance.TeleportTo(playerPos, GTPlayer.Instance.transform.rotation, true, false);
-				VRRig.LocalRig.transform.position = pos;
-			}
-		});
-	}
-
-	public static void JoinCode(string code)
-	{
-		NotifiLib.SendNotification("Joining room: " + code);
-		PhotonNetwork.Disconnect();
-		instance.StartCoroutine(JoinRoomDirect(code));
-	}
-
-	private static IEnumerator JoinRoomDirect(string code)
-	{
-		yield return new WaitForSeconds(5f);
-		PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(code, JoinType.Solo);
-	}
-
-	public static void JoinRandomPublic()
-	{
-		GorillaNetworkJoinTrigger trigger = PhotonNetworkController.Instance.currentJoinTrigger;
-		if (trigger == null && ZoneManagement.instance != null && ZoneManagement.instance.activeZones.Count > 0)
-			trigger = GorillaComputer.instance.GetJoinTriggerForZone(ZoneManagement.instance.activeZones.First().GetName());
-		if (trigger == null && GorillaComputer.instance != null)
-		{
-			try
-			{
-				var dict = Traverse.Create(GorillaComputer.instance).Field("primaryTriggersByZone").GetValue<Dictionary<string, GorillaNetworkJoinTrigger>>();
-				if (dict != null)
-				{
-					foreach (var kv in dict)
-					{
-						if (kv.Value != null)
-						{
-							trigger = kv.Value;
-							break;
-						}
-					}
-				}
-			}
-			catch { }
-		}
-		if (trigger == null)
-		{
-			NotifiLib.SendNotification("No join trigger found");
-			return;
-		}
-		instance.StartCoroutine(JoinRandomPublicRoutine(trigger));
-	}
-
-	private static IEnumerator JoinRandomPublicRoutine(GorillaNetworkJoinTrigger trigger)
-	{
-		if (NetworkSystem.Instance.InRoom)
-		{
-			NetworkSystem.Instance.ReturnToSinglePlayer();
-			float timeout = 8f;
-			while (timeout > 0f && NetworkSystem.Instance.netState != NetSystemState.Idle)
-			{
-				timeout -= Time.deltaTime;
-				yield return null;
-			}
-			yield return new WaitForSeconds(0.4f);
-		}
-		PhotonNetworkController.Instance.AttemptToJoinPublicRoom(trigger, JoinType.Solo);
-	}
-
-	private static string savedGroupKickRoom;
-
-	public static void GroupKickAll()
-	{
-		if (!PhotonNetwork.InRoom || !NetworkSystem.Instance.SessionIsPrivate)
-		{
-			NotifiLib.SendNotification("Only works in private rooms!");
-			return;
-		}
-		savedGroupKickRoom = PhotonNetwork.CurrentRoom.Name;
-		GorillaComputer.instance.OnGroupJoinButtonPress(
-			GorillaComputer.instance.groupMapJoinIndex,
-			GorillaComputer.instance.friendJoinCollider
-		);
-		instance.StartCoroutine(RejoinAfterGroupKick());
-	}
-
-	private static IEnumerator RejoinAfterGroupKick()
-	{
-		while (!PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom.Name == savedGroupKickRoom)
-			yield return null;
-		yield return new WaitForSeconds(3f);
-		if (string.IsNullOrEmpty(savedGroupKickRoom)) yield break;
-		for (int i = 0; i < 4; i++)
-		{
-			if (PhotonNetwork.InRoom)
-				PhotonNetwork.Disconnect();
-			yield return new WaitForSeconds(2f);
-			PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(savedGroupKickRoom, JoinType.Solo);
-			float timeout = 10f;
-			while (timeout > 0f && (!PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom.Name != savedGroupKickRoom))
-			{
-				timeout -= Time.deltaTime;
-				yield return null;
-			}
-			if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom.Name == savedGroupKickRoom)
-			{
-				savedGroupKickRoom = null;
-				yield break;
-			}
-		}
-		savedGroupKickRoom = null;
-	}
-
-	public static void GetPlayerIDGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null)
-			{
-				GUIUtility.systemCopyBuffer = rig.Creator.UserId;
-				NotifiLib.SendNotification("Copied: " + rig.Creator.UserId);
-			}
-		});
-	}
-
-	public static void GetIDSelf()
-	{
-		string text = (GUIUtility.systemCopyBuffer = PhotonNetwork.LocalPlayer.UserId);
-		NotifiLib.SendNotification("Copied self: " + text);
-	}
-
-	public static void UnlockVim()
-	{
-		if (vimHarmony != null)
-		{
-			return;
-		}
-		vimHarmony = new Harmony("chudmenu.vim");
-		Type type = null;
-		Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-		for (int i = 0; i < assemblies.Length; i++)
-		{
-			type = assemblies[i].GetType("GorillaTagScripts.SubscriptionManager");
-			if (type != null)
-			{
-				break;
-			}
-		}
-		if (type != null)
-		{
-			MethodInfo method = type.GetMethod("IsLocalSubscribed", BindingFlags.Static | BindingFlags.Public);
-			if (method != null)
-			{
-				MethodInfo method2 = typeof(Mods).GetMethod("VimPrefix", BindingFlags.Static | BindingFlags.Public);
-				vimHarmony.Patch((MethodBase)method, new HarmonyMethod(method2), (HarmonyMethod)null, (HarmonyMethod)null, (HarmonyMethod)null, (HarmonyMethod)null);
-			}
-		}
-	}
-
-	public static void DisableUnlockVim()
-	{
-		if (vimHarmony != null)
-		{
-			vimHarmony.UnpatchSelf();
-			vimHarmony = null;
-		}
-	}
-
-	public static void EnableSeeAntiCheatReports()
-	{
-		seeAntiCheatReports = true;
-	}
-
-	public static void DisableSeeAntiCheatReports()
-	{
-		seeAntiCheatReports = false;
-		antiCheatReportCounts.Clear();
-	}
-
-	public static void EnableAntiReport()
-	{
-		antiReportEnabled = true;
-	}
-
-	public static void DisableAntiReport()
-	{
-		antiReportEnabled = false;
-		if (antiReportSphere != null) { Object.Destroy(antiReportSphere); antiReportSphere = null; }
-	}
-
-	public static void SetAntiReportRange(int index)
-	{
-		antiReportRangeIndex = index % antiReportRanges.Length;
-		if (antiReportRangeIndex < 0) antiReportRangeIndex = antiReportRanges.Length - 1;
-		antiReportRange = antiReportRanges[antiReportRangeIndex];
-		NotifiLib.SendNotification("Range: " + antiReportRange.ToString("0.00") + "m");
-	}
-
-	public static void AntiReportTick()
-	{
-		if (!antiReportEnabled || !NetworkSystem.Instance.InRoom)
-			return;
-		if (!(Time.time > antiReportDelay))
-			return;
-		foreach (GorillaPlayerScoreboardLine line in GorillaScoreboardTotalUpdater.allScoreboardLines)
-		{
-			if (line.linePlayer == null || !line.linePlayer.IsLocal)
-				continue;
-			Vector3 reportPos = line.reportButton.gameObject.transform.position;
-			foreach (VRRig rig in VRRigCache.ActiveRigs)
-			{
-				if (rig == null || rig.isLocal || rig.isOfflineVRRig)
-					continue;
-				if (Vector3.Distance(rig.rightHandTransform.position, reportPos) < antiReportRange ||
-				    Vector3.Distance(rig.leftHandTransform.position, reportPos) < antiReportRange)
-				{
-					Player player = Console.GetPlayerFromID(rig.Creator.UserId);
-					string name = player != null ? player.NickName : "?";
-					NotifiLib.SendNotification(name + " attempted to report you");
-					antiReportDelay = Time.time + 1f;
-					NetworkSystem.Instance.ReturnToSinglePlayer();
-					return;
-				}
-			}
-		}
-	}
-
-	private static void CreateAntiReportSphere()
-	{
-		if (antiReportSphere != null) return;
-		antiReportSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-		Object.Destroy(antiReportSphere.GetComponent<Collider>());
-		if (antiReportMat == null)
-		{
-			antiReportMat = new Material(Shader.Find("GUI/Text Shader"));
-			antiReportMat.color = new Color(1f, 0f, 0f, 0.25f);
-		}
-		antiReportSphere.GetComponent<Renderer>().material = antiReportMat;
-	}
-
-	public static void AntiReportVisual()
-	{
-		if (!antiReportEnabled)
-		{
-			if (antiReportSphere != null) antiReportSphere.SetActive(false);
-			return;
-		}
-		if (!NetworkSystem.Instance.InRoom)
-		{
-			if (antiReportSphere != null) antiReportSphere.SetActive(false);
-			return;
-		}
-		CreateAntiReportSphere();
-		antiReportMat.color = new Color(1f, 0f, 0f, 0.25f);
-		bool found = false;
-		foreach (GorillaPlayerScoreboardLine line in GorillaScoreboardTotalUpdater.allScoreboardLines)
-		{
-			if (line.linePlayer == null || !line.linePlayer.IsLocal)
-				continue;
-			Vector3 center = line.reportButton.gameObject.transform.position;
-			antiReportSphere.transform.position = center;
-			antiReportSphere.transform.localScale = Vector3.one * antiReportRange;
-			found = true;
-			break;
-		}
-		antiReportSphere.SetActive(found);
-	}
-
-	public static bool VimPrefix(ref bool __result)
-	{
-		__result = true;
-		return false;
-	}
-
-	public static void TagGun()
-	{
-		bool gripDown = isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR;
-		if (!gripDown)
-		{
-			if (tagGunLockedTarget != null)
-			{
-				tagGunLockedTarget = null;
-				UnsubscribeTagRigVisual();
-				TryUnsubscribeGhostRig();
-			}
-			CleanupGun();
-		}
-		else
-		{
-			MakeRightHandGun(delegate
-			{
-				VRRig val3 = GetGunTargetPlayer();
-				if (val3 != null && !val3.isLocal)
-				{
-				GorillaTagManager val5 = GorillaGameManager.instance as GorillaTagManager;
-				if (val5 != null && !val5.IsInfected(val3.Creator))
-				{
-					tagGunLockedTarget = val3;
-					tagGunFramesUntilTag = 12;
-					SubscribeTagRigVisual();
-					SubscribeGhostRig();
-				}
-				}
-			}, delegate { });
-			if (tagGunLockedTarget != null && pointer != null && Line != null)
-			{
-				pointer.transform.position = ((Component)tagGunLockedTarget).transform.position;
-				Line.SetPosition(1, ((Component)tagGunLockedTarget).transform.position);
-			}
-		}
-		GorillaGameManager val = GorillaGameManager.instance;
-		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
-		if (val2 == null || tagGunLockedTarget == null) return;
-		if (tagGunLockedTarget.Creator == null || val2.IsInfected(tagGunLockedTarget.Creator))
-		{
-			tagGunLockedTarget = null;
-			UnsubscribeTagRigVisual();
-			TryUnsubscribeGhostRig();
-			return;
-		}
-		tagGunFramesUntilTag--;
-		if (tagGunFramesUntilTag <= 0)
-		{
-			tagGunFramesUntilTag = 12;
-			GameMode.ReportTag(tagGunLockedTarget.Creator);
-		}
-	}
-
-	public static void UntagSelf()
-	{
-		GorillaGameManager val = GorillaGameManager.instance;
-		if (!((Object)(object)val != (Object)null))
-		{
-			return;
-		}
-		GorillaTagManager val2 = (GorillaTagManager)(object)((val is GorillaTagManager) ? val : null);
-		if (val2 != null && val2.IsInfected(NetworkSystem.Instance.LocalPlayer) && Time.time > lastUntagSelfTime)
-		{
-			val2.currentInfected.RemoveAll((NetPlayer p) => p.UserId == NetworkSystem.Instance.LocalPlayer.UserId);
-			lastUntagSelfTime = Time.time + 0.3f;
-			NotifiLib.SendNotification("Untagged self");
-		}
-	}
-
-	public static void TagAll()
-	{
-		GorillaGameManager val = GorillaGameManager.instance;
-		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
-		if (val2 == null) return;
-
-		if (tagAllTarget == null || tagAllTarget.Creator == null || val2.IsInfected(tagAllTarget.Creator))
-		{
-			if (tagAllTargets == null || tagAllIndex >= tagAllTargets.Count)
-			{
-				tagAllTargets = new List<VRRig>();
-				foreach (VRRig r in VRRigCache.ActiveRigs)
-					if (!r.isLocal && r.Creator != null && !val2.IsInfected(r.Creator))
-						tagAllTargets.Add(r);
-				tagAllIndex = 0;
-			}
-
-			if (tagAllIndex >= tagAllTargets.Count)
-				return;
-
-			tagAllTarget = tagAllTargets[tagAllIndex];
-			tagAllIndex++;
-			tagAllFramesUntilTag = 30;
-			SubscribeTagRigVisual();
-			SubscribeGhostRig();
-		}
-
-		tagAllFramesUntilTag--;
-
-		if (tagAllFramesUntilTag <= 0)
-		{
-			tagAllFramesUntilTag = 30;
-			GameMode.ReportTag(tagAllTarget.Creator);
-		}
-	}
-
-	public static void DisableTagAll()
-	{
-		tagAllTarget = null;
-		tagAllTargets = null;
-		tagAllIndex = 0;
-		tagAllFramesUntilTag = 0;
-		UnsubscribeTagRigVisual();
-		TryUnsubscribeGhostRig();
-		if ((Object)(object)VRRig.LocalRig != (Object)null)
-			EnsureLocalRigEnabled();
-	}
-
-	private static bool tagRigVisualSubscribed = false;
-
-	private static void TagRigVisualTick()
-	{
-		VRRig localRig = VRRig.LocalRig;
-		if ((Object)(object)localRig == (Object)null) return;
-
-		VRRig target = null;
-		if (tagGunLockedTarget != null && !tagGunLockedTarget.isLocal && (Object)(object)tagGunLockedTarget != (Object)null)
-			target = tagGunLockedTarget;
-		else if (tagAllTarget != null && !tagAllTarget.isLocal && (Object)(object)tagAllTarget != (Object)null)
-			target = tagAllTarget;
-
-		if (target == null) return;
-
-		EnsureLocalRigEnabled();
-		Vector3 targetPos = ((Component)target).transform.position - new Vector3(0f, 3f, 0f);
-		localRig.transform.position = targetPos;
-		if (localRig.head != null && (Object)(object)localRig.head.rigTarget != (Object)null)
-			localRig.head.rigTarget.transform.position = targetPos;
-		if (localRig.leftHand != null && (Object)(object)localRig.leftHand.rigTarget != (Object)null)
-			localRig.leftHand.rigTarget.transform.position = targetPos;
-		if (localRig.rightHand != null && (Object)(object)localRig.rightHand.rigTarget != (Object)null)
-			localRig.rightHand.rigTarget.transform.position = targetPos;
-	}
-
-	private static void SubscribeTagRigVisual()
-	{
-		if (!tagRigVisualSubscribed)
-		{
-			tagRigVisualSubscribed = true;
-		}
-	}
-
-	private static void UnsubscribeTagRigVisual()
-	{
-		if (tagRigVisualSubscribed)
-		{
-			tagRigVisualSubscribed = false;
-		}
-	}
-
-	private static void GhostRigTick()
-	{
-		VRRig local = VRRig.LocalRig;
-		if ((Object)(object)local == (Object)null)
-		{
-			HideGhostRig();
-			return;
-		}
-		if (!GhostWanted())
-		{
-			HideGhostRig();
-			UnsubscribeGhostRig();
-			return;
-		}
-		EnsureGhostRig();
-		if ((Object)(object)ghostRig == (Object)null) return;
-		if (!ghostRig.gameObject.activeSelf)
-			ghostRig.gameObject.SetActive(true);
-		GorillaTagger tagger = GorillaTagger.Instance;
-		if ((Object)(object)tagger == (Object)null || (Object)(object)tagger.headCollider == (Object)null)
-			return;
-		Transform headT = tagger.headCollider.transform;
-		float scale = local.scaleFactor;
-		if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
-			scale = (GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f;
-		Quaternion bodyRot = GorillaLocomotion.GTPlayerTransform.BodyRotation;
-		Quaternion liveRot = headT.rotation;
-		if ((Object)(object)GTPlayer.Instance != (Object)null && (Object)(object)GTPlayer.Instance.mainCamera != (Object)null)
-			liveRot = GTPlayer.Instance.mainCamera.transform.rotation;
-		Vector3 headWorldPos = ((Object)(object)GTPlayer.Instance != (Object)null && (Object)(object)GTPlayer.Instance.mainCamera != (Object)null) ? GTPlayer.Instance.mainCamera.transform.position : headT.position;
-		Vector3 trackOffset = (local.head != null) ? local.head.trackingPositionOffset : Vector3.zero;
-		Vector3 headPos = headWorldPos + liveRot * trackOffset * scale;
-		ghostRig.transform.SetPositionAndRotation(headPos + ghostRig.transform.rotation * local.headBodyOffset * scale, bodyRot);
-		if (ghostRig.head != null && (Object)(object)ghostRig.head.rigTarget != (Object)null)
-			ghostRig.head.rigTarget.transform.SetPositionAndRotation(headPos, liveRot);
-		if (XRSettings.isDeviceActive)
-		{
-			Transform liveOffset = ((Object)(object)local.playerOffsetTransform != (Object)null) ? local.playerOffsetTransform : ghostRig.playerOffsetTransform;
-			if (ghostRig.leftHand != null)
-				ghostRig.leftHand.MapMine(scale, liveOffset);
-			if (ghostRig.rightHand != null)
-				ghostRig.rightHand.MapMine(scale, liveOffset);
-		}
-		float fingerLerp = ghostRig.lerpValueFingers;
-		if (XRSettings.isDeviceActive)
-		{
-			if (ghostRig.rightIndex != null) ghostRig.rightIndex.MapMyFinger(fingerLerp);
-			if (ghostRig.rightMiddle != null) ghostRig.rightMiddle.MapMyFinger(fingerLerp);
-			if (ghostRig.rightThumb != null) ghostRig.rightThumb.MapMyFinger(fingerLerp);
-			if (ghostRig.leftIndex != null) ghostRig.leftIndex.MapMyFinger(fingerLerp);
-			if (ghostRig.leftMiddle != null) ghostRig.leftMiddle.MapMyFinger(fingerLerp);
-			if (ghostRig.leftThumb != null) ghostRig.leftThumb.MapMyFinger(fingerLerp);
-		}
-		if ((Object)(object)ghostRigMaterial != (Object)null)
-		{
-			Color want = local.playerColor;
-			if (want.r < 4f / 255f && want.g < 4f / 255f && want.b < 4f / 255f)
-				want = Color.white;
-			want.a = 0.5f;
-			ghostRigMaterial.color = want;
-			ApplyGhostMaterial();
-		}
-	}
-
-	private static Renderer[] ghostSkinRenderers;
-
-	private static bool GhostWanted()
-	{
-		return tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn || (copyMovementActive && copyMovementTarget != null) || orbitActive;
-	}
-
-	private static void ApplyGhostMaterial()
-	{
-		if ((Object)(object)ghostRig == (Object)null || (Object)(object)ghostRigMaterial == (Object)null) return;
-		if (ghostSkinRenderers == null)
-			CacheGhostRenderers();
-		if (ghostSkinRenderers == null) return;
-		foreach (Renderer r in ghostSkinRenderers)
-		{
-			if ((Object)(object)r == (Object)null) continue;
-			r.material = ghostRigMaterial;
-		}
-	}
-
-	private static void CacheGhostRenderers()
-	{
-		if ((Object)(object)ghostRig == (Object)null) return;
-		List<Renderer> found = new List<Renderer>();
-		if ((Object)(object)ghostRig.mainSkin != (Object)null)
-			found.Add(ghostRig.mainSkin);
-		Renderer[] renderers = ghostRig.GetComponentsInChildren<Renderer>(true);
-		foreach (Renderer r in renderers)
-		{
-			if ((Object)(object)r == (Object)null) continue;
-			if ((Object)(object)r == (Object)ghostRig.mainSkin) continue;
-			if (r is SkinnedMeshRenderer) found.Add(r);
-		}
-		ghostSkinRenderers = found.ToArray();
-	}
-
-	private static void EnsureGhostRig()
-	{
-		if ((Object)(object)ghostRig != (Object)null) return;
-
-		VRRig local = VRRig.LocalRig;
-		if ((Object)(object)local == (Object)null) return;
-
-		GameObject ghostRigHolder = new GameObject("Chud_GhostRigHolder");
-		ghostRigHolder.SetActive(false);
-
-		cloningGhostRig = true;
-		try
-		{
-			ghostRig = (VRRig)Object.Instantiate(local, local.transform.position, local.transform.rotation, ghostRigHolder.transform);
-		}
-		finally
-		{
-			cloningGhostRig = false;
-		}
-		if ((Object)(object)ghostRig == (Object)null)
-		{
-			Object.Destroy(ghostRigHolder);
-			return;
-		}
-		ghostRig.isOfflineVRRig = true;
-		ghostRig.gameObject.name = "Chud_GhostRig";
-		ghostRig.gameObject.SetActive(false);
-		Transform localParent = ((Component)local).transform.parent;
-		ghostRig.transform.SetParent(localParent);
-
-		Object.Destroy(ghostRigHolder);
-
-		if ((Object)(object)ghostRig.transform.Find("VR Constraints/LeftArm/Left Arm IK/SlideAudio") != (Object)null)
-			ghostRig.transform.Find("VR Constraints/LeftArm/Left Arm IK/SlideAudio").gameObject.SetActive(false);
-		if ((Object)(object)ghostRig.transform.Find("VR Constraints/RightArm/Right Arm IK/SlideAudio") != (Object)null)
-			ghostRig.transform.Find("VR Constraints/RightArm/Right Arm IK/SlideAudio").gameObject.SetActive(false);
-		if ((Object)(object)ghostRig.transform.Find("rig/body_pivot/SlideAudio") != (Object)null)
-			ghostRig.transform.Find("rig/body_pivot/SlideAudio").gameObject.SetActive(false);
-
-		VRRig[] childRigs = ghostRig.GetComponentsInChildren<VRRig>(true);
-		foreach (VRRig child in childRigs)
-		{
-			if (child != ghostRig)
-				Object.Destroy(child.gameObject);
-		}
-		foreach (AutoSyncTransforms sync in ghostRig.GetComponentsInChildren<AutoSyncTransforms>(true))
-		{
-			sync.enabled = false;
-			Object.Destroy(sync);
-		}
-		foreach (Photon.Pun.PhotonView pv in ghostRig.GetComponentsInChildren<Photon.Pun.PhotonView>(true))
-			Object.Destroy(pv);
-		foreach (Photon.Pun.PhotonTransformView ptv in ghostRig.GetComponentsInChildren<Photon.Pun.PhotonTransformView>(true))
-			Object.Destroy(ptv);
-		foreach (Component c in ghostRig.GetComponentsInChildren<Component>(true))
-		{
-			if (c == null || (Object)(object)c is Transform) continue;
-			string tn = c.GetType().Name;
-			if (tn == "TagEffectsPackToggle" || tn == "RigidbodyWaterInteraction" || tn == "ConstantForce")
-				Object.Destroy(c);
-		}
-		foreach (Collider col in ghostRig.GetComponentsInChildren<Collider>(true))
-			Object.Destroy(col);
-		foreach (Rigidbody rb in ghostRig.GetComponentsInChildren<Rigidbody>(true))
-			Object.Destroy(rb);
-		foreach (GorillaPlayerScoreboardLine line in ghostRig.GetComponentsInChildren<GorillaPlayerScoreboardLine>(true))
-			Object.Destroy(line);
-
-		CleanGhostRigGameplay();
-		CacheGhostRenderers();
-
-		if ((Object)(object)ghostRigMaterial == (Object)null)
-		{
-			Shader s = Shader.Find("GorillaTag/UberShader");
-			if ((Object)(object)s == (Object)null) s = Shader.Find("Universal Render Pipeline/Unlit");
-			if ((Object)(object)s == (Object)null) s = Shader.Find("GUI/Text Shader");
-			ghostRigMaterial = new Material(s);
-			ghostRigMaterial.hideFlags = HideFlags.HideAndDontSave;
-			if (ghostRigMaterial.HasProperty("_Surface"))
-				ghostRigMaterial.SetFloat("_Surface", 1f);
-			if (ghostRigMaterial.HasProperty("_Blend"))
-				ghostRigMaterial.SetFloat("_Blend", 0f);
-			if (ghostRigMaterial.HasProperty("_SrcBlend"))
-				ghostRigMaterial.SetFloat("_SrcBlend", 5f);
-			if (ghostRigMaterial.HasProperty("_DstBlend"))
-				ghostRigMaterial.SetFloat("_DstBlend", 10f);
-			if (ghostRigMaterial.HasProperty("_ZWrite"))
-				ghostRigMaterial.SetFloat("_ZWrite", 0f);
-			ghostRigMaterial.renderQueue = 3000;
-		}
-
-		HideGhostRig();
-	}
-
-	private static void CleanGhostRigGameplay()
-	{
-		CosmeticsController.CosmeticSet emptySet = new CosmeticsController.CosmeticSet();
-		if (CosmeticsController.instance != null)
-			emptySet.ClearSet(CosmeticsController.instance.nullItem);
-		ghostRig.cosmeticSet = emptySet;
-		ghostRig.cosmeticsObjectRegistry = new CosmeticItemRegistry(ghostRig);
-
-		List<GameObject> cosmeticObjects = new List<GameObject>();
-		foreach (PlayerColoredCosmetic cosmetic in ghostRig.GetComponentsInChildren<PlayerColoredCosmetic>(true))
-			cosmeticObjects.Add(cosmetic.gameObject);
-		foreach (HoldableObject holdable in ghostRig.GetComponentsInChildren<HoldableObject>(true))
-			cosmeticObjects.Add(holdable.gameObject);
-		foreach (GameObject cosmeticObject in cosmeticObjects)
-		{
-			if ((Object)(object)cosmeticObject != (Object)null)
-			{
-				cosmeticObject.SetActive(false);
-				Object.Destroy(cosmeticObject);
-			}
-		}
-	}
-
-	private static void HideGhostRig()
-	{
-		if ((Object)(object)ghostRig != (Object)null)
-		{
-			ghostRig.gameObject.SetActive(false);
-			ghostRig.transform.position = Vector3.one * 9999f;
-		}
-	}
-
-	private static void SubscribeGhostRig()
-	{
-		if (!ghostRigSubscribed)
-		{
-			ghostRigSubscribed = true;
-		}
-	}
-
-	private static void UnsubscribeGhostRig()
-	{
-		if (ghostRigSubscribed)
-		{
-			ghostRigSubscribed = false;
-			HideGhostRig();
-		}
-	}
-
-	private static void TryUnsubscribeGhostRig()
-	{
-		if (!GhostWanted())
-			UnsubscribeGhostRig();
-	}
-
-	private static float tagAuraCooldown;
-	public static float tagAuraRange = 1.5f;
-	public static int tagAuraRangeIndex = 2;
-	public static readonly float[] TagAuraRanges = new float[] { 0f, 0.5f, 1f, 1.5f, 2f, 2.5f, 3f, 4f, 5f };
-	private static LineRenderer tagAuraRing;
-
-	public static void TagAura()
-	{
-		if (tagAuraRange <= 0f) return;
-		if (Time.time < tagAuraCooldown) return;
-		if ((Object)(object)VRRig.LocalRig == (Object)null) return;
-		GorillaGameManager gm = GorillaGameManager.instance;
-		GorillaTagManager tgm = (gm is GorillaTagManager) ? (GorillaTagManager)(object)gm : null;
-		if (tgm == null) return;
-		Collider[] hits = Physics.OverlapSphere(VRRig.LocalRig.transform.position, tagAuraRange);
-		foreach (Collider col in hits)
-		{
-			VRRig rig = col.GetComponentInParent<VRRig>();
-			if (rig == null || rig.isLocal || rig.Creator == null || tgm.IsInfected(rig.Creator)) continue;
-			GameMode.ReportTag(rig.Creator);
-			tagAuraCooldown = Time.time + 0.1f;
-		}
-	}
-
-	public static void DisableTagAura()
-	{
-		tagAuraCooldown = 0f;
-	}
-
-	private static void CreateAuraRing()
-	{
-		if (tagAuraRing != null) return;
-		GameObject go = new GameObject("TagAuraRing");
-		tagAuraRing = go.AddComponent<LineRenderer>();
-		tagAuraRing.material = new Material(CachedUberShader);
-		tagAuraRing.startWidth = 0.03f;
-		tagAuraRing.endWidth = 0.03f;
-		tagAuraRing.positionCount = 33;
-		tagAuraRing.useWorldSpace = true;
-	}
-
-	public static void TagAuraVisual()
-	{
-		VRRig local = VRRig.LocalRig;
-		if (local == null) return;
-		CreateAuraRing();
-		tagAuraRing.material.color = WristMenu.ButtonColorEnabled;
-		Vector3 center = local.transform.position;
-		for (int i = 0; i <= 32; i++)
-		{
-			float angle = (float)i / 32f * 360f * Mathf.Deg2Rad;
-			Vector3 p = center + new Vector3(Mathf.Cos(angle) * tagAuraRange, 0f, Mathf.Sin(angle) * tagAuraRange);
-			tagAuraRing.SetPosition(i, p);
-		}
-	}
-
-	public static void DisableTagAuraVisual()
-	{
-		if (tagAuraRing != null) { Object.Destroy(tagAuraRing.gameObject); tagAuraRing = null; }
-	}
-
-	public static void SetTagAuraRange(int index)
-	{
-		tagAuraRangeIndex = index % TagAuraRanges.Length;
-		tagAuraRange = TagAuraRanges[tagAuraRangeIndex];
-		NotifiLib.SendNotification("Range: " + tagAuraRange.ToString("0.0") + "m");
-	}
-
-	public static void UntagGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null)
-			{
-				GorillaGameManager gm = GorillaGameManager.instance;
-				if (gm != null)
-				{
-					GorillaTagManager tagMan = gm as GorillaTagManager;
-					if (tagMan != null && tagMan.IsInfected(rig.Creator) && Time.time > lastUntagNotif)
-					{
-						tagMan.currentInfected.RemoveAll(p => p.UserId == rig.Creator.UserId);
-						lastUntagNotif = Time.time + 0.3f;
-						NotifiLib.SendNotification("Untagged " + rig.Creator.NickName);
-					}
-				}
-			}
-		});
-	}
-
-	public static void TeleportToSpawn()
-	{
-		GorillaTagger gt = GorillaTagger.Instance;
-		if (gt == null) return;
-		GTPlayer player = GTPlayer.Instance;
-		if (player == null) return;
-		Vector3 stump = stumpPosition;
-		Transform bodyT = gt.bodyCollider.transform;
-		player.TeleportTo(stump - bodyT.position + player.transform.position, player.transform.rotation, true, false);
-		bodyT.position = stump;
-		if (VRRig.LocalRig != null)
-			VRRig.LocalRig.transform.position = stump;
-		((Collider)gt.bodyCollider).enabled = false;
-		((MonoBehaviour)gt).StartCoroutine(ReenableBodyCollider());
-	}
-
-	private static IEnumerator ReenableBodyCollider()
-	{
-		yield return (object)new WaitForSeconds(1.5f);
-		if (GorillaTagger.Instance != null)
-			((Collider)GorillaTagger.Instance.bodyCollider).enabled = true;
-	}
-
-	public static void SpazAll()
-	{
-		spazAllActive = true;
-	}
-
-	public static void DisableSpazAll()
-	{
-		spazAllActive = false;
-	}
-
-	public static void SpazSelf()
-	{
-		spazSelfActive = true;
-	}
-
-	public static void DisableSpazSelf()
-	{
-		spazSelfActive = false;
-	}
-
-	private static void RunSpaz()
-	{
-		GorillaGameManager val = GorillaGameManager.instance;
-		if ((Object)(object)val == (Object)null)
-		{
-			return;
-		}
-		GorillaTagManager val2 = (GorillaTagManager)(object)((val is GorillaTagManager) ? val : null);
-		if (val2 == null || !PhotonNetwork.IsMasterClient)
-		{
-			return;
-		}
-		if (spazAllActive)
-		{
-			Player[] playerList = PhotonNetwork.PlayerList;
-			for (int i = 0; i < playerList.Length; i++)
-			{
-				NetPlayer p = playerList[i];
-				if (val2.isCurrentlyTag)
-				{
-					if (val2.currentIt == p)
-					{
-						val2.currentIt = null;
-					}
-					else if (val2.currentIt == null)
-					{
-						val2.currentIt = p;
-					}
-				}
-				else if (val2.IsInfected(p))
-				{
-					val2.currentInfected.RemoveAll((NetPlayer x) => x.UserId == p.UserId);
-				}
-				else
-				{
-					val2.AddInfectedPlayer(p, true);
-				}
-			}
-		}
-		if (!spazSelfActive)
-		{
-			return;
-		}
-		NetPlayer self = NetworkSystem.Instance.LocalPlayer;
-		if (val2.isCurrentlyTag)
-		{
-			if (val2.currentIt == self)
-			{
-				val2.currentIt = null;
-			}
-			else
-			{
-				val2.currentIt = self;
-			}
-		}
-		else if (val2.IsInfected(self))
-		{
-			val2.currentInfected.RemoveAll((NetPlayer x) => x.UserId == self.UserId);
-		}
-		else
-		{
-			val2.AddInfectedPlayer(self, true);
-		}
-	}
-
-	public static void MakeGun(Color color, Vector3 pointersize, float linesize, PrimitiveType pointershape, Transform arm, bool liner, Action onTrigger, Action onRelease)
-	{
-		if ((Object)(object)arm == (Object)(object)GTPlayer.Instance.RightHand.controllerTransform)
-		{
-			gripHeld = WristMenu.gripDownR;
-			triggerHeld = WristMenu.triggerDownR;
-		}
-		else if ((Object)(object)arm == (Object)(object)GTPlayer.Instance.LeftHand.controllerTransform)
-		{
-			gripHeld = WristMenu.gripDownL;
-			triggerHeld = WristMenu.triggerDownL;
-		}
-		if (gripHeld)
-		{
-			Transform visualHand = null;
-			try
-			{
-				bool isRight = (Object)(object)arm == (Object)(object)GTPlayer.Instance.RightHand.controllerTransform;
-				visualHand = isRight ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
-			}
-			catch { }
-			bool isFlatscreen = !XRSettings.isDeviceActive;
-			bool useGhost = isFlatscreen && (object)ghostRig != (Object)null && (tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn || (copyMovementActive && copyMovementTarget != null) || orbitActive);
-			Vector3 gunOrigin;
-			if (useGhost)
-			{
-				Transform gh = null;
-				try
-				{
-					bool isRight = (Object)(object)arm == (Object)(object)GTPlayer.Instance.RightHand.controllerTransform;
-					gh = isRight ? ghostRig.rightHand?.rigTarget?.transform : ghostRig.leftHand?.rigTarget?.transform;
-				}
-				catch { }
-				gunOrigin = gh != null ? gh.position : ghostRig.transform.position + Vector3.up * 0.2f;
-			}
-			else gunOrigin = (visualHand != null ? visualHand.position : arm.position);
-			Vector3 gunDir;
-			if (isFlatscreen && pcGunsEnabled && Mouse.current != null)
-			{
-				if ((Object)(object)pcGunCamera == (Object)null)
-				{
-					GameObject val = GameObject.Find("Player Objects/Third Person Camera/Shoulder Camera");
-					if ((Object)(object)val != (Object)null)
-					{
-						pcGunCamera = val.GetComponent<Camera>();
-					}
-					if ((Object)(object)pcGunCamera == (Object)null)
-					{
-						val = GameObject.Find("Shoulder Camera");
-						if ((Object)(object)val != (Object)null)
-						{
-							pcGunCamera = val.GetComponent<Camera>();
-						}
-					}
-				}
-				if ((Object)(object)pcGunCamera != (Object)null)
-				{
-					Ray val2 = pcGunCamera.ScreenPointToRay(((Pointer)Mouse.current).position.ReadValue());
-					gunDir = val2.direction;
-				}
-				else
-				{
-					if (useGhost)
-					{
-						Transform gh2 = null;
-						try { bool isR = (Object)(object)arm == (Object)(object)GTPlayer.Instance.RightHand.controllerTransform; gh2 = isR ? ghostRig.rightHand?.rigTarget?.transform : ghostRig.leftHand?.rigTarget?.transform; } catch { }
-						gunDir = gh2 != null ? -gh2.up : (visualHand != null ? -visualHand.up : -arm.up);
-					}
-					else gunDir = (visualHand != null ? -visualHand.up : -arm.up);
-				}
-				Physics.Raycast(gunOrigin, gunDir, out raycastHit, 512f, GetNoInvisLayerMask());
-			}
-			else
-			{
-				if (useGhost)
-				{
-					Transform gh3 = null;
-					try { bool isR2 = (Object)(object)arm == (Object)(object)GTPlayer.Instance.RightHand.controllerTransform; gh3 = isR2 ? ghostRig.rightHand?.rigTarget?.transform : ghostRig.leftHand?.rigTarget?.transform; } catch { }
-					gunDir = gh3 != null ? -gh3.up : (visualHand != null ? -visualHand.up : -arm.up);
-				}
-				else gunDir = (visualHand != null ? -visualHand.up : -arm.up);
-				Physics.Raycast(gunOrigin, gunDir, out raycastHit, 512f, GetNoInvisLayerMask());
-			}
-		if ((Object)(object)pointer == (Object)null)
-		{
-			pointer = GameObject.CreatePrimitive(pointershape);
-		}
-		pointer.transform.localScale = pointersize;
-		pointer.GetComponent<Renderer>().material.shader = ShaderCache.Uber;
-		pointer.transform.position = raycastHit.point;
-		pointer.GetComponent<Renderer>().material.color = color;
-		pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", color);
-			if (liner)
-			{
-				if ((Object)(object)Line == (Object)null)
-				{
-					GameObject val3 = new GameObject("GunLine");
-					Line = val3.AddComponent<LineRenderer>();
-				Line.material.shader = ShaderCache.Uber;
-				Line.startWidth = linesize;
-				Line.endWidth = linesize;
-				Line.positionCount = 2;
-				Line.useWorldSpace = true;
-			}
-		Line.startColor = Color.white;
-		Line.endColor = Color.white;
-			Line.material.color = color;
-			Line.material.SetColor("_BaseColor", color);
-				Vector3 lineStart;
-				if (useGhost)
-				{
-					Transform gh4 = null;
-					try { bool isR3 = (Object)(object)arm == (Object)(object)GTPlayer.Instance.RightHand.controllerTransform; gh4 = isR3 ? ghostRig.rightHand?.rigTarget?.transform : ghostRig.leftHand?.rigTarget?.transform; } catch { }
-					lineStart = gh4 != null ? gh4.position : ghostRig.transform.position + Vector3.up * 0.2f;
-				}
-				else lineStart = (visualHand != null ? visualHand.position : arm.position);
-			Line.SetPosition(0, lineStart);
-			Line.SetPosition(1, pointer.transform.position);
-			float pulse = triggerHeld ? (1f + Mathf.Sin(Time.time * 12f) * 0.4f) : 1f;
-			Line.startWidth = linesize * pulse;
-			Line.endWidth = linesize * pulse;
-			Line.positionCount = 2;
-		}
-		Object.Destroy((Object)(object)pointer.GetComponent<BoxCollider>());
-		Object.Destroy((Object)(object)pointer.GetComponent<Rigidbody>());
-		Object.Destroy((Object)(object)pointer.GetComponent<Collider>());
-			if (triggerHeld && !gunTriggerWasDown)
-			{
-				try
-				{
-					onTrigger();
-				}
-				catch
-				{
-				}
-			}
-			else if (!triggerHeld)
-			{
-				try
-				{
-					onRelease();
-				}
-				catch
-				{
-				}
-			}
-		if (triggerHeld)
-		{
-			pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorDisable;
-		pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", WristMenu.ButtonColorDisable);
-		}
-			gunTriggerWasDown = triggerHeld;
-		}
-		else
-		{
-			if ((Object)(object)pointer != (Object)null)
-			{
-				Object.Destroy((Object)(object)pointer, Time.deltaTime);
-				pointer = null;
-			}
-			if ((Object)(object)Line != (Object)null)
-			{
-				Object.Destroy((Object)(object)((Component)Line).gameObject);
-				Line = null;
-			}
-			gunTriggerWasDown = false;
-		}
-	}
-
-	internal static void MakeRightHandGun(Action onTrigger, Action onRelease = null)
-	{
-		Transform arm = isRightHanded ? GTPlayer.Instance.LeftHand.controllerTransform : GTPlayer.Instance.RightHand.controllerTransform;
-		MakeGun(WristMenu.ButtonColorEnabled, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, arm, liner: true, onTrigger, onRelease ?? delegate { });
-	}
-
-	internal static VRRig GetGunTargetPlayer()
-	{
-		if ((object)raycastHit.collider == null) return null;
-		VRRig rig = raycastHit.collider.GetComponentInParent<VRRig>();
-		return rig != null && rig.Creator != null ? rig : null;
-	}
-
-	public static void BlockJmanSounds()
-	{
-		blockJmanSounds = true;
-		JmanSoundPatch.enabled = true;
-	}
-
-	public static void DisableBlockJmanSounds()
-	{
-		blockJmanSounds = false;
-		JmanSoundPatch.enabled = false;
-	}
-
-	public static void AntiGuardianGrab()
-	{
-		antiGuardianGrab = true;
-		GuardianPatches.launched = true;
-		GuardianPatches.knockedBack = true;
-		GuardianPatches.clampedKnockback = true;
-		GuardianPatches.trajectoryOverridden = true;
-		GuardianPatches.grabbedBy = true;
-	}
-
-	public static void DisableAntiGuardianGrab()
-	{
-		antiGuardianGrab = false;
-		GuardianPatches.launched = false;
-		GuardianPatches.knockedBack = false;
-		GuardianPatches.clampedKnockback = false;
-		GuardianPatches.trajectoryOverridden = false;
-		GuardianPatches.grabbedBy = false;
-	}
-
-	public static void AntiBlockCrash()
-	{
-		antiBlockCrash = true;
-	}
-
-	public static void DisableAntiBlockCrash()
-	{
-		antiBlockCrash = false;
-		try
-		{
-			if (GorillaTagScripts.BuilderTable.TryGetBuilderTableForZone(GorillaTagScripts.BuilderTable.BUILDER_ZONE, out var table))
-			{
-				if (table.builderRenderer != null) table.builderRenderer.Show(true);
-			}
-		}
-		catch { }
-	}
-
-	private static void AntiBlockCrashTick()
-	{
-		if (!antiBlockCrash) return;
-		try
-		{
-			if (!GorillaTagScripts.BuilderTable.TryGetBuilderTableForZone(GorillaTagScripts.BuilderTable.BUILDER_ZONE, out var table)) return;
-			if (table.pieces == null || table.pieces.Count == 0) return;
-			foreach (BuilderPiece p in table.pieces)
-			{
-				if (p == null || !p.gameObject.activeSelf || p.isBuiltIntoTable) continue;
-				try { table.builderRenderer.RemovePiece(p); } catch { }
-				p.gameObject.SetActive(false);
-				if (p.rigidBody != null) Object.Destroy(p.rigidBody);
-				if (p.colliders != null)
-				{
-					for (int c = 0; c < p.colliders.Count; c++)
-					{
-						Collider col = p.colliders[c];
-						if (col != null) col.enabled = false;
-					}
-				}
-			}
-		}
-		catch { }
-	}
-
-	public static void BreakGuardian()
-	{
-		breakGuardianActive = true;
-		if (breakGuardianHarmony == null)
-		{
-			breakGuardianHarmony = new Harmony("chudmenu.breakguardian");
-			breakGuardianHarmony.Patch(
-				typeof(GorillaGuardianZoneManager).GetMethod("SetGuardian", BindingFlags.Public | BindingFlags.Instance),
-				prefix: new HarmonyMethod(typeof(GuardianBreakPatch).GetMethod("Prefix", BindingFlags.Static | BindingFlags.Public))
-			);
-		}
-		if (PhotonNetwork.IsMasterClient)
-		{
-			GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-			if (guardian != null)
-			{
-				foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
-				{
-					if (zm.CurrentGuardian != null && !zm.CurrentGuardian.IsLocal && !zm.IsPlayerGuardian(PhotonNetwork.LocalPlayer))
-					{
-						guardian.EjectGuardian(zm.CurrentGuardian);
-					}
-				}
-			}
-		}
-	}
-
-	public static void DisableBreakGuardian()
-	{
-		breakGuardianActive = false;
-		if (breakGuardianHarmony != null)
-		{
-			breakGuardianHarmony.UnpatchSelf();
-			breakGuardianHarmony = null;
-		}
-	}
-
-	public static void GuardianSelf()
-	{
-		if (!PhotonNetwork.IsMasterClient)
-		{
-			NotifiLib.SendNotification("You are not master client!");
-			return;
-		}
-		NetPlayer local = PhotonNetwork.LocalPlayer;
-		foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
-		{
-			zm.SetGuardian(local);
-		}
-		
-	}
-
-	public static void UnguardianSelf()
-	{
-		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-		if (guardian == null) return;
-		NetPlayer local = PhotonNetwork.LocalPlayer;
-		if (!guardian.IsPlayerGuardian(local)) return;
-		if (PhotonNetwork.IsMasterClient)
-		{
-			guardian.EjectGuardian(local);
-		}
-		else
-		{
-			guardian.RequestEjectGuardian(local);
-		}
-	}
-
-	// ====== Guardian Guns ======
-	public static void GuardianGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			if (Time.time < lastGuardianGunTime) return;
-			VRRig rig = GetGunTargetPlayer();
-			if (rig == null || rig.isLocal || rig.Creator == null) return;
-			foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
-			{
-				zm.SetGuardian(rig.Creator);
-			}
-			lastGuardianGunTime = Time.time + 0.3f;
-		});
-	}
-
-	public static void UnguardianGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			if (Time.time < lastUnguardianGunTime) return;
-			VRRig rig = GetGunTargetPlayer();
-			if (rig == null || rig.Creator == null) return;
-			GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-			if (guardian == null) return;
-			if (!guardian.IsPlayerGuardian(rig.Creator)) return;
-			if (PhotonNetwork.IsMasterClient)
-			{
-				guardian.EjectGuardian(rig.Creator);
-			}
-			else
-			{
-				guardian.RequestEjectGuardian(rig.Creator);
-			}
-			lastUnguardianGunTime = Time.time + 0.3f;
-		});
-	}
-
-	public static void GuardianSpazGun()
-	{
-		bool gripDown = isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR;
-		if (!gripDown)
-		{
-			guardianSpazTarget = null;
-			CleanupGun();
-			return;
-		}
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null && !rig.isLocal && rig.Creator != null)
-			{
-				guardianSpazTarget = rig;
-			}
-		}, delegate { });
-		if (guardianSpazTarget == null || guardianSpazTarget.Creator == null) return;
-		if (pointer != null && Line != null)
-		{
-			pointer.transform.position = ((Component)guardianSpazTarget).transform.position;
-			Line.SetPosition(1, ((Component)guardianSpazTarget).transform.position);
-		}
-		if (Time.time < guardianSpazTimer) return;
-		guardianSpazTimer = Time.time + 0.15f;
-		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-		if (guardian == null) return;
-		if (guardian.IsPlayerGuardian(guardianSpazTarget.Creator))
-		{
-			guardian.EjectGuardian(guardianSpazTarget.Creator);
-		}
-		else
-		{
-			foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
-			{
-				zm.SetGuardian(guardianSpazTarget.Creator);
-			}
-		}
-	}
-
-	// ====== Paint Brawl Mods ======
-	public static void PaintBrawlKillAll()
-	{
-		GorillaGameManager gm = GorillaGameManager.instance;
-		GorillaPaintbrawlManager pb = gm as GorillaPaintbrawlManager;
-		if (pb == null || !NetworkSystem.Instance.IsMasterClient)
-		{
-			return;
-		}
-		Player[] playerList = PhotonNetwork.PlayerList;
-		for (int i = 0; i < playerList.Length; i++)
-		{
-			NetPlayer p = playerList[i];
-			if (p.IsLocal) continue;
-			try { pb.HitPlayer(p); } catch { }
-		}
-	}
-
-	public static void PaintBrawlKillGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig == null || rig.isLocal || rig.Creator == null) return;
-			GorillaPaintbrawlManager pb = GorillaGameManager.instance as GorillaPaintbrawlManager;
-			if (pb == null || !NetworkSystem.Instance.IsMasterClient) return;
-			pb.HitPlayer(rig.Creator);
-		});
-	}
-
-	public static void AntiAFK()
-	{
-		try
-		{
-			((PhotonNetworkController)PhotonNetworkController.Instance).disableAFKKick = true;
-		}
-		catch
-		{
-		}
-	}
-
-	public static void DisableAntiAFK()
-	{
-		try
-		{
-			((PhotonNetworkController)PhotonNetworkController.Instance).disableAFKKick = false;
-		}
-		catch
-		{
-		}
-	}
-
-	public static void DisableNetworkTriggers()
-	{
-		NetworkTriggerPatch.enabled = true;
-	}
-
-	public static void EnableNetworkTriggers()
-	{
-		NetworkTriggerPatch.enabled = false;
-	}
-
-	public static void DisableQuitBox()
-	{
-		QuitBoxPatch.enabled = false;
-	}
-
-	public static void EnableQuitBox()
-	{
-		QuitBoxPatch.enabled = true;
-	}
-
-	public static void EnablePCButtonClick()
-	{
-		pcButtonClickEnabled = true;
-	}
-
-	public static void DisablePCButtonClick()
-	{
-		pcButtonClickEnabled = false;
-		if (pcButtonOldLocalPosition.HasValue)
-		{
-			GorillaTagger.Instance.rightHandTriggerCollider.transform.localPosition = pcButtonOldLocalPosition.Value;
-			pcButtonOldLocalPosition = null;
-		}
-		if ((Object)(object)GorillaTagger.Instance.rightHandTriggerCollider != (Object)null)
-		{
-			TransformFollow component = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
-			if ((Object)(object)component != (Object)null)
-			{
-				((Behaviour)component).enabled = true;
-			}
-		}
-	}
-
-	private static void UpdatePCButtonClick()
-	{
-		if (!pcButtonClickEnabled || (Object)(object)GorillaTagger.Instance == (Object)null || (Object)(object)GorillaTagger.Instance.rightHandTriggerCollider == (Object)null)
-		{
-			return;
-		}
-		if (Mouse.current != null && Mouse.current.leftButton.isPressed)
-		{
-			if ((Object)(object)pcButtonCachedCamera == (Object)null)
-			{
-				Camera[] array = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
-				foreach (Camera val2 in array)
-				{
-					if (((Object)val2).name == "Shoulder Camera" || ((Object)(object)((Component)val2).gameObject.transform.parent != (Object)null && ((Object)((Component)val2).gameObject.transform.parent).name == "Third Person Camera"))
-					{
-						pcButtonCachedCamera = val2;
-						break;
-					}
-				}
-			}
-			Camera val = pcButtonCachedCamera;
-			if (!((Object)(object)val != (Object)null))
-			{
-				return;
-			}
-			Ray val3 = val.ScreenPointToRay(((Pointer)Mouse.current).position.ReadValue());
-			RaycastHit val4 = default(RaycastHit);
-			if (!Physics.Raycast(val3, out val4, 512f, GetNoInvisLayerMask()))
-			{
-				return;
-			}
-			if (!pcButtonOldLocalPosition.HasValue)
-			{
-				pcButtonOldLocalPosition = GorillaTagger.Instance.rightHandTriggerCollider.transform.localPosition;
-				TransformFollow component = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
-				if ((Object)(object)component != (Object)null)
-				{
-					((Behaviour)component).enabled = false;
-				}
-			}
-			GorillaTagger.Instance.rightHandTriggerCollider.transform.position = val4.point;
-		}
-		else
-		{
-			if (pcButtonOldLocalPosition.HasValue)
-			{
-				GorillaTagger.Instance.rightHandTriggerCollider.transform.localPosition = pcButtonOldLocalPosition.Value;
-				pcButtonOldLocalPosition = null;
-			}
-			TransformFollow component2 = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
-			if ((Object)(object)component2 != (Object)null)
-			{
-				((Behaviour)component2).enabled = true;
-			}
-		}
-	}
-
-	public static int GetNoInvisLayerMask()
-	{
-		if (!noInvisLayerMask.HasValue)
-		{
-			int excluded = 0;
-			string[] layerNames = new string[] { "TransparentFX", "Ignore Raycast", "Zone", "Gorilla Trigger", "Gorilla Boundary", "GorillaCosmetics", "GorillaParticle" };
-			foreach (string layerName in layerNames)
-			{
-				int layer = LayerMask.NameToLayer(layerName);
-				if (layer >= 0)
-				{
-					excluded |= 1 << layer;
-				}
-			}
-			noInvisLayerMask = ~excluded;
-		}
-		return noInvisLayerMask ?? ((GTPlayer.Instance != null) ? (int)GTPlayer.Instance.locomotionEnabledLayers : -1);
-	}
-
-	public static void EnablePCGuns()
-	{
-		pcGunsEnabled = true;
-	}
-
-	public static void DisablePCGuns()
-	{
-		pcGunsEnabled = false;
-	}
-
-	private static void UpdatePCGuns()
-	{
-		if (!pcGunsEnabled || Mouse.current == null || XRSettings.isDeviceActive)
-		{
-			return;
-		}
-		ControllerInputPoller poller = ControllerInputPoller.instance;
-		if ((Object)(object)poller == (Object)null)
-		{
-			return;
-		}
-		if (Mouse.current.leftButton.isPressed)
-		{
-			poller.rightControllerIndexFloat = 1f;
-			poller.rightControllerTriggerButton = true;
-			WristMenu.triggerDownR = true;
-			poller.leftControllerIndexFloat = 1f;
-			poller.leftControllerTriggerButton = true;
-			WristMenu.triggerDownL = true;
-		}
-		else
-		{
-			poller.rightControllerIndexFloat = 0f;
-			poller.rightControllerTriggerButton = false;
-			poller.leftControllerIndexFloat = 0f;
-			poller.leftControllerTriggerButton = false;
-		}
-		if (Mouse.current.rightButton.isPressed)
-		{
-			poller.rightGrab = true;
-			poller.rightControllerGripFloat = 1f;
-			WristMenu.gripDownR = true;
-			poller.leftGrab = true;
-			poller.leftControllerGripFloat = 1f;
-			WristMenu.gripDownL = true;
-		}
-		else
-		{
-			poller.rightGrab = false;
-			poller.rightControllerGripFloat = 0f;
-			poller.leftGrab = false;
-			poller.leftControllerGripFloat = 0f;
-		}
-	}
-
-	public static void MuteGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null)
-			{
-				try
-				{
-					foreach (var line in GorillaScoreboardTotalUpdater.allScoreboardLines)
-					{
-						if (line.linePlayer != null && line.linePlayer.UserId == rig.Creator.UserId)
-						{
-							line.muteButton.isOn = !line.muteButton.isOn;
-							line.PressButton(line.muteButton.isOn, GorillaPlayerLineButton.ButtonType.Mute);
-						}
-					}
-				}
-				catch
-				{
-				}
-			}
-		});
-	}
-
-	public static void EnableRightHand()
-	{
-		isRightHanded = true;
-		WristMenu.ReanchorToCurrentHand();
-	}
-
-	public static void DisableRightHand()
-	{
-		isRightHanded = false;
-		WristMenu.ReanchorToCurrentHand();
 	}
 
 	public static MenuColors GetMenuColors(int index)
@@ -4927,10 +974,1571 @@ private static VRRig ghostRig;
 		return result;
 	}
 
+	public static void TPGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			if (GTPlayer.Instance != (Object)null && pointer != (Object)null)
+			{
+				Vector3 pos = pointer.transform.position;
+				Vector3 playerPos = GorillaTagger.Instance.transform.position - GorillaTagger.Instance.bodyCollider.transform.position + pos;
+				GTPlayer.Instance.TeleportTo(playerPos, GTPlayer.Instance.transform.rotation, true, false);
+				VRRig.LocalRig.transform.position = pos;
+			}
+		});
+	}
+
+	public static void JoinCode(string code)
+	{
+		NotifiLib.SendNotification("Joining room: " + code);
+		if (instance == null)
+		{
+			return;
+		}
+		instance.StartCoroutine(JoinRoomDirect(code));
+	}
+
+	private static IEnumerator JoinRoomDirect(string code)
+	{
+		yield return new WaitForSeconds(5f);
+		PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(code, JoinType.Solo);
+	}
+
+	public static void JoinRandomPublic()
+	{
+		GorillaNetworkJoinTrigger trigger = PhotonNetworkController.Instance.currentJoinTrigger;
+		if (trigger == null && ZoneManagement.instance != null && ZoneManagement.instance.activeZones.Count > 0)
+			trigger = GorillaComputer.instance.GetJoinTriggerForZone(ZoneManagement.instance.activeZones.First().GetName());
+		if (trigger == null && GorillaComputer.instance != null)
+		{
+			try
+			{
+				var dict = Traverse.Create(GorillaComputer.instance).Field("primaryTriggersByZone").GetValue<Dictionary<string, GorillaNetworkJoinTrigger>>();
+				if (dict != null)
+				{
+					foreach (var kv in dict)
+					{
+						if (kv.Value != null)
+						{
+							trigger = kv.Value;
+							break;
+						}
+					}
+				}
+			}
+			catch { }
+		}
+		if (trigger == null)
+		{
+			NotifiLib.SendNotification("No join trigger found");
+			return;
+		}
+		if (instance == null)
+		{
+			return;
+		}
+		instance.StartCoroutine(JoinRandomPublicRoutine(trigger));
+	}
+
+	private static IEnumerator JoinRandomPublicRoutine(GorillaNetworkJoinTrigger trigger)
+	{
+		if (NetworkSystem.Instance.InRoom)
+		{
+			NetworkSystem.Instance.ReturnToSinglePlayer();
+			float timeout = 8f;
+			while (timeout > 0f && NetworkSystem.Instance.netState != NetSystemState.Idle)
+			{
+				timeout -= Time.deltaTime;
+				yield return null;
+			}
+			yield return new WaitForSeconds(0.4f);
+		}
+		PhotonNetworkController.Instance.AttemptToJoinPublicRoom(trigger, JoinType.Solo);
+	}
+
+	public static void GroupKickAll()
+	{
+		if (!PhotonNetwork.InRoom || !NetworkSystem.Instance.SessionIsPrivate)
+		{
+			NotifiLib.SendNotification("Only works in private rooms!");
+			return;
+		}
+		if (instance == null)
+		{
+			return;
+		}
+		instance.savedGroupKickRoom = PhotonNetwork.CurrentRoom.Name;
+		GorillaComputer.instance.OnGroupJoinButtonPress(
+			GorillaComputer.instance.groupMapJoinIndex,
+			GorillaComputer.instance.friendJoinCollider
+		);
+		instance.StartCoroutine(RejoinAfterGroupKick());
+	}
+
+	private static IEnumerator RejoinAfterGroupKick()
+	{
+		if (instance == null)
+		{
+			yield break;
+		}
+		while (!PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom.Name == instance.savedGroupKickRoom)
+			yield return null;
+		yield return new WaitForSeconds(3f);
+		if (string.IsNullOrEmpty(instance.savedGroupKickRoom)) yield break;
+		for (int i = 0; i < 4; i++)
+		{
+			if (PhotonNetwork.InRoom)
+				PhotonNetwork.Disconnect();
+			yield return new WaitForSeconds(2f);
+			PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(instance.savedGroupKickRoom, JoinType.Solo);
+			float timeout = 10f;
+			while (timeout > 0f && (!PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom.Name != instance.savedGroupKickRoom))
+			{
+				timeout -= Time.deltaTime;
+				yield return null;
+			}
+			if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom.Name == instance.savedGroupKickRoom)
+			{
+				instance.savedGroupKickRoom = null;
+				yield break;
+			}
+		}
+		instance.savedGroupKickRoom = null;
+	}
+
+	public static void GetPlayerIDGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
+			{
+				GUIUtility.systemCopyBuffer = rig.Creator.UserId;
+				NotifiLib.SendNotification("Copied: " + rig.Creator.UserId);
+			}
+		});
+	}
+
+	public static void GetIDSelf()
+	{
+		string text = (GUIUtility.systemCopyBuffer = PhotonNetwork.LocalPlayer.UserId);
+		NotifiLib.SendNotification("Copied self: " + text);
+	}
+
+	public static void UnlockVim()
+	{
+		if (instance == null || instance.vimHarmony != null)
+		{
+			return;
+		}
+		instance.vimHarmony = new Harmony("chudmenu.vim");
+		Type type = null;
+		Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+		for (int i = 0; i < assemblies.Length; i++)
+		{
+			type = assemblies[i].GetType("GorillaTagScripts.SubscriptionManager");
+			if (type != null)
+			{
+				break;
+			}
+		}
+		if (type != null)
+		{
+			MethodInfo method = type.GetMethod("IsLocalSubscribed", BindingFlags.Static | BindingFlags.Public);
+			if (method != null)
+			{
+				MethodInfo method2 = typeof(Mods).GetMethod("VimPrefix", BindingFlags.Static | BindingFlags.Public);
+				instance.vimHarmony.Patch((MethodBase)method, new HarmonyMethod(method2), (HarmonyMethod)null, (HarmonyMethod)null, (HarmonyMethod)null, (HarmonyMethod)null);
+			}
+		}
+	}
+
+	public static void DisableUnlockVim()
+	{
+		if (instance == null || instance.vimHarmony == null)
+		{
+			return;
+		}
+		instance.vimHarmony.UnpatchSelf();
+		instance.vimHarmony = null;
+	}
+
+	public static bool VimPrefix(ref bool __result)
+	{
+		__result = true;
+		return false;
+	}
+
+	public static void EnableSeeAntiCheatReports()
+	{
+		seeAntiCheatReports = true;
+	}
+
+	public static void DisableSeeAntiCheatReports()
+	{
+		seeAntiCheatReports = false;
+		antiCheatReportCounts.Clear();
+	}
+
+	public static void EnableAntiReport()
+	{
+		antiReportEnabled = true;
+	}
+
+	public static void DisableAntiReport()
+	{
+		antiReportEnabled = false;
+		if (instance != null && instance.antiReportSphere != null)
+		{
+			Object.Destroy(instance.antiReportSphere);
+			instance.antiReportSphere = null;
+		}
+	}
+
+	public static void SetAntiReportRange(int index)
+	{
+		antiReportRangeIndex = index % antiReportRanges.Length;
+		if (antiReportRangeIndex < 0) antiReportRangeIndex = antiReportRanges.Length - 1;
+		antiReportRange = antiReportRanges[antiReportRangeIndex];
+		NotifiLib.SendNotification("Range: " + antiReportRange.ToString("0.00") + "m");
+	}
+
+	private void AntiReportTick()
+	{
+		if (!antiReportEnabled || !NetworkSystem.Instance.InRoom)
+			return;
+		if (!(Time.time > antiReportDelay))
+			return;
+		foreach (GorillaPlayerScoreboardLine line in GorillaScoreboardTotalUpdater.allScoreboardLines)
+		{
+			if (line.linePlayer == null || !line.linePlayer.IsLocal)
+				continue;
+			Vector3 reportPos = line.reportButton.gameObject.transform.position;
+			foreach (VRRig rig in VRRigCache.ActiveRigs)
+			{
+				if (rig == null || rig.isLocal || rig.isOfflineVRRig)
+					continue;
+				if (Vector3.Distance(rig.rightHandTransform.position, reportPos) < antiReportRange ||
+				    Vector3.Distance(rig.leftHandTransform.position, reportPos) < antiReportRange)
+				{
+					Player player = Console.GetPlayerFromID(rig.Creator.UserId);
+					string name = player != null ? player.NickName : "?";
+					NotifiLib.SendNotification(name + " attempted to report you");
+					antiReportDelay = Time.time + 1f;
+					NetworkSystem.Instance.ReturnToSinglePlayer();
+					return;
+				}
+			}
+		}
+	}
+
+	private void CreateAntiReportSphere()
+	{
+		if (antiReportSphere != null) return;
+		antiReportSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+		Object.Destroy(antiReportSphere.GetComponent<Collider>());
+		if (antiReportMat == null)
+		{
+			antiReportMat = new Material(Shader.Find("GUI/Text Shader"));
+			antiReportMat.color = new Color(1f, 0f, 0f, 0.25f);
+		}
+		antiReportSphere.GetComponent<Renderer>().material = antiReportMat;
+	}
+
+	private void AntiReportVisual()
+	{
+		if (!antiReportEnabled)
+		{
+			if (antiReportSphere != null) antiReportSphere.SetActive(false);
+			return;
+		}
+		if (!NetworkSystem.Instance.InRoom)
+		{
+			if (antiReportSphere != null) antiReportSphere.SetActive(false);
+			return;
+		}
+		CreateAntiReportSphere();
+		antiReportMat.color = new Color(1f, 0f, 0f, 0.25f);
+		bool found = false;
+		foreach (GorillaPlayerScoreboardLine line in GorillaScoreboardTotalUpdater.allScoreboardLines)
+		{
+			if (line.linePlayer == null || !line.linePlayer.IsLocal)
+				continue;
+			Vector3 center = line.reportButton.gameObject.transform.position;
+			antiReportSphere.transform.position = center;
+			antiReportSphere.transform.localScale = Vector3.one * antiReportRange;
+			found = true;
+			break;
+		}
+		antiReportSphere.SetActive(found);
+	}
+
+	public static void AntiAFK()
+	{
+		try
+		{
+			((PhotonNetworkController)PhotonNetworkController.Instance).disableAFKKick = true;
+		}
+		catch
+		{
+		}
+	}
+
+	public static void DisableAntiAFK()
+	{
+		try
+		{
+			((PhotonNetworkController)PhotonNetworkController.Instance).disableAFKKick = false;
+		}
+		catch
+		{
+		}
+	}
+
+	public static void DisableNetworkTriggers()
+	{
+		NetworkTriggerPatch.enabled = true;
+	}
+
+	public static void EnableNetworkTriggers()
+	{
+		NetworkTriggerPatch.enabled = false;
+	}
+
+	public static void DisableQuitBox()
+	{
+		QuitBoxPatch.enabled = false;
+	}
+
+	public static void EnableQuitBox()
+	{
+		QuitBoxPatch.enabled = true;
+	}
+
+	public static void EnablePCButtonClick()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.pcButtonClickEnabled = true;
+	}
+
+	public static void DisablePCButtonClick()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.pcButtonClickEnabled = false;
+		if (instance.pcButtonOldLocalPosition.HasValue)
+		{
+			GorillaTagger.Instance.rightHandTriggerCollider.transform.localPosition = instance.pcButtonOldLocalPosition.Value;
+			instance.pcButtonOldLocalPosition = null;
+		}
+		if (GorillaTagger.Instance.rightHandTriggerCollider != (Object)null)
+		{
+			TransformFollow component = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
+			if (component != (Object)null)
+			{
+				((Behaviour)component).enabled = true;
+			}
+		}
+	}
+
+	private void UpdatePCButtonClick()
+	{
+		if (!pcButtonClickEnabled || GorillaTagger.Instance == (Object)null || GorillaTagger.Instance.rightHandTriggerCollider == (Object)null)
+		{
+			return;
+		}
+		if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+		{
+			if (pcButtonCachedCamera == (Object)null)
+			{
+				Camera[] array = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+				foreach (Camera val2 in array)
+				{
+					if (((Object)val2).name == "Shoulder Camera" || (((Component)val2).gameObject.transform.parent != (Object)null && ((Object)((Component)val2).gameObject.transform.parent).name == "Third Person Camera"))
+					{
+						pcButtonCachedCamera = val2;
+						break;
+					}
+				}
+			}
+			Camera val = pcButtonCachedCamera;
+			if (!(val != (Object)null))
+			{
+				return;
+			}
+			Ray val3 = val.ScreenPointToRay(((Pointer)Mouse.current).position.ReadValue());
+			RaycastHit val4 = default(RaycastHit);
+			if (!Physics.Raycast(val3, out val4, 512f, GetNoInvisLayerMask()))
+			{
+				return;
+			}
+			if (!pcButtonOldLocalPosition.HasValue)
+			{
+				pcButtonOldLocalPosition = GorillaTagger.Instance.rightHandTriggerCollider.transform.localPosition;
+				TransformFollow component = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
+				if (component != (Object)null)
+				{
+					((Behaviour)component).enabled = false;
+				}
+			}
+			GorillaTagger.Instance.rightHandTriggerCollider.transform.position = val4.point;
+		}
+		else
+		{
+			if (pcButtonOldLocalPosition.HasValue)
+			{
+				GorillaTagger.Instance.rightHandTriggerCollider.transform.localPosition = pcButtonOldLocalPosition.Value;
+				pcButtonOldLocalPosition = null;
+			}
+			TransformFollow component2 = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
+			if (component2 != (Object)null)
+			{
+				((Behaviour)component2).enabled = true;
+			}
+		}
+	}
+
+	public static int GetNoInvisLayerMask()
+	{
+		if (instance != null && instance.noInvisLayerMask.HasValue)
+		{
+			return instance.noInvisLayerMask.Value;
+		}
+		if (instance == null)
+		{
+			return (GTPlayer.Instance != null) ? (int)GTPlayer.Instance.locomotionEnabledLayers : -1;
+		}
+		return instance.GetNoInvisLayerMaskCore();
+	}
+
+	private int GetNoInvisLayerMaskCore()
+	{
+		if (!noInvisLayerMask.HasValue)
+		{
+			int excluded = 0;
+			string[] layerNames = new string[] { "TransparentFX", "Ignore Raycast", "Zone", "Gorilla Trigger", "Gorilla Boundary", "GorillaCosmetics", "GorillaParticle" };
+			foreach (string layerName in layerNames)
+			{
+				int layer = LayerMask.NameToLayer(layerName);
+				if (layer >= 0)
+				{
+					excluded |= 1 << layer;
+				}
+			}
+			noInvisLayerMask = ~excluded;
+		}
+		return noInvisLayerMask ?? ((GTPlayer.Instance != null) ? (int)GTPlayer.Instance.locomotionEnabledLayers : -1);
+	}
+
+	public static void EnablePCGuns()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.pcGunsEnabled = true;
+	}
+
+	public static void DisablePCGuns()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.pcGunsEnabled = false;
+	}
+
+	private void UpdatePCGuns()
+	{
+		if (!pcGunsEnabled || Mouse.current == null || XRSettings.isDeviceActive)
+		{
+			return;
+		}
+		ControllerInputPoller poller = ControllerInputPoller.instance;
+		if (poller == (Object)null)
+		{
+			return;
+		}
+		if (Mouse.current.leftButton.isPressed)
+		{
+			poller.rightControllerIndexFloat = 1f;
+			poller.rightControllerTriggerButton = true;
+			WristMenu.triggerDownR = true;
+			poller.leftControllerIndexFloat = 1f;
+			poller.leftControllerTriggerButton = true;
+			WristMenu.triggerDownL = true;
+		}
+		else
+		{
+			poller.rightControllerIndexFloat = 0f;
+			poller.rightControllerTriggerButton = false;
+			poller.leftControllerIndexFloat = 0f;
+			poller.leftControllerTriggerButton = false;
+		}
+		if (Mouse.current.rightButton.isPressed)
+		{
+			poller.rightGrab = true;
+			poller.rightControllerGripFloat = 1f;
+			WristMenu.gripDownR = true;
+			poller.leftGrab = true;
+			poller.leftControllerGripFloat = 1f;
+			WristMenu.gripDownL = true;
+		}
+		else
+		{
+			poller.rightGrab = false;
+			poller.rightControllerGripFloat = 0f;
+			poller.leftGrab = false;
+			poller.leftControllerGripFloat = 0f;
+		}
+	}
+
+	public static void MuteGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
+			{
+				try
+				{
+					foreach (var line in GorillaScoreboardTotalUpdater.allScoreboardLines)
+					{
+						if (line.linePlayer != null && line.linePlayer.UserId == rig.Creator.UserId)
+						{
+							line.muteButton.isOn = !line.muteButton.isOn;
+							line.PressButton(line.muteButton.isOn, GorillaPlayerLineButton.ButtonType.Mute);
+						}
+					}
+				}
+				catch
+				{
+				}
+			}
+		});
+	}
+
+	public static void EnableRightHand()
+	{
+		isRightHanded = true;
+		WristMenu.ReanchorToCurrentHand();
+	}
+
+	public static void DisableRightHand()
+	{
+		isRightHanded = false;
+		WristMenu.ReanchorToCurrentHand();
+	}
+
+	public static void MakeGun(Color color, Vector3 pointersize, float linesize, PrimitiveType pointershape, Transform arm, bool liner, Action onTrigger, Action onRelease)
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.MakeGunCore(color, pointersize, linesize, pointershape, arm, liner, onTrigger, onRelease);
+	}
+
+	private void MakeGunCore(Color color, Vector3 pointersize, float linesize, PrimitiveType pointershape, Transform arm, bool liner, Action onTrigger, Action onRelease)
+	{
+		if (arm == GTPlayer.Instance.RightHand.controllerTransform)
+		{
+			gripHeld = WristMenu.gripDownR;
+			triggerHeld = WristMenu.triggerDownR;
+		}
+		else if (arm == GTPlayer.Instance.LeftHand.controllerTransform)
+		{
+			gripHeld = WristMenu.gripDownL;
+			triggerHeld = WristMenu.triggerDownL;
+		}
+		if (gripHeld)
+		{
+			Transform visualHand = null;
+			try
+			{
+				bool isRight = arm == GTPlayer.Instance.RightHand.controllerTransform;
+				visualHand = isRight ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
+			}
+			catch { }
+			bool isFlatscreen = !XRSettings.isDeviceActive;
+			bool useGhost = isFlatscreen && (object)ghostRig != (Object)null && (tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn || (copyMovementActive && copyMovementTarget != null) || orbitActive);
+			Vector3 gunOrigin;
+			if (useGhost)
+			{
+				Transform gh = null;
+				try
+				{
+					bool isRight = arm == GTPlayer.Instance.RightHand.controllerTransform;
+					gh = isRight ? ghostRig.rightHand?.rigTarget?.transform : ghostRig.leftHand?.rigTarget?.transform;
+				}
+				catch { }
+				gunOrigin = gh != null ? gh.position : ghostRig.transform.position + Vector3.up * 0.2f;
+			}
+			else gunOrigin = (visualHand != null ? visualHand.position : arm.position);
+			Vector3 gunDir;
+			if (isFlatscreen && pcGunsEnabled && Mouse.current != null)
+			{
+				if (pcGunCamera == (Object)null)
+				{
+					GameObject shoulderCamObj = GameObject.Find("Player Objects/Third Person Camera/Shoulder Camera");
+					if (shoulderCamObj != (Object)null)
+					{
+						pcGunCamera = shoulderCamObj.GetComponent<Camera>();
+					}
+					if (pcGunCamera == (Object)null)
+					{
+						shoulderCamObj = GameObject.Find("Shoulder Camera");
+						if (shoulderCamObj != (Object)null)
+						{
+							pcGunCamera = shoulderCamObj.GetComponent<Camera>();
+						}
+					}
+				}
+				if (pcGunCamera != (Object)null)
+				{
+					Ray mouseRay = pcGunCamera.ScreenPointToRay(((Pointer)Mouse.current).position.ReadValue());
+					gunDir = mouseRay.direction;
+				}
+				else
+				{
+					if (useGhost)
+					{
+						Transform gh2 = null;
+						try { bool isR = arm == GTPlayer.Instance.RightHand.controllerTransform; gh2 = isR ? ghostRig.rightHand?.rigTarget?.transform : ghostRig.leftHand?.rigTarget?.transform; } catch { }
+						gunDir = gh2 != null ? -gh2.up : (visualHand != null ? -visualHand.up : -arm.up);
+					}
+					else gunDir = (visualHand != null ? -visualHand.up : -arm.up);
+				}
+				Physics.Raycast(gunOrigin, gunDir, out raycastHit, 512f, GetNoInvisLayerMask());
+			}
+			else
+			{
+				if (useGhost)
+				{
+					Transform gh3 = null;
+					try { bool isR2 = arm == GTPlayer.Instance.RightHand.controllerTransform; gh3 = isR2 ? ghostRig.rightHand?.rigTarget?.transform : ghostRig.leftHand?.rigTarget?.transform; } catch { }
+					gunDir = gh3 != null ? -gh3.up : (visualHand != null ? -visualHand.up : -arm.up);
+				}
+				else gunDir = (visualHand != null ? -visualHand.up : -arm.up);
+				Physics.Raycast(gunOrigin, gunDir, out raycastHit, 512f, GetNoInvisLayerMask());
+			}
+		if (pointer == (Object)null)
+		{
+			pointer = GameObject.CreatePrimitive(pointershape);
+		}
+		pointer.transform.localScale = pointersize;
+		pointer.GetComponent<Renderer>().material.shader = ShaderCache.Uber;
+		pointer.transform.position = raycastHit.point;
+		pointer.GetComponent<Renderer>().material.color = color;
+		pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", color);
+			if (liner)
+			{
+				if (Line == (Object)null)
+				{
+					GameObject gunLineObj = new GameObject("GunLine");
+					Line = gunLineObj.AddComponent<LineRenderer>();
+				Line.material.shader = ShaderCache.Uber;
+				Line.startWidth = linesize;
+				Line.endWidth = linesize;
+				Line.positionCount = 2;
+				Line.useWorldSpace = true;
+			}
+		Line.startColor = Color.white;
+		Line.endColor = Color.white;
+			Line.material.color = color;
+			Line.material.SetColor("_BaseColor", color);
+				Vector3 lineStart;
+				if (useGhost)
+				{
+					Transform gh4 = null;
+					try { bool isR3 = arm == GTPlayer.Instance.RightHand.controllerTransform; gh4 = isR3 ? ghostRig.rightHand?.rigTarget?.transform : ghostRig.leftHand?.rigTarget?.transform; } catch { }
+					lineStart = gh4 != null ? gh4.position : ghostRig.transform.position + Vector3.up * 0.2f;
+				}
+				else lineStart = (visualHand != null ? visualHand.position : arm.position);
+			Line.SetPosition(0, lineStart);
+			Line.SetPosition(1, pointer.transform.position);
+			float pulse = triggerHeld ? (1f + Mathf.Sin(Time.time * 12f) * 0.4f) : 1f;
+			Line.startWidth = linesize * pulse;
+			Line.endWidth = linesize * pulse;
+			Line.positionCount = 2;
+		}
+		Object.Destroy(pointer.GetComponent<BoxCollider>());
+		Object.Destroy(pointer.GetComponent<Rigidbody>());
+		Object.Destroy(pointer.GetComponent<Collider>());
+			if (triggerHeld && !gunTriggerWasDown)
+			{
+				try
+				{
+					onTrigger();
+				}
+				catch
+				{
+				}
+			}
+			else if (!triggerHeld)
+			{
+				try
+				{
+					onRelease();
+				}
+				catch
+				{
+				}
+			}
+		if (triggerHeld)
+		{
+			pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorDisable;
+		pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", WristMenu.ButtonColorDisable);
+		}
+			gunTriggerWasDown = triggerHeld;
+		}
+		else
+		{
+			if (pointer != (Object)null)
+			{
+				Object.Destroy(pointer, Time.deltaTime);
+				pointer = null;
+			}
+			if (Line != (Object)null)
+			{
+				Object.Destroy(((Component)Line).gameObject);
+				Line = null;
+			}
+			gunTriggerWasDown = false;
+		}
+	}
+
+	internal static void MakeRightHandGun(Action onTrigger, Action onRelease = null)
+	{
+		Transform arm = isRightHanded ? GTPlayer.Instance.LeftHand.controllerTransform : GTPlayer.Instance.RightHand.controllerTransform;
+		MakeGun(WristMenu.ButtonColorEnabled, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, arm, liner: true, onTrigger, onRelease ?? delegate { });
+	}
+
+	internal static VRRig GetGunTargetPlayer()
+	{
+		if ((object)raycastHit.collider == null) return null;
+		VRRig rig = raycastHit.collider.GetComponentInParent<VRRig>();
+		return rig != null && rig.Creator != null ? rig : null;
+	}
+
+	private GameObject FreeCamObject;
+
+	private bool thirdPersonViewActive;
+
+	private bool xButtonWasDown;
+
+	public static void CleanupGun()
+	{
+		if (pointer != (Object)null)
+		{
+			Object.Destroy(pointer, Time.deltaTime);
+			pointer = null;
+		}
+		if (Line != (Object)null)
+		{
+			Object.Destroy(((Component)Line).gameObject);
+			Line = null;
+		}
+		if (instance != null)
+		{
+			instance.gunTriggerWasDown = false;
+		}
+	}
+
+	private VRRig tagGunLockedTarget = null;
+
+	private int tagGunFramesUntilTag;
+
+	private VRRig tagAllTarget;
+
+	private int tagAllFramesUntilTag;
+
+	private List<VRRig> tagAllTargets;
+
+	private int tagAllIndex;
+
+	public static void TagGun()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.TagGunCore();
+	}
+
+	private void TagGunCore()
+	{
+		bool gripDown = isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR;
+		if (!gripDown)
+		{
+			if (tagGunLockedTarget != null)
+			{
+				tagGunLockedTarget = null;
+				UnsubscribeTagRigVisual();
+				TryUnsubscribeGhostRig();
+			}
+			CleanupGun();
+		}
+		else
+		{
+			MakeRightHandGun(delegate
+			{
+				VRRig val3 = GetGunTargetPlayer();
+				if (val3 != null && !val3.isLocal)
+				{
+				GorillaTagManager val5 = GorillaGameManager.instance as GorillaTagManager;
+				if (val5 != null && !val5.IsInfected(val3.Creator))
+				{
+					tagGunLockedTarget = val3;
+					tagGunFramesUntilTag = 12;
+					SubscribeTagRigVisual();
+					SubscribeGhostRig();
+				}
+				}
+			}, delegate { });
+			if (tagGunLockedTarget != null && pointer != null && Line != null)
+			{
+				pointer.transform.position = ((Component)tagGunLockedTarget).transform.position;
+				Line.SetPosition(1, ((Component)tagGunLockedTarget).transform.position);
+			}
+		}
+		GorillaGameManager val = GorillaGameManager.instance;
+		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
+		if (val2 == null || tagGunLockedTarget == null) return;
+		if (tagGunLockedTarget.Creator == null || val2.IsInfected(tagGunLockedTarget.Creator))
+		{
+			tagGunLockedTarget = null;
+			UnsubscribeTagRigVisual();
+			TryUnsubscribeGhostRig();
+			return;
+		}
+		tagGunFramesUntilTag--;
+		if (tagGunFramesUntilTag <= 0)
+		{
+			tagGunFramesUntilTag = 12;
+			GameMode.ReportTag(tagGunLockedTarget.Creator);
+		}
+	}
+
+	public static void UntagSelf()
+	{
+		GorillaGameManager val = GorillaGameManager.instance;
+		if (!(val != (Object)null))
+		{
+			return;
+		}
+		GorillaTagManager val2 = (GorillaTagManager)(object)((val is GorillaTagManager) ? val : null);
+		if (instance != null && val2 != null && val2.IsInfected(NetworkSystem.Instance.LocalPlayer) && Time.time > instance.lastUntagSelfTime)
+		{
+			val2.currentInfected.RemoveAll((NetPlayer p) => p.UserId == NetworkSystem.Instance.LocalPlayer.UserId);
+			instance.lastUntagSelfTime = Time.time + 0.3f;
+			NotifiLib.SendNotification("Untagged self");
+		}
+	}
+
+	public static void TagAll()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.TagAllCore();
+	}
+
+	private void TagAllCore()
+	{
+		GorillaGameManager val = GorillaGameManager.instance;
+		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
+		if (val2 == null) return;
+
+		if (tagAllTarget == null || tagAllTarget.Creator == null || val2.IsInfected(tagAllTarget.Creator))
+		{
+			if (tagAllTargets == null || tagAllIndex >= tagAllTargets.Count)
+			{
+				tagAllTargets = new List<VRRig>();
+				foreach (VRRig r in VRRigCache.ActiveRigs)
+					if (!r.isLocal && r.Creator != null && !val2.IsInfected(r.Creator))
+						tagAllTargets.Add(r);
+				tagAllIndex = 0;
+			}
+
+			if (tagAllIndex >= tagAllTargets.Count)
+				return;
+
+			tagAllTarget = tagAllTargets[tagAllIndex];
+			tagAllIndex++;
+			tagAllFramesUntilTag = 30;
+			SubscribeTagRigVisual();
+			SubscribeGhostRig();
+		}
+
+		tagAllFramesUntilTag--;
+
+		if (tagAllFramesUntilTag <= 0)
+		{
+			tagAllFramesUntilTag = 30;
+			GameMode.ReportTag(tagAllTarget.Creator);
+		}
+	}
+
+	public static void DisableTagAll()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.tagAllTarget = null;
+		instance.tagAllTargets = null;
+		instance.tagAllIndex = 0;
+		instance.tagAllFramesUntilTag = 0;
+		instance.UnsubscribeTagRigVisual();
+		instance.TryUnsubscribeGhostRig();
+		if (VRRig.LocalRig != (Object)null)
+			EnsureLocalRigEnabled();
+	}
+
+	public static void TeleportToSpawn()
+	{
+		GorillaTagger gt = GorillaTagger.Instance;
+		if (gt == null) return;
+		GTPlayer player = GTPlayer.Instance;
+		if (player == null) return;
+		Vector3 stump = instance != null ? instance.stumpPosition : new Vector3(-66.871f, 12.086f, -82.637f);
+		Transform bodyT = gt.bodyCollider.transform;
+		player.TeleportTo(stump - bodyT.position + player.transform.position, player.transform.rotation, true, false);
+		bodyT.position = stump;
+		if (VRRig.LocalRig != null)
+			VRRig.LocalRig.transform.position = stump;
+		((Collider)gt.bodyCollider).enabled = false;
+		((MonoBehaviour)gt).StartCoroutine(ReenableBodyCollider());
+	}
+
+	private static IEnumerator ReenableBodyCollider()
+	{
+		yield return (object)new WaitForSeconds(1.5f);
+		if (GorillaTagger.Instance != null)
+			((Collider)GorillaTagger.Instance.bodyCollider).enabled = true;
+	}
+
+	public static void SpazAll()
+	{
+		if (instance != null)
+		{
+			instance.spazAllActive = true;
+		}
+	}
+
+	public static void DisableSpazAll()
+	{
+		if (instance != null)
+		{
+			instance.spazAllActive = false;
+		}
+	}
+
+	public static void SpazSelf()
+	{
+		if (instance != null)
+		{
+			instance.spazSelfActive = true;
+		}
+	}
+
+	public static void DisableSpazSelf()
+	{
+		if (instance != null)
+		{
+			instance.spazSelfActive = false;
+		}
+	}
+
+	private void RunSpaz()
+	{
+		GorillaGameManager val = GorillaGameManager.instance;
+		if (val == (Object)null)
+		{
+			return;
+		}
+		GorillaTagManager val2 = (GorillaTagManager)(object)((val is GorillaTagManager) ? val : null);
+		if (val2 == null || !PhotonNetwork.IsMasterClient)
+		{
+			return;
+		}
+		if (spazAllActive)
+		{
+			Player[] playerList = PhotonNetwork.PlayerList;
+			for (int i = 0; i < playerList.Length; i++)
+			{
+				NetPlayer p = playerList[i];
+				if (val2.isCurrentlyTag)
+				{
+					if (val2.currentIt == p)
+					{
+						val2.currentIt = null;
+					}
+					else if (val2.currentIt == null)
+					{
+						val2.currentIt = p;
+					}
+				}
+				else if (val2.IsInfected(p))
+				{
+					val2.currentInfected.RemoveAll((NetPlayer x) => x.UserId == p.UserId);
+				}
+				else
+				{
+					val2.AddInfectedPlayer(p, true);
+				}
+			}
+		}
+		if (!spazSelfActive)
+		{
+			return;
+		}
+		NetPlayer self = NetworkSystem.Instance.LocalPlayer;
+		if (val2.isCurrentlyTag)
+		{
+			if (val2.currentIt == self)
+			{
+				val2.currentIt = null;
+			}
+			else
+			{
+				val2.currentIt = self;
+			}
+		}
+		else if (val2.IsInfected(self))
+		{
+			val2.currentInfected.RemoveAll((NetPlayer x) => x.UserId == self.UserId);
+		}
+		else
+		{
+			val2.AddInfectedPlayer(self, true);
+		}
+	}
+
+	public static void UntagGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
+			{
+				GorillaGameManager gm = GorillaGameManager.instance;
+				if (gm != null)
+				{
+					GorillaTagManager tagMan = gm as GorillaTagManager;
+					if (instance != null && tagMan != null && tagMan.IsInfected(rig.Creator) && Time.time > instance.lastUntagNotif)
+					{
+						tagMan.currentInfected.RemoveAll(p => p.UserId == rig.Creator.UserId);
+						instance.lastUntagNotif = Time.time + 0.3f;
+						NotifiLib.SendNotification("Untagged " + rig.Creator.NickName);
+					}
+				}
+			}
+		});
+	}
+
+	public static void TagAura()
+	{
+		if (instance == null || tagAuraRange <= 0f) return;
+		instance.TagAuraCore();
+	}
+
+	private void TagAuraCore()
+	{
+		if (Time.time < tagAuraCooldown) return;
+		if (VRRig.LocalRig == (Object)null) return;
+		GorillaGameManager gm = GorillaGameManager.instance;
+		GorillaTagManager tgm = (gm is GorillaTagManager) ? (GorillaTagManager)(object)gm : null;
+		if (tgm == null) return;
+		Collider[] hits = Physics.OverlapSphere(VRRig.LocalRig.transform.position, tagAuraRange);
+		foreach (Collider col in hits)
+		{
+			VRRig rig = col.GetComponentInParent<VRRig>();
+			if (rig == null || rig.isLocal || rig.Creator == null || tgm.IsInfected(rig.Creator)) continue;
+			GameMode.ReportTag(rig.Creator);
+			tagAuraCooldown = Time.time + 0.1f;
+		}
+	}
+
+	public static void DisableTagAura()
+	{
+		if (instance != null)
+		{
+			instance.tagAuraCooldown = 0f;
+		}
+	}
+
+	public static void TagAuraVisual()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.TagAuraVisualCore();
+	}
+
+	private void TagAuraVisualCore()
+	{
+		VRRig local = VRRig.LocalRig;
+		if (local == null) return;
+		CreateAuraRing();
+		tagAuraRing.material.color = WristMenu.ButtonColorEnabled;
+		Vector3 center = local.transform.position;
+		for (int i = 0; i <= 32; i++)
+		{
+			float angle = (float)i / 32f * 360f * Mathf.Deg2Rad;
+			Vector3 p = center + new Vector3(Mathf.Cos(angle) * tagAuraRange, 0f, Mathf.Sin(angle) * tagAuraRange);
+			tagAuraRing.SetPosition(i, p);
+		}
+	}
+
+	private void CreateAuraRing()
+	{
+		if (tagAuraRing != null) return;
+		GameObject go = new GameObject("TagAuraRing");
+		tagAuraRing = go.AddComponent<LineRenderer>();
+		tagAuraRing.material = new Material(CachedUberShader);
+		tagAuraRing.startWidth = 0.03f;
+		tagAuraRing.endWidth = 0.03f;
+		tagAuraRing.positionCount = 33;
+		tagAuraRing.useWorldSpace = true;
+	}
+
+	public static void DisableTagAuraVisual()
+	{
+		if (instance != null && instance.tagAuraRing != null)
+		{
+			Object.Destroy(instance.tagAuraRing.gameObject);
+			instance.tagAuraRing = null;
+		}
+	}
+
+	public static void SetTagAuraRange(int index)
+	{
+		tagAuraRangeIndex = index % TagAuraRanges.Length;
+		tagAuraRange = TagAuraRanges[tagAuraRangeIndex];
+		NotifiLib.SendNotification("Range: " + tagAuraRange.ToString("0.0") + "m");
+	}
+
+	public static void BreakGuardian()
+	{
+		breakGuardianActive = true;
+		if (instance == null)
+		{
+			return;
+		}
+		if (instance.breakGuardianHarmony == null)
+		{
+			instance.breakGuardianHarmony = new Harmony("chudmenu.breakguardian");
+			instance.breakGuardianHarmony.Patch(
+				typeof(GorillaGuardianZoneManager).GetMethod("SetGuardian", BindingFlags.Public | BindingFlags.Instance),
+				prefix: new HarmonyMethod(typeof(GuardianBreakPatch).GetMethod("Prefix", BindingFlags.Static | BindingFlags.Public))
+			);
+		}
+		if (PhotonNetwork.IsMasterClient)
+		{
+			GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+			if (guardian != null)
+			{
+				foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+				{
+					if (zm.CurrentGuardian != null && !zm.CurrentGuardian.IsLocal && !zm.IsPlayerGuardian(PhotonNetwork.LocalPlayer))
+					{
+						guardian.EjectGuardian(zm.CurrentGuardian);
+					}
+				}
+			}
+		}
+	}
+
+	public static void DisableBreakGuardian()
+	{
+		breakGuardianActive = false;
+		if (instance != null && instance.breakGuardianHarmony != null)
+		{
+			instance.breakGuardianHarmony.UnpatchSelf();
+			instance.breakGuardianHarmony = null;
+		}
+	}
+
+	public static void GuardianSelf()
+	{
+		if (!PhotonNetwork.IsMasterClient)
+		{
+			NotifiLib.SendNotification("You are not master client!");
+			return;
+		}
+		NetPlayer local = PhotonNetwork.LocalPlayer;
+		foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+		{
+			zm.SetGuardian(local);
+		}
+
+	}
+
+	public static void UnguardianSelf()
+	{
+		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+		if (guardian == null) return;
+		NetPlayer local = PhotonNetwork.LocalPlayer;
+		if (!guardian.IsPlayerGuardian(local)) return;
+		if (PhotonNetwork.IsMasterClient)
+		{
+			guardian.EjectGuardian(local);
+		}
+		else
+		{
+			guardian.RequestEjectGuardian(local);
+		}
+	}
+
+	public static void GuardianGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			if (instance == null || Time.time < instance.lastGuardianGunTime) return;
+			VRRig rig = GetGunTargetPlayer();
+			if (rig == null || rig.isLocal || rig.Creator == null) return;
+			foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+			{
+				zm.SetGuardian(rig.Creator);
+			}
+			instance.lastGuardianGunTime = Time.time + 0.3f;
+		});
+	}
+
+	public static void UnguardianGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			if (instance == null || Time.time < instance.lastUnguardianGunTime) return;
+			VRRig rig = GetGunTargetPlayer();
+			if (rig == null || rig.Creator == null) return;
+			GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+			if (guardian == null) return;
+			if (!guardian.IsPlayerGuardian(rig.Creator)) return;
+			if (PhotonNetwork.IsMasterClient)
+			{
+				guardian.EjectGuardian(rig.Creator);
+			}
+			else
+			{
+				guardian.RequestEjectGuardian(rig.Creator);
+			}
+			instance.lastUnguardianGunTime = Time.time + 0.3f;
+		});
+	}
+
+	public static void GuardianSpazGun()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.GuardianSpazGunCore();
+	}
+
+	private void GuardianSpazGunCore()
+	{
+		bool gripDown = isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR;
+		if (!gripDown)
+		{
+			guardianSpazTarget = null;
+			CleanupGun();
+			return;
+		}
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null && !rig.isLocal && rig.Creator != null)
+			{
+				guardianSpazTarget = rig;
+			}
+		}, delegate { });
+		if (guardianSpazTarget == null || guardianSpazTarget.Creator == null) return;
+		if (pointer != null && Line != null)
+		{
+			pointer.transform.position = ((Component)guardianSpazTarget).transform.position;
+			Line.SetPosition(1, ((Component)guardianSpazTarget).transform.position);
+		}
+		if (Time.time < guardianSpazTimer) return;
+		guardianSpazTimer = Time.time + 0.15f;
+		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+		if (guardian == null) return;
+		if (guardian.IsPlayerGuardian(guardianSpazTarget.Creator))
+		{
+			guardian.EjectGuardian(guardianSpazTarget.Creator);
+		}
+		else
+		{
+			foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+			{
+				zm.SetGuardian(guardianSpazTarget.Creator);
+			}
+		}
+	}
+
+	public static void PaintBrawlKillAll()
+	{
+		GorillaGameManager gm = GorillaGameManager.instance;
+		GorillaPaintbrawlManager pb = gm as GorillaPaintbrawlManager;
+		if (pb == null || !NetworkSystem.Instance.IsMasterClient)
+		{
+			return;
+		}
+		Player[] playerList = PhotonNetwork.PlayerList;
+		for (int i = 0; i < playerList.Length; i++)
+		{
+			NetPlayer p = playerList[i];
+			if (p.IsLocal) continue;
+			try { pb.HitPlayer(p); } catch { }
+		}
+	}
+
+	public static void PaintBrawlKillGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig == null || rig.isLocal || rig.Creator == null) return;
+			GorillaPaintbrawlManager pb = GorillaGameManager.instance as GorillaPaintbrawlManager;
+			if (pb == null || !NetworkSystem.Instance.IsMasterClient) return;
+			pb.HitPlayer(rig.Creator);
+		});
+	}
+
+	public static void AntiNameBan()
+	{
+		if (instance != null)
+		{
+			instance.antiNameBanApplied = true;
+		}
+		BanPatchState.enabled = true;
+	}
+
+	public static void DisableAntiNameBan()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		if (instance.antiNameBanApplied)
+		{
+			BanPatchState.enabled = false;
+			instance.antiNameBanApplied = false;
+		}
+	}
+
+	public static void BitcrunchMic()
+	{
+		if (instance == null || instance.bitcrunchMicActive)
+		{
+			return;
+		}
+		Recorder myRecorder = GorillaTagger.Instance.myRecorder;
+		if (!(myRecorder == (Object)null))
+		{
+			instance.bitcrunchOrigSampleRate = (int)myRecorder.SamplingRate;
+			instance.bitcrunchOrigBitrate = myRecorder.Bitrate;
+			myRecorder.SamplingRate = (SamplingRate)8000;
+			myRecorder.Bitrate = 8000;
+			myRecorder.RestartRecording(true);
+			instance.bitcrunchMicActive = true;
+		}
+	}
+
+	public static void DisableBitcrunchMic()
+	{
+		if (instance == null || !instance.bitcrunchMicActive)
+		{
+			return;
+		}
+		Recorder myRecorder = GorillaTagger.Instance.myRecorder;
+		if (myRecorder != (Object)null)
+		{
+			myRecorder.SamplingRate = (SamplingRate)instance.bitcrunchOrigSampleRate;
+			myRecorder.Bitrate = instance.bitcrunchOrigBitrate;
+			myRecorder.RestartRecording(true);
+		}
+		instance.bitcrunchMicActive = false;
+	}
+
+	public static void Boop()
+	{
+		if (instance != null)
+		{
+			instance.boopActive = true;
+		}
+	}
+
+	public static void DisableBoop()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.boopActive = false;
+		instance.boopCooldown = 0f;
+	}
+
+	private void UpdateBoop()
+	{
+		if (!boopActive)
+		{
+			return;
+		}
+		if (boopCooldown > 0f)
+		{
+			boopCooldown -= Time.deltaTime;
+			return;
+		}
+		bool flag = false;
+		bool flag2 = false;
+		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
+		{
+			if (!activeRig.isLocal && !(activeRig.headMesh == (Object)null))
+			{
+				float num = Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, activeRig.headMesh.transform.position);
+				float num2 = Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, activeRig.headMesh.transform.position);
+				if (!flag && num < 0.275f)
+				{
+					flag = true;
+				}
+				if (!flag2 && num2 < 0.275f)
+				{
+					flag2 = true;
+				}
+			}
+		}
+		if (flag && !boopLastL)
+		{
+			VRRig.LocalRig.PlayHandTapLocal(84, true, 999999f);
+			GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, new object[3] { 84, true, 999999f });
+			boopCooldown = 0.05f;
+		}
+		if (flag2 && !boopLastR)
+		{
+			VRRig.LocalRig.PlayHandTapLocal(84, false, 999999f);
+			GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, new object[3] { 84, false, 999999f });
+			boopCooldown = 0.05f;
+		}
+		boopLastL = flag;
+		boopLastR = flag2;
+	}
+
+	public static void RandomColorSpaz()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.randomColorSpazTick++;
+		if (instance.randomColorSpazTick % 15 == 0)
+		{
+			float num = Random.Range(0.15f, 0.95f);
+			float num2 = Random.Range(0.15f, 0.95f);
+			float num3 = Random.Range(0.15f, 0.95f);
+			if (VRRig.LocalRig != null) VRRig.LocalRig.InitializeNoobMaterialLocal(num, num2, num3);
+			if (GorillaTagger.Instance != null && GorillaTagger.Instance.myVRRig != null)
+				GorillaTagger.Instance.myVRRig.SendRPC("RPC_InitializeNoobMaterial", RpcTarget.All, new object[3] { num, num2, num3 });
+		}
+	}
+
+	public static void DisableRandomColorSpaz()
+	{
+		float r = PlayerPrefs.GetFloat("redValue", 1f);
+		float g = PlayerPrefs.GetFloat("greenValue", 1f);
+		float b = PlayerPrefs.GetFloat("blueValue", 1f);
+		r = Mathf.Clamp01(r); g = Mathf.Clamp01(g); b = Mathf.Clamp01(b);
+		if (instance != null)
+		{
+			instance.randomColorSpazTick = 0;
+		}
+		try
+		{
+			Color c = new Color(r, g, b, 1f);
+			if (VRRig.LocalRig != null)
+			{
+				VRRig.LocalRig.InitializeNoobMaterialLocal(r, g, b);
+				VRRig.LocalRig.SetColor(c);
+				if (VRRig.LocalRig.bodyRenderer != null) VRRig.LocalRig.bodyRenderer.UpdateColor(c);
+				if (VRRig.LocalRig.mainSkin != null) VRRig.LocalRig.mainSkin.material.color = c;
+			}
+			if (GorillaTagger.Instance != null)
+			{
+				if (GorillaTagger.Instance.myVRRig != null) GorillaTagger.Instance.myVRRig.SendRPC("RPC_InitializeNoobMaterial", RpcTarget.All, new object[3] { r, g, b });
+				if (GorillaTagger.Instance.offlineVRRig != null)
+				{
+					GorillaTagger.Instance.offlineVRRig.InitializeNoobMaterialLocal(r, g, b);
+					GorillaTagger.Instance.offlineVRRig.SetColor(c);
+					if (GorillaTagger.Instance.offlineVRRig.bodyRenderer != null) GorillaTagger.Instance.offlineVRRig.bodyRenderer.UpdateColor(c);
+					if (GorillaTagger.Instance.offlineVRRig.mainSkin != null) GorillaTagger.Instance.offlineVRRig.mainSkin.material.color = c;
+				}
+			}
+		}
+		catch { }
+	}
+
+	public static void WaterSplash()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		instance.SpawnSplash();
+	}
+
+	public static void DisableWaterSplash() { }
+
+	public static void SetWaterSplashSpeed(int index)
+	{
+		waterSplashSpeedIndex = index % WaterSplashCooldowns.Length;
+		NotifiLib.SendNotification("Water splash speed: " + WaterSplashNames[waterSplashSpeedIndex]);
+	}
+
+	private void SpawnSplash()
+	{
+		if (Time.time < splashCooldown) return;
+		bool right = WristMenu.gripDownR;
+		bool left = WristMenu.gripDownL;
+		if (!right && !left) return;
+		if (GorillaTagger.Instance == null || GorillaTagger.Instance.myVRRig == null) return;
+		splashCooldown = Time.time + WaterSplashCooldowns[waterSplashSpeedIndex % WaterSplashCooldowns.Length];
+		if (ObjectPools.instance == null) return;
+		Transform hand = right ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
+		if (hand == null) return;
+		Vector3 pos = hand.position;
+		Quaternion rot = hand.rotation;
+		float scale = Mathf.Clamp(1f, 1E-05f, 1f);
+		float bound = Mathf.Clamp(0.5f, 0.0001f, 0.5f);
+		if (GTPlayer.Instance == null || GTPlayer.Instance.waterParams == null) return;
+		GameObject splashFx = ObjectPools.instance.Instantiate(GTPlayer.Instance.waterParams.splashEffect, pos, rot, scale, true);
+		if (splashFx != null)
+			splashFx.GetComponent<WaterSplashEffect>().PlayEffect(true, false, scale);
+		GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlaySplashEffect", RpcTarget.Others, new object[]
+		{
+			pos, rot, scale, bound, true, false
+		});
+	}
+
+	public static void SetButtonClickSound(int index)
+	{
+		WristMenu.ApplyButtonClickSound(index);
+		NotifiLib.SendNotification("Button click: " + WristMenu.ButtonClickNames[WristMenu.buttonClickIndex]);
+		Save();
+	}
+
 	public static void UnlockAllCosmetics()
 	{
 		CosmeticsController val = CosmeticsController.instance;
-		if ((Object)(object)val == (Object)null || !val.v2_allCosmeticsInfoAssetRef_isLoaded)
+		if (val == (Object)null || !val.v2_allCosmeticsInfoAssetRef_isLoaded)
 		{
 			return;
 		}
@@ -4949,32 +2557,19 @@ private static VRRig ghostRig;
 		}
 	}
 
-	// ====== Try On All / Remove All Cosmetics (Mirror) ======
-	private static bool tryOnAllActive;
-	private static Coroutine tryOnAllCoroutine;
-	private static CosmeticsController.CosmeticItem[] tryOnAllSavedWorn;
-	private static readonly string treePinCosmeticId = "LBAAA.";
-	private static readonly string tryOnAllButtonText = "SS tryon all cosmetics (Mirror)";
-	private static readonly string removeAllButtonText = "Remove all cosmetics (Mirror)";
-	private static bool removeAllActive;
-	private static Coroutine removeAllCoroutine;
-
-	private static MethodInfo cachedAddCosmeticMethod;
-	private static ParameterInfo[] cachedAddCosmeticParameters;
-
 	public static void EnableTryOnAll()
 	{
-		if (tryOnAllActive) return;
+		if (instance == null || instance.tryOnAllActive) return;
 		CosmeticsController controller = CosmeticsController.instance;
-		if ((Object)(object)controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
+		if (controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
 		{
 			return;
 		}
-		tryOnAllActive = true;
-		tryOnAllSavedWorn = new CosmeticsController.CosmeticItem[16];
+		instance.tryOnAllActive = true;
+		instance.tryOnAllSavedWorn = new CosmeticsController.CosmeticItem[16];
 		for (int i = 0; i < 16; i++)
 		{
-			tryOnAllSavedWorn[i] = controller.currentWornSet.items[i];
+			instance.tryOnAllSavedWorn[i] = controller.currentWornSet.items[i];
 		}
 		CosmeticsController.CosmeticItem treePin = controller.GetItemFromDict(treePinCosmeticId);
 		if (treePin.isNullItem)
@@ -4986,33 +2581,33 @@ private static VRRig ghostRig;
 			controller.currentWornSet.items[i] = treePin;
 		}
 		controller.UpdateWornCosmetics(true);
-		tryOnAllCoroutine = instance.StartCoroutine(TryOnAllCycleRoutine());
+		instance.tryOnAllCoroutine = instance.StartCoroutine(TryOnAllCycleRoutine());
 	}
 
 	public static void DisableTryOnAll()
 	{
-		if (!tryOnAllActive) return;
-		tryOnAllActive = false;
-		if (tryOnAllCoroutine != null)
+		if (instance == null || !instance.tryOnAllActive) return;
+		instance.tryOnAllActive = false;
+		if (instance.tryOnAllCoroutine != null)
 		{
-			instance.StopCoroutine(tryOnAllCoroutine);
-			tryOnAllCoroutine = null;
+			instance.StopCoroutine(instance.tryOnAllCoroutine);
+			instance.tryOnAllCoroutine = null;
 		}
 		CosmeticsController controller = CosmeticsController.instance;
-		if ((Object)(object)controller == (Object)null)
+		if (controller == (Object)null)
 		{
 			return;
 		}
-		if (tryOnAllSavedWorn != null)
+		if (instance.tryOnAllSavedWorn != null)
 		{
 			for (int i = 0; i < 16; i++)
 			{
 				if (controller.currentWornSet.items[i].itemName == treePinCosmeticId)
 				{
-					controller.currentWornSet.items[i] = tryOnAllSavedWorn[i];
+					controller.currentWornSet.items[i] = instance.tryOnAllSavedWorn[i];
 				}
 			}
-			tryOnAllSavedWorn = null;
+			instance.tryOnAllSavedWorn = null;
 			controller.UpdateWornCosmetics(true);
 		}
 		controller.tryOnSet.ClearSet(controller.nullItem);
@@ -5022,20 +2617,20 @@ private static VRRig ghostRig;
 	private static IEnumerator TryOnAllCycleRoutine()
 	{
 		CosmeticsController controller = CosmeticsController.instance;
-		if ((Object)(object)controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
+		if (controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
 		{
 			yield break;
 		}
 		List<CosmeticsController.CosmeticItem> items = BuildTryOnFilteredList(controller);
 		if (items.Count == 0)
 		{
-			FindAndToggleButton(tryOnAllButtonText);
+			FindAndToggleButton(tryOnAllButtonId);
 			yield break;
 		}
 		for (int i = 0; i < items.Count; i++)
 		{
 			VRRig localRig = VRRig.LocalRig;
-			if ((Object)(object)localRig == (Object)null)
+			if (localRig == (Object)null)
 			{
 				break;
 			}
@@ -5053,7 +2648,7 @@ private static VRRig ghostRig;
 			}
 			yield return new WaitForSeconds(0.05f);
 		}
-		FindAndToggleButton(tryOnAllButtonText);
+		FindAndToggleButton(tryOnAllButtonId);
 	}
 
 	private static List<CosmeticsController.CosmeticItem> BuildTryOnFilteredList(CosmeticsController controller)
@@ -5075,46 +2670,49 @@ private static VRRig ghostRig;
 
 	private static void MakeCosmeticOwned(VRRig rig, string itemName)
 	{
-		if ((Object)(object)rig == (Object)null || string.IsNullOrEmpty(itemName)) return;
-		if (cachedAddCosmeticMethod == null)
+		if (rig == (Object)null || string.IsNullOrEmpty(itemName)) return;
+		if (instance == null)
 		{
-			cachedAddCosmeticMethod = AccessTools.Method(rig.GetType(), "AddCosmetic");
-			if (cachedAddCosmeticMethod == null) return;
-			cachedAddCosmeticParameters = cachedAddCosmeticMethod.GetParameters();
+			return;
 		}
-		object[] args = new object[cachedAddCosmeticParameters.Length];
+		if (instance.cachedAddCosmeticMethod == null)
+		{
+			instance.cachedAddCosmeticMethod = AccessTools.Method(rig.GetType(), "AddCosmetic");
+			if (instance.cachedAddCosmeticMethod == null) return;
+			instance.cachedAddCosmeticParameters = instance.cachedAddCosmeticMethod.GetParameters();
+		}
+		object[] args = new object[instance.cachedAddCosmeticParameters.Length];
 		args[0] = itemName;
 		for (int i = 1; i < args.Length; i++)
 		{
 			args[i] = Type.Missing;
 		}
-		cachedAddCosmeticMethod.Invoke(rig, args);
+		instance.cachedAddCosmeticMethod.Invoke(rig, args);
 	}
 
-	// ====== Remove All Cosmetics (Mirror) ======
 	public static void EnableRemoveAllCosmetics()
 	{
-		if (removeAllActive) return;
+		if (instance == null || instance.removeAllActive) return;
 		CosmeticsController controller = CosmeticsController.instance;
-		if ((Object)(object)controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
+		if (controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
 		{
 			return;
 		}
-		removeAllActive = true;
-		removeAllCoroutine = instance.StartCoroutine(RemoveAllCycleRoutine());
+		instance.removeAllActive = true;
+		instance.removeAllCoroutine = instance.StartCoroutine(RemoveAllCycleRoutine());
 	}
 
 	public static void DisableRemoveAllCosmetics()
 	{
-		if (!removeAllActive) return;
-		removeAllActive = false;
-		if (removeAllCoroutine != null)
+		if (instance == null || !instance.removeAllActive) return;
+		instance.removeAllActive = false;
+		if (instance.removeAllCoroutine != null)
 		{
-			instance.StopCoroutine(removeAllCoroutine);
-			removeAllCoroutine = null;
+			instance.StopCoroutine(instance.removeAllCoroutine);
+			instance.removeAllCoroutine = null;
 		}
 		CosmeticsController controller = CosmeticsController.instance;
-		if ((Object)(object)controller == (Object)null)
+		if (controller == (Object)null)
 		{
 			return;
 		}
@@ -5125,14 +2723,14 @@ private static VRRig ghostRig;
 	private static IEnumerator RemoveAllCycleRoutine()
 	{
 		CosmeticsController controller = CosmeticsController.instance;
-		if ((Object)(object)controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
+		if (controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
 		{
 			yield break;
 		}
 		List<CosmeticsController.CosmeticItem> items = BuildTryOnFilteredList(controller);
 		if (items.Count == 0)
 		{
-			FindAndToggleButton(removeAllButtonText);
+			FindAndToggleButton(removeAllButtonId);
 			yield break;
 		}
 		for (int i = 0; i < items.Count; i++)
@@ -5160,14 +2758,14 @@ private static VRRig ghostRig;
 			}
 			yield return new WaitForSeconds(0.05f);
 		}
-		FindAndToggleButton(removeAllButtonText);
+		FindAndToggleButton(removeAllButtonId);
 	}
 
-	public static void FindAndToggleButton(string buttonText)
+	public static void FindAndToggleButton(string buttonId)
 	{
-		foreach (MenuCategory category in MenuManager.Categories)
+		foreach (MenuCategory category in MenuManager.Instance.Categories)
 		{
-			ButtonInfo buttonInfo = category.Buttons.Find((ButtonInfo b) => b.buttonText == buttonText && b.enabled.HasValue && b.type != ButtonType.Action);
+			ButtonInfo buttonInfo = category.Buttons.Find((ButtonInfo b) => b.id == buttonId && b.enabled.HasValue && b.type != ButtonType.Action);
 			if (buttonInfo != null)
 			{
 			bool value = buttonInfo.enabled.Value;
@@ -5184,7 +2782,7 @@ private static VRRig ghostRig;
 				{
 					buttonInfo.disableMethod();
 				}
-				WristMenu.UpdateButtonVisual(buttonInfo.buttonText, buttonInfo.enabled.Value);
+				WristMenu.UpdateButtonVisual(buttonInfo.id, buttonInfo.buttonText, buttonInfo.enabled.Value);
 				Save();
 				break;
 			}
@@ -5203,10 +2801,11 @@ private static VRRig ghostRig;
 		{
 			new ButtonInfo
 			{
+				id = "soundboard_exit",
 				buttonText = "Exit Soundboard",
 				method = delegate
 				{
-					MenuManager.ToggleCategory("Soundboard");
+					MenuManager.Instance.ToggleCategory("Soundboard");
 				},
 				enabled = false,
 				type = ButtonType.Action,
@@ -5223,6 +2822,7 @@ private static VRRig ghostRig;
 				string fileName = text3;
 				buttons.Add(new ButtonInfo
 				{
+					id = "soundboard_file_" + SanitizeSoundboardId(fileName),
 					buttonText = fileName,
 					enableMethod = delegate
 					{
@@ -5241,21 +2841,45 @@ private static VRRig ghostRig;
 		return buttons;
 	}
 
-	private static AudioClip _soundboardClip;
+	private static string SanitizeSoundboardId(string fileName)
+	{
+		if (string.IsNullOrEmpty(fileName))
+		{
+			return "unnamed";
+		}
+		StringBuilder id = new StringBuilder(fileName.Length);
+		foreach (char c in fileName.ToLowerInvariant())
+		{
+			if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
+			{
+				id.Append(c);
+			}
+			else if (id.Length > 0 && id[id.Length - 1] != '_')
+			{
+				id.Append('_');
+			}
+		}
+		if (id.Length == 0)
+		{
+			return "unnamed";
+		}
+		return id.ToString().TrimEnd('_');
+	}
 
-	private static readonly Dictionary<string, AudioClip> soundboardCache = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+	private AudioClip _soundboardClip;
 
-	private static bool soundboardPreloadStarted = false;
+	private readonly Dictionary<string, AudioClip> soundboardCache = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+
+	private bool soundboardPreloadStarted = false;
 
 	private static void EnsureSoundboardPreload()
 	{
-		if (soundboardPreloadStarted) return;
-		if ((Object)(object)instance == (Object)null) return;
-		soundboardPreloadStarted = true;
-		instance.StartCoroutine(PreloadSoundboard());
+		if (instance == null || instance.soundboardPreloadStarted) return;
+		instance.soundboardPreloadStarted = true;
+		instance.StartCoroutine(instance.PreloadSoundboard());
 	}
 
-	private static IEnumerator PreloadSoundboard()
+	private IEnumerator PreloadSoundboard()
 	{
 		if (!Directory.Exists(soundboardBasePath)) yield break;
 		string[] files = null;
@@ -5276,7 +2900,7 @@ private static VRRig ghostRig;
 				if ((int)req.result == 1)
 				{
 					try { clip = DownloadHandlerAudioClip.GetContent(req); } catch { }
-					if ((Object)(object)clip != (Object)null)
+					if (clip != (Object)null)
 						soundboardCache[path] = clip;
 				}
 			}
@@ -5296,9 +2920,13 @@ private static VRRig ghostRig;
 			return;
 		}
 		EnsureSoundboardPreload();
-		if (soundboardCache.TryGetValue(path, out AudioClip cached) && (Object)(object)cached != (Object)null)
+		if (instance == null)
 		{
-			Recorder instantRecorder = ((Object)(object)GorillaTagger.Instance != (Object)null) ? GorillaTagger.Instance.myRecorder : null;
+			return;
+		}
+		if (instance.soundboardCache.TryGetValue(path, out AudioClip cached) && cached != (Object)null)
+		{
+			Recorder instantRecorder = (GorillaTagger.Instance != (Object)null) ? GorillaTagger.Instance.myRecorder : null;
 			if (instantRecorder != null)
 			{
 				instantRecorder.SourceType = Recorder.InputSourceType.AudioClip;
@@ -5308,10 +2936,10 @@ private static VRRig ghostRig;
 			}
 			return;
 		}
-		instance.StartCoroutine(SoundboardLoadAndPlay(path));
+		instance.StartCoroutine(instance.SoundboardLoadAndPlay(path));
 	}
 
-	private static IEnumerator SoundboardLoadAndPlay(string path)
+	private IEnumerator SoundboardLoadAndPlay(string path)
 	{
 		AudioType audioType = AudioType.OGGVORBIS;
 		string a = Path.GetExtension(path).ToLower();
@@ -5335,8 +2963,8 @@ private static VRRig ghostRig;
 				Recorder myRecorder = GorillaTagger.Instance.myRecorder;
 				if (myRecorder != null)
 				{
-					if ((Object)(object)_soundboardClip != (Object)null)
-						Object.Destroy((Object)(object)_soundboardClip);
+					if (_soundboardClip != (Object)null)
+						Object.Destroy(_soundboardClip);
 					_soundboardClip = audioClip;
 					myRecorder.SourceType = Recorder.InputSourceType.AudioClip;
 					myRecorder.AudioClip = audioClip;
@@ -5361,235 +2989,151 @@ private static VRRig ghostRig;
 			myRecorder.RestartRecording(true);
 			myRecorder.DebugEchoMode = false;
 		}
-		if ((Object)(object)_soundboardClip != (Object)null)
+		if (instance != null && instance._soundboardClip != (Object)null)
 		{
-			Object.Destroy((Object)(object)_soundboardClip);
-			_soundboardClip = null;
+			Object.Destroy(instance._soundboardClip);
+			instance._soundboardClip = null;
 		}
 	}
 
 	public static void EnableBackflip()
 	{
-		backflipEnabled = true;
+		if (instance != null)
+		{
+			instance.backflipEnabled = true;
+		}
 	}
 
 	public static void DisableBackflip()
 	{
-		backflipEnabled = false;
-		backflipActive = false;
+		if (instance == null)
+		{
+			return;
+		}
+		instance.backflipEnabled = false;
+		instance.backflipActive = false;
 	}
 
 	public static void EnableFrontflip()
 	{
-		frontflipEnabled = true;
+		if (instance != null)
+		{
+			instance.frontflipEnabled = true;
+		}
 	}
 
 	public static void DisableFrontflip()
 	{
-		frontflipEnabled = false;
-		frontflipActive = false;
+		if (instance == null)
+		{
+			return;
+		}
+		instance.frontflipEnabled = false;
+		instance.frontflipActive = false;
 	}
 
-	public static void ApplyRigVisuals()
-	{
-		ControllerPredTick();
-		FlipTick();
-		SpinningTorsoTick();
-		FakeFBTTick();
-		DinnerboneTick();
-		NatsukiNeckTick();
-	}
-
-	private static void FlipTick()
-	{
-		bool btn = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
-		if (backflipEnabled && btn && !lastFlipButton && !frontflipActive)
-		{
-			backflipActive = true;
-			backflipRotation = 0f;
-			backflipStartRot = VRRig.LocalRig.transform.rotation;
-		}
-		if (frontflipEnabled && btn && !lastFlipButton && !backflipActive)
-		{
-			frontflipActive = true;
-			frontflipRotation = 0f;
-			frontflipStartRot = VRRig.LocalRig.transform.rotation;
-		}
-		lastFlipButton = btn;
-		if (backflipActive)
-		{
-			float step = Time.deltaTime * 540f;
-			backflipRotation += step;
-			if (backflipRotation < 360f)
-				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(-backflipRotation, 0f, 0f);
-			else
-				backflipActive = false;
-		}
-		if (frontflipActive)
-		{
-			float step = Time.deltaTime * 540f;
-			frontflipRotation += step;
-			if (frontflipRotation < 360f)
-				VRRig.LocalRig.transform.rotation = frontflipStartRot * Quaternion.Euler(frontflipRotation, 0f, 0f);
-			else
-				frontflipActive = false;
-		}
-	}
-	private static bool backflipActive;
-	private static float backflipRotation;
-	private static Quaternion backflipStartRot;
-	private static bool backflipEnabled;
-	private static bool frontflipActive;
-	private static float frontflipRotation;
-	private static Quaternion frontflipStartRot;
-	private static bool frontflipEnabled;
-	private static bool lastFlipButton;
-	private static bool spinningTorsoEnabled;
 	public static void EnableSpinningTorso()
 	{
-		spinningTorsoEnabled = true;
+		if (instance != null)
+		{
+			instance.spinningTorsoEnabled = true;
+		}
 	}
+
 	public static void DisableSpinningTorso()
 	{
-		spinningTorsoEnabled = false;
+		if (instance != null)
+		{
+			instance.spinningTorsoEnabled = false;
+		}
 	}
-	private static void SpinningTorsoTick()
-	{
-		if (!spinningTorsoEnabled) return;
-		VRRig rig = VRRig.LocalRig;
-		if (rig == null) return;
-		Quaternion tilt = Quaternion.Euler(-90f, 0f, 0f);
-		Quaternion spin = Quaternion.AngleAxis(Time.time * 360f % 360f, Vector3.up);
-		rig.transform.rotation = spin * tilt;
-		rig.head.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
-		rig.leftHand.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
-		rig.rightHand.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
-	}
-	private static bool fakeFBTEnabled;
+
 	public static void EnableFakeFBT()
 	{
-		fakeFBTEnabled = true;
+		if (instance != null)
+		{
+			instance.fakeFBTEnabled = true;
+		}
 	}
+
 	public static void DisableFakeFBT()
 	{
-		fakeFBTEnabled = false;
+		if (instance != null)
+		{
+			instance.fakeFBTEnabled = false;
+		}
 	}
-	private static void FakeFBTTick()
-	{
-		if (!fakeFBTEnabled) return;
-		VRRig rig = VRRig.LocalRig;
-		if (rig == null) return;
-		rig.transform.rotation = GorillaTagger.Instance.headCollider.transform.rotation;
-		rig.head.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
-		rig.leftHand.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
-		rig.rightHand.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
-	}
-	private static bool dinnerboneEnabled;
+
 	public static void EnableDinnerbone()
 	{
-		dinnerboneEnabled = true;
+		if (instance != null)
+		{
+			instance.dinnerboneEnabled = true;
+		}
 	}
+
 	public static void DisableDinnerbone()
 	{
-		dinnerboneEnabled = false;
+		if (instance != null)
+		{
+			instance.dinnerboneEnabled = false;
+		}
 	}
-	private static void DinnerboneTick()
-	{
-		if (!dinnerboneEnabled) return;
-		VRRig rig = VRRig.LocalRig;
-		if (rig == null) return;
-		float scale = rig.scaleFactor;
-		if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
-			scale = 1f;
-		rig.transform.rotation = GTPlayerTransform.BodyRotation * Quaternion.Euler(0f, 0f, 180f);
-		rig.transform.position += rig.transform.rotation * Vector3.up * 0.25f * scale;
-	}
-	private static bool natsukiNeckEnabled;
-	private static Vector3 natsukiSavedPos;
-	private static Quaternion natsukiSavedRot;
-	private static bool natsukiHasSaved;
+
 	public static void EnableNatsukiNeck()
 	{
-		natsukiNeckEnabled = true;
-		natsukiHasSaved = false;
-		VRRig rig = VRRig.LocalRig;
-		if (rig != null && rig.head != null && (Object)(object)rig.head.rigTarget != (Object)null)
+		if (instance == null)
 		{
-			natsukiSavedPos = rig.head.rigTarget.transform.position;
-			natsukiSavedRot = rig.head.rigTarget.transform.rotation;
-			natsukiHasSaved = true;
+			return;
+		}
+		instance.natsukiNeckEnabled = true;
+		instance.natsukiHasSaved = false;
+		VRRig rig = VRRig.LocalRig;
+		if (rig != null && rig.head != null && rig.head.rigTarget != (Object)null)
+		{
+			instance.natsukiSavedPos = rig.head.rigTarget.transform.position;
+			instance.natsukiSavedRot = rig.head.rigTarget.transform.rotation;
+			instance.natsukiHasSaved = true;
 		}
 	}
+
 	public static void DisableNatsukiNeck()
 	{
-		natsukiNeckEnabled = false;
-		if (natsukiHasSaved)
+		if (instance == null)
 		{
-			natsukiHasSaved = false;
+			return;
+		}
+		instance.natsukiNeckEnabled = false;
+		if (instance.natsukiHasSaved)
+		{
+			instance.natsukiHasSaved = false;
 			VRRig rig = VRRig.LocalRig;
-			if (rig != null && rig.head != null && (Object)(object)rig.head.rigTarget != (Object)null)
-				rig.head.rigTarget.transform.SetPositionAndRotation(natsukiSavedPos, natsukiSavedRot);
+			if (rig != null && rig.head != null && rig.head.rigTarget != (Object)null)
+				rig.head.rigTarget.transform.SetPositionAndRotation(instance.natsukiSavedPos, instance.natsukiSavedRot);
 		}
 	}
-	private static void NatsukiNeckTick()
-	{
-		if (!natsukiNeckEnabled) return;
-		VRRig rig = VRRig.LocalRig;
-		if (rig == null || rig.head == null || (Object)(object)rig.head.rigTarget == (Object)null) return;
-		if ((Object)(object)GorillaTagger.Instance == (Object)null || (Object)(object)GorillaTagger.Instance.headCollider == (Object)null) return;
-		Quaternion live = GorillaTagger.Instance.headCollider.transform.rotation;
-		float scale = rig.scaleFactor;
-		if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
-			scale = 1f;
-		Vector3 offset = (rig.head != null) ? rig.head.trackingPositionOffset : Vector3.zero;
-		rig.head.rigTarget.transform.SetPositionAndRotation(
-			GorillaTagger.Instance.headCollider.transform.position + live * offset * scale,
-			live * Quaternion.Euler(0f, 0f, -90f));
-		rig.transform.rotation = GorillaLocomotion.GTPlayerTransform.BodyRotation;
-	}
-	private static bool spiderMonkeyEnabled;
-	private static Quaternion spiderMonkeyRot;
-	private static Quaternion spiderMonkeyTargetRot;
-	private static readonly FieldInfo _lastHitInfoHand = AccessTools.Field(typeof(GTPlayer), "lastHitInfoHand");
+
 	public static void EnableSpiderMonkey()
 	{
-		spiderMonkeyEnabled = true;
-		spiderMonkeyRot = Quaternion.identity;
-		spiderMonkeyTargetRot = Quaternion.identity;
+		if (instance == null)
+		{
+			return;
+		}
+		instance.spiderMonkeyEnabled = true;
+		instance.spiderMonkeyRot = Quaternion.identity;
+		instance.spiderMonkeyTargetRot = Quaternion.identity;
 	}
+
 	public static void DisableSpiderMonkey()
 	{
-		spiderMonkeyEnabled = false;
+		if (instance == null)
+		{
+			return;
+		}
+		instance.spiderMonkeyEnabled = false;
 		GTPlayer.Instance.UnsetGravityOverride(GTPlayer.Instance);
 		GTPlayerTransform.ApplyRotationOverride(Quaternion.identity, Time.frameCount);
 	}
-	private static void SpiderMonkeyTick()
-	{
-		if (!spiderMonkeyEnabled) return;
-		if (GTPlayer.Instance.IsHandTouching(true) || GTPlayer.Instance.IsHandTouching(false))
-		{
-			RaycastHit ray = (RaycastHit)_lastHitInfoHand.GetValue(GTPlayer.Instance);
-			Vector3 up = ray.normal.normalized;
-			Vector3 forward = Vector3.Cross(Vector3.right, up);
-			spiderMonkeyTargetRot = Quaternion.LookRotation(forward, up);
-		}
-		float t = 1f - Mathf.Exp(-5f * Time.deltaTime);
-		spiderMonkeyRot = Quaternion.Slerp(spiderMonkeyRot, spiderMonkeyTargetRot, t);
-		GTPlayerTransform.ApplyRotationOverride(spiderMonkeyRot, Time.frameCount);
-		GTPlayer.Instance.SetGravityOverride(GTPlayer.Instance, p => p.AddForce(spiderMonkeyRot * Physics.gravity, ForceMode.Acceleration));
-	}
-	private static bool lagGunRunning;
-	private static int lagGunTargetActor = -1;
-	private static VRRig lagGunLockedTarget;
-
-	private static bool copyMovementActive;
-	private static VRRig copyMovementTarget;
-
-	private static VRRig orbitTarget = null;
-	private static bool orbitActive = false;
-	private static float orbitAngle = 0f;
-
-	private static readonly byte[] lagPayload = new byte[128];
 
 	public static void LagGun()
 	{
@@ -5601,12 +3145,16 @@ private static VRRig ghostRig;
 				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
 				if (player != null)
 				{
-					lagGunLockedTarget = rig;
-					lagGunTargetActor = player.ActorNumber;
-					if (!lagGunRunning)
+					if (instance == null)
 					{
-						lagGunRunning = true;
-						instance.StartCoroutine(LagGunLoop());
+						return;
+					}
+					instance.lagGunLockedTarget = rig;
+					instance.lagGunTargetActor = player.ActorNumber;
+					if (!instance.lagGunRunning)
+					{
+						instance.lagGunRunning = true;
+						instance.StartCoroutine(instance.LagGunLoop());
 					}
 				}
 			}
@@ -5614,18 +3162,22 @@ private static VRRig ghostRig;
 		{
 			StopLagGun();
 		});
-		if (lagGunLockedTarget != null && pointer != null && Line != null)
+		if (instance != null && instance.lagGunLockedTarget != null && pointer != null && Line != null)
 		{
-			pointer.transform.position = ((Component)lagGunLockedTarget).transform.position;
-			Line.SetPosition(1, ((Component)lagGunLockedTarget).transform.position);
+			pointer.transform.position = ((Component)instance.lagGunLockedTarget).transform.position;
+			Line.SetPosition(1, ((Component)instance.lagGunLockedTarget).transform.position);
 		}
 	}
 
 	public static void StopLagGun()
 	{
-		lagGunRunning = false;
-		lagGunTargetActor = -1;
-		lagGunLockedTarget = null;
+		if (instance == null)
+		{
+			return;
+		}
+		instance.lagGunRunning = false;
+		instance.lagGunTargetActor = -1;
+		instance.lagGunLockedTarget = null;
 	}
 
 	public static void StopLagGunFull()
@@ -5634,7 +3186,7 @@ private static VRRig ghostRig;
 		CleanupGun();
 	}
 
-	private static IEnumerator LagGunLoop()
+	private IEnumerator LagGunLoop()
 	{
 		RaiseEventOptions opts = new RaiseEventOptions
 		{
@@ -5663,65 +3215,44 @@ private static VRRig ghostRig;
 			VRRig rig = GetGunTargetPlayer();
 			if (rig != null && !rig.isLocal)
 			{
-				copyMovementTarget = rig;
-				copyMovementActive = true;
-				SubscribeGhostRig();
+				if (instance == null)
+				{
+					return;
+				}
+				instance.copyMovementTarget = rig;
+				instance.copyMovementActive = true;
+				instance.SubscribeGhostRig();
 			}
 		}, delegate
 		{
 			StopCopyMovementGun();
 		});
-		if (copyMovementTarget != null && pointer != null && Line != null)
+		if (instance != null && instance.copyMovementTarget != null && pointer != null && Line != null)
 		{
-			pointer.transform.position = ((Component)copyMovementTarget).transform.position;
-			Line.SetPosition(1, ((Component)copyMovementTarget).transform.position);
+			pointer.transform.position = ((Component)instance.copyMovementTarget).transform.position;
+			Line.SetPosition(1, ((Component)instance.copyMovementTarget).transform.position);
 		}
 	}
 
 	public static void StopCopyMovementGun()
 	{
-		if (copyMovementActive && (Object)(object)VRRig.LocalRig != (Object)null)
+		if (instance == null)
+		{
+			return;
+		}
+		if (instance.copyMovementActive && VRRig.LocalRig != (Object)null)
 		{
 			EnsureLocalRigEnabled();
 		}
-		copyMovementActive = false;
-		copyMovementTarget = null;
-		TryUnsubscribeGhostRig();
+		instance.copyMovementActive = false;
+		instance.copyMovementTarget = null;
+		instance.TryUnsubscribeGhostRig();
 	}
 
 	public static void StopCopyMovementGunFull()
 	{
 		StopCopyMovementGun();
 		CleanupGun();
-	}
-
-	private static void CopyMovementTick()
-	{
-		if (!copyMovementActive || (Object)(object)copyMovementTarget == (Object)null || (Object)(object)VRRig.LocalRig == (Object)null)
-		{
-			return;
-		}
-		if (!(isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR))
-		{
-			StopCopyMovementGun();
-			return;
-		}
-		VRRig target = copyMovementTarget;
-		VRRig local = VRRig.LocalRig;
-		EnsureLocalRigEnabled();
-		local.transform.SetPositionAndRotation(target.transform.position, target.transform.rotation);
-		if (target.head != null && (Object)(object)target.head.rigTarget != (Object)null && local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
-		{
-			local.head.rigTarget.transform.SetPositionAndRotation(target.head.rigTarget.transform.position, target.head.rigTarget.transform.rotation);
-		}
-		if (target.leftHand != null && (Object)(object)target.leftHand.rigTarget != (Object)null && local.leftHand != null && (Object)(object)local.leftHand.rigTarget != (Object)null)
-		{
-			local.leftHand.rigTarget.transform.SetPositionAndRotation(target.leftHand.rigTarget.transform.position, target.leftHand.rigTarget.transform.rotation);
-		}
-		if (target.rightHand != null && (Object)(object)target.rightHand.rigTarget != (Object)null && local.rightHand != null && (Object)(object)local.rightHand.rigTarget != (Object)null)
-		{
-			local.rightHand.rigTarget.transform.SetPositionAndRotation(target.rightHand.rigTarget.transform.position, target.rightHand.rigTarget.transform.rotation);
-		}
 	}
 
 	public static void OrbitGun()
@@ -5731,25 +3262,33 @@ private static VRRig ghostRig;
 			VRRig rig = GetGunTargetPlayer();
 			if (rig != null && !rig.isLocal)
 			{
-				orbitTarget = rig;
-				orbitActive = true;
-				orbitAngle = 0f;
-				SubscribeGhostRig();
+				if (instance == null)
+				{
+					return;
+				}
+				instance.orbitTarget = rig;
+				instance.orbitActive = true;
+				instance.orbitAngle = 0f;
+				instance.SubscribeGhostRig();
 			}
 		}, delegate { StopOrbit(); });
-		if (orbitTarget != null && pointer != null && Line != null)
+		if (instance != null && instance.orbitTarget != null && pointer != null && Line != null)
 		{
-			pointer.transform.position = ((Component)orbitTarget).transform.position;
-			Line.SetPosition(1, ((Component)orbitTarget).transform.position);
+			pointer.transform.position = ((Component)instance.orbitTarget).transform.position;
+			Line.SetPosition(1, ((Component)instance.orbitTarget).transform.position);
 		}
 	}
 
 	public static void StopOrbit()
 	{
-		if (orbitActive && (Object)(object)VRRig.LocalRig != (Object)null) EnsureLocalRigEnabled();
-		orbitActive = false;
-		orbitTarget = null;
-		TryUnsubscribeGhostRig();
+		if (instance == null)
+		{
+			return;
+		}
+		if (instance.orbitActive && VRRig.LocalRig != (Object)null) EnsureLocalRigEnabled();
+		instance.orbitActive = false;
+		instance.orbitTarget = null;
+		instance.TryUnsubscribeGhostRig();
 	}
 
 	public static void StopOrbitFull()
@@ -5758,56 +3297,123 @@ private static VRRig ghostRig;
 		CleanupGun();
 	}
 
-	private static void OrbitTick()
+	public static void EnableThirdPerson()
 	{
-		if (!orbitActive || (Object)(object)orbitTarget == (Object)null || (Object)(object)VRRig.LocalRig == (Object)null) return;
-		if (!(isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR)) { StopOrbit(); return; }
-		VRRig local = VRRig.LocalRig;
-		EnsureLocalRigEnabled();
-		orbitAngle += Time.deltaTime * 165f;
-		if (orbitAngle > 360f) orbitAngle -= 360f;
-		float rad = orbitAngle * Mathf.Deg2Rad;
-		Vector3 center = ((Component)orbitTarget).transform.position;
-		float radius = 1.5f;
-		float height = 0.9f;
-		Vector3 offset = new Vector3(Mathf.Cos(rad) * radius, height, Mathf.Sin(rad) * radius);
-		Vector3 pos = center + offset;
-		Quaternion look = Quaternion.LookRotation(center - pos, Vector3.up);
-		local.transform.SetPositionAndRotation(pos, look);
-		Vector3 headPos = pos + Vector3.up * 0.25f;
-		if (local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
-			local.head.rigTarget.transform.SetPositionAndRotation(headPos, look);
-		Vector3 right = look * Vector3.right;
-		Vector3 leftPos = pos + right * -1.1f + Vector3.up * 0.15f;
-		Vector3 rightPos = pos + right * 1.1f + Vector3.up * 0.15f;
-		Quaternion leftRot = look * Quaternion.Euler(0, 0, 90);
-		Quaternion rightRot = look * Quaternion.Euler(0, 0, -90);
-		if (local.leftHand != null && (Object)(object)local.leftHand.rigTarget != (Object)null)
-			local.leftHand.rigTarget.transform.SetPositionAndRotation(leftPos, leftRot);
-		if (local.rightHand != null && (Object)(object)local.rightHand.rigTarget != (Object)null)
-			local.rightHand.rigTarget.transform.SetPositionAndRotation(rightPos, rightRot);
-		if (local.leftIndex != null) { local.leftIndex.calcT = 0f; local.leftIndex.LerpFinger(1f, false); }
-		if (local.leftMiddle != null) { local.leftMiddle.calcT = 0f; local.leftMiddle.LerpFinger(1f, false); }
-		if (local.leftThumb != null) { local.leftThumb.calcT = 0f; local.leftThumb.LerpFinger(1f, false); }
-		if (local.rightIndex != null) { local.rightIndex.calcT = 0f; local.rightIndex.LerpFinger(1f, false); }
-		if (local.rightMiddle != null) { local.rightMiddle.calcT = 0f; local.rightMiddle.LerpFinger(1f, false); }
-		if (local.rightThumb != null) { local.rightThumb.calcT = 0f; local.rightThumb.LerpFinger(1f, false); }
+		if (instance == null)
+		{
+			return;
+		}
+		instance.EnableThirdPersonCore();
 	}
 
-	public static void CleanupGun()
+	private void EnableThirdPersonCore()
 	{
-		if ((Object)(object)pointer != (Object)null)
+		thirdPersonEnabled = true;
+		if (FreeCamObject == (Object)null)
 		{
-			Object.Destroy((Object)(object)pointer, Time.deltaTime);
-			pointer = null;
+			FreeCamObject = new GameObject("Chud_CameraObj");
+			FreeCamObject.transform.position = GorillaTagger.Instance.headCollider.transform.position;
+			Camera val = FreeCamObject.AddComponent<Camera>();
+			val.nearClipPlane = 0.01f;
+			val.cameraType = CameraType.Game;
 		}
-		if ((Object)(object)Line != (Object)null)
+		FreeCamObject.transform.position = GorillaTagger.Instance.bodyCollider.transform.TransformPoint(new Vector3(0f, 0.5f, -1.5f));
+		FreeCamObject.transform.rotation = GorillaTagger.Instance.headCollider.transform.rotation;
+	}
+
+	public static void DisableThirdPerson()
+	{
+		thirdPersonEnabled = false;
+		if (instance != null)
 		{
-			Object.Destroy((Object)(object)((Component)Line).gameObject);
-			Line = null;
+			instance.thirdPersonViewActive = false;
+			instance.DisableThirdPersonView();
 		}
-		gunTriggerWasDown = false;
+	}
+
+	private void DisableThirdPersonView()
+	{
+		if (FreeCamObject != (Object)null)
+		{
+			Object.Destroy(FreeCamObject.GetComponent<Camera>());
+			Object.Destroy(FreeCamObject);
+			FreeCamObject = null;
+		}
+	}
+
+	public static void BlockJmanSounds()
+	{
+		blockJmanSounds = true;
+		JmanSoundPatch.enabled = true;
+	}
+
+	public static void DisableBlockJmanSounds()
+	{
+		blockJmanSounds = false;
+		JmanSoundPatch.enabled = false;
+	}
+
+	public static void AntiGuardianGrab()
+	{
+		antiGuardianGrab = true;
+		GuardianPatches.launched = true;
+		GuardianPatches.knockedBack = true;
+		GuardianPatches.clampedKnockback = true;
+		GuardianPatches.trajectoryOverridden = true;
+		GuardianPatches.grabbedBy = true;
+	}
+
+	public static void DisableAntiGuardianGrab()
+	{
+		antiGuardianGrab = false;
+		GuardianPatches.launched = false;
+		GuardianPatches.knockedBack = false;
+		GuardianPatches.clampedKnockback = false;
+		GuardianPatches.trajectoryOverridden = false;
+		GuardianPatches.grabbedBy = false;
+	}
+
+	public static void AntiBlockCrash()
+	{
+		antiBlockCrash = true;
+	}
+
+	public static void DisableAntiBlockCrash()
+	{
+		antiBlockCrash = false;
+		try
+		{
+			if (GorillaTagScripts.BuilderTable.TryGetBuilderTableForZone(GorillaTagScripts.BuilderTable.BUILDER_ZONE, out var table))
+			{
+				if (table.builderRenderer != null) table.builderRenderer.Show(true);
+			}
+		}
+		catch { }
+	}
+
+	private void AntiBlockCrashTick()
+	{
+		if (!antiBlockCrash) return;
+		try
+		{
+			if (!GorillaTagScripts.BuilderTable.TryGetBuilderTableForZone(GorillaTagScripts.BuilderTable.BUILDER_ZONE, out var table)) return;
+			if (table.pieces == null || table.pieces.Count == 0) return;
+			foreach (BuilderPiece p in table.pieces)
+			{
+				if (p == null || !p.gameObject.activeSelf || p.isBuiltIntoTable) continue;
+				try { table.builderRenderer.RemovePiece(p); } catch { }
+				p.gameObject.SetActive(false);
+				if (p.rigidBody != null) Object.Destroy(p.rigidBody);
+				if (p.colliders != null)
+				{
+					for (int c = 0; c < p.colliders.Count; c++)
+					{
+						Collider col = p.colliders[c];
+						if (col != null) col.enabled = false;
+					}
+				}
+			}
+		}
+		catch { }
 	}
 }
-
-

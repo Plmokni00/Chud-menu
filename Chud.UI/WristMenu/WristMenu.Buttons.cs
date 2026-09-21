@@ -14,7 +14,7 @@ internal partial class WristMenu
 {
 	public static void RebuildEnabledMods()
 	{
-		MenuCategory menuCategory = MenuManager.Categories.Find((MenuCategory c) => c.Name == "Enabled Mods");
+		MenuCategory menuCategory = MenuManager.Instance.Categories.Find((MenuCategory c) => c.Name == "Enabled Mods");
 		if (menuCategory == null)
 		{
 			return;
@@ -22,16 +22,17 @@ internal partial class WristMenu
 		menuCategory.Buttons.Clear();
 		menuCategory.Buttons.Add(new ButtonInfo
 		{
+			id = "enabled_exit",
 			buttonText = "Exit Enabled Mods",
 			method = delegate
 			{
-				MenuManager.ToggleCategory("Enabled Mods");
+				MenuManager.Instance.ToggleCategory("Enabled Mods");
 			},
 			enabled = false,
 			type = ButtonType.Action,
 			toolTip = "Go to Main"
 		});
-		foreach (MenuCategory category in MenuManager.Categories)
+		foreach (MenuCategory category in MenuManager.Instance.Categories)
 		{
 			if (category.Name == "Main" || category.Name == "Enabled Mods" || category.Name == "Console Mods" || category.Name == "Console Settings")
 			{
@@ -43,13 +44,15 @@ internal partial class WristMenu
 				{
 					continue;
 				}
+				string capturedId = button.id;
 				string capturedText = button.buttonText;
 				menuCategory.Buttons.Add(new ButtonInfo
 				{
+					id = capturedId,
 					buttonText = capturedText,
 					method = delegate
 					{
-						Mods.FindAndToggleButton(capturedText);
+						Mods.FindAndToggleButton(capturedId);
 						if (toggleMenu)
 						{
 							RefreshMenu();
@@ -57,7 +60,7 @@ internal partial class WristMenu
 						else
 						{
 							DestroyMenu();
-							if ((Object)(object)instance != (Object)null)
+							if (instance != (Object)null)
 							{
 								instance.Draw();
 							}
@@ -71,30 +74,30 @@ internal partial class WristMenu
 		}
 	}
 
-	public static void Toggle(string relatedText)
+	public static void Toggle(string buttonId)
 	{
-		if (string.IsNullOrEmpty(relatedText)) return;
+		if (string.IsNullOrEmpty(buttonId)) return;
 		if (Time.time - lastButtonPressTime < 0.25f)
 		{
 			return;
 		}
 		lastButtonPressTime = Time.time;
 		PlayButtonClickSound(Mods.isRightHanded);
-		List<ButtonInfo> currentButtons = MenuManager.CurrentButtons;
+		List<ButtonInfo> currentButtons = MenuManager.Instance.CurrentButtons;
 		if (currentButtons == null)
 		{
 			return;
 		}
 		int count = currentButtons.Count;
-		int num = (count + pageSize - 1) / pageSize;
-		if (num < 1)
+		int pageCount = (count + pageSize - 1) / pageSize;
+		if (pageCount < 1)
 		{
-			num = 1;
+			pageCount = 1;
 		}
-		switch (relatedText)
+		switch (buttonId)
 		{
 		case "NextPage":
-			if (pageNumber < num - 1)
+			if (pageNumber < pageCount - 1)
 			{
 				pageNumber++;
 			}
@@ -109,7 +112,7 @@ internal partial class WristMenu
 			else
 			{
 				DestroyMenu();
-				if ((Object)(object)instance != (Object)null) instance.Draw();
+				if (instance != (Object)null) instance.Draw();
 			}
 			return;
 		case "PreviousPage":
@@ -119,7 +122,7 @@ internal partial class WristMenu
 			}
 			else
 			{
-				pageNumber = num - 1;
+				pageNumber = pageCount - 1;
 			}
 			if (toggleMenu)
 			{
@@ -128,27 +131,27 @@ internal partial class WristMenu
 			else
 			{
 				DestroyMenu();
-				if ((Object)(object)instance != (Object)null) instance.Draw();
+				if (instance != (Object)null) instance.Draw();
 			}
 			return;
 		case "DisconnectingButton":
 			PhotonNetwork.Disconnect();
 			return;
 		}
-		int num2 = -1;
+		int buttonIndex = -1;
 		for (int i = 0; i < currentButtons.Count; i++)
 		{
-			if (relatedText == currentButtons[i].buttonText)
+			if (buttonId == currentButtons[i].id)
 			{
-				num2 = i;
+				buttonIndex = i;
 				break;
 			}
 		}
-		if (num2 < 0 || num2 >= currentButtons.Count || !currentButtons[num2].enabled.HasValue)
+		if (buttonIndex < 0 || buttonIndex >= currentButtons.Count || !currentButtons[buttonIndex].enabled.HasValue)
 		{
 			return;
 		}
-		ButtonInfo buttonInfo = currentButtons[num2];
+		ButtonInfo buttonInfo = currentButtons[buttonIndex];
 		if (buttonInfo.requiredGameMode != null && (buttonInfo.type == ButtonType.Action || buttonInfo.enabled != true))
 		{
 			if (!PhotonNetwork.IsMasterClient)
@@ -167,7 +170,7 @@ internal partial class WristMenu
 			buttonInfo.method?.Invoke();
 			return;
 		}
-		if (MenuManager.CurrentCategoryName == "Master Mods" && !PhotonNetwork.IsMasterClient)
+		if (MenuManager.Instance.CurrentCategoryName == "Master Mods" && !PhotonNetwork.IsMasterClient)
 		{
 			NotifiLib.SendNotification("You are not master client!");
 			return;
@@ -193,26 +196,26 @@ internal partial class WristMenu
 		{
 			NotifiLib.SendNotification(buttonInfo.buttonText + ": " + buttonInfo.toolTip, 2);
 		}
-		if ((Object)(object)menu != (Object)null)
+		if (menu != (Object)null)
 		{
-			UpdateButtonVisual(relatedText, buttonInfo.enabled.Value);
+			UpdateButtonVisual(buttonInfo.id, buttonInfo.buttonText, buttonInfo.enabled.Value);
 		}
 		Mods.Save();
 	}
 
-	internal static void UpdateButtonVisual(string buttonText, bool isEnabled)
+	internal static void UpdateButtonVisual(string buttonId, string buttonText, bool isEnabled)
 	{
-		if (string.IsNullOrEmpty(buttonText)) return;
-		if ((Object)(object)menu == (Object)null) return;
+		if (string.IsNullOrEmpty(buttonId)) return;
+		if (menu == (Object)null) return;
 		foreach (Transform item in menu.transform)
 		{
 			Transform val2 = item;
-			if ((Object)(object)val2 == (Object)null) continue;
+			if (val2 == (Object)null) continue;
 			BtnCollider component = ((Component)val2).GetComponent<BtnCollider>();
-			if ((Object)(object)component != (Object)null && component.relatedText == buttonText)
+			if (component != (Object)null && component.buttonId == buttonId)
 			{
 				Renderer component2 = ((Component)val2).GetComponent<Renderer>();
-				if ((Object)(object)component2 == (Object)null) break;
+				if (component2 == (Object)null) break;
 				Color baseColor = isEnabled ? ButtonColorEnabled : ButtonColorDisable;
 				component2.material = MakeGradientMat(baseColor * 0.35f, baseColor);
 				break;
@@ -220,17 +223,17 @@ internal partial class WristMenu
 		}
 		Color bc = isEnabled ? ButtonColorEnabled : ButtonColorDisable;
 		Color bt = bc * 0.35f;
-		if (roundedRenderers.TryGetValue(buttonText, out var value))
+		if (roundedRenderers.TryGetValue(buttonId, out var value))
 		{
 			foreach (Renderer item2 in value)
 			{
-				if ((Object)(object)item2 != (Object)null)
+				if (item2 != (Object)null)
 				{
 					item2.material = MakeGradientMat(bt, bc);
 				}
 			}
 		}
-		if (!((Object)(object)canvasObj != (Object)null))
+		if (!(canvasObj != (Object)null))
 		{
 			return;
 		}
@@ -238,7 +241,7 @@ internal partial class WristMenu
 		{
 			Transform val4 = item3;
 			Text component3 = ((Component)val4).GetComponent<Text>();
-			if ((Object)(object)component3 != (Object)null && component3.text == buttonText)
+			if (component3 != (Object)null && component3.text == buttonText)
 			{
 				((Graphic)component3).color = (isEnabled ? EnableTextColor : DisableTextColor);
 				break;

@@ -4,6 +4,8 @@ namespace Chud.Classes;
 
 public class ButtonInfo
 {
+	public string id;
+
 	public string buttonText = "Error";
 
 	public string toolTip = "This button doesn't have a tooltip/tutorial";

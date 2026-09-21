@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.IO;
-using System.Text;
 using Chud.UI;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -26,21 +25,22 @@ public static class SoundCache
 			else if (lower.EndsWith(".mp3")) ext = ".mp3";
 		}
 		catch { }
-		StringBuilder sb = new StringBuilder(64);
-		try
+		return Path.Combine(CacheFolder, "clip_" + FullUrlHash(url) + ext);
+	}
+
+	private static string FullUrlHash(string url)
+	{
+		unchecked
 		{
-			foreach (char c in url)
+			ulong hash = 14695981039346656037ul;
+			string source = url ?? "";
+			for (int i = 0; i < source.Length; i++)
 			{
-				if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
-					sb.Append(c);
-				else
-					sb.Append('_');
-				if (sb.Length >= 48) break;
+				hash ^= source[i];
+				hash *= 1099511628211ul;
 			}
+			return hash.ToString("x16");
 		}
-		catch { }
-		if (sb.Length == 0) sb.Append("clip");
-		return Path.Combine(CacheFolder, sb.ToString() + ext);
 	}
 
 	public static AudioType AudioTypeForUrl(string url)
