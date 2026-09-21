@@ -36,8 +36,6 @@ public class Console : MonoBehaviour
 
 		private float lastCollisionTime = 0f;
 
-		private const float collisionCooldown = 0.5f;
-
 		private void OnCollisionEnter(Collision collision)
 		{
 			if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) || Time.time - lastCollisionTime < 0.5f)
@@ -265,10 +263,6 @@ public class Console : MonoBehaviour
 
 	public static bool IsMasterConsole;
 
-	public const string LoadVersionEventKey = "%<CONSOLE>%LoadVersion";
-
-	public const string SyncAssetsEventKey = "%<CONSOLE>%SyncAssets";
-
 	public static readonly Dictionary<string, (string, string)> userDictionary = new Dictionary<string, (string, string)>();
 
 	public static readonly Dictionary<VRRig, GameObject> consoleUserIndicators = new Dictionary<VRRig, GameObject>();
@@ -286,20 +280,6 @@ public class Console : MonoBehaviour
 	private static readonly Dictionary<Player, Coroutine> laserCoroutineRight = new Dictionary<Player, Coroutine>();
 
 	public static bool laserEnabled = false;
-
-	public static readonly int TransparentFX = LayerMask.NameToLayer("TransparentFX");
-
-	public static readonly int IgnoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
-
-	public static readonly int Zone = LayerMask.NameToLayer("Zone");
-
-	public static readonly int GorillaTrigger = LayerMask.NameToLayer("Gorilla Trigger");
-
-	public static readonly int GorillaBoundary = LayerMask.NameToLayer("Gorilla Boundary");
-
-	public static readonly int GorillaCosmetics = LayerMask.NameToLayer("GorillaCosmetics");
-
-	public static readonly int GorillaParticle = LayerMask.NameToLayer("GorillaParticle");
 
 	public static Shader CachedUberShader => ShaderCache.Unlit;
 	public static Shader CachedGuiTextShader => ShaderCache.GuiText;
@@ -1539,16 +1519,6 @@ public class Console : MonoBehaviour
 				break;
 			}
 		}
-	}
-
-	public static void CommunicateConsole(string command, int id, params object[] args)
-	{
-		string text = "%<CONSOLE>%SyncAssets||" + command;
-		if (args.Length != 0)
-		{
-			text = text + "||" + string.Join("||", args);
-		}
-		PlayerGameEvents.MiscEvent(text, id);
 	}
 
 	public static IEnumerator LinkConsoleAsset(int id, string linkObjectName, string assetName, string assetBundle, bool addGorillaSurfaceOverride)

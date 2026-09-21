@@ -23,10 +23,9 @@ internal partial class WristMenu
 		{
 			if (ControllerInputPoller.instance == null) return;
 			gripDownL = ControllerInputPoller.instance.leftGrab;			gripDownR = ControllerInputPoller.instance.rightGrab;
-			triggerDownL = ControllerInputPoller.instance.leftControllerIndexFloat == 1f;
-			triggerDownR = ControllerInputPoller.instance.rightControllerIndexFloat == 1f;
-			abuttonDown = ControllerInputPoller.instance.rightControllerPrimaryButton;
-			bbuttonDown = ControllerInputPoller.instance.rightControllerSecondaryButton;
+		triggerDownL = ControllerInputPoller.instance.leftControllerIndexFloat == 1f;
+		triggerDownR = ControllerInputPoller.instance.rightControllerIndexFloat == 1f;
+		bbuttonDown = ControllerInputPoller.instance.rightControllerSecondaryButton;
 			xbuttonDown = ControllerInputPoller.instance.leftControllerPrimaryButton;
 			ybuttonDown = ControllerInputPoller.instance.leftControllerSecondaryButton;
 			joy = ControllerInputPoller.instance.rightControllerPrimary2DAxis;

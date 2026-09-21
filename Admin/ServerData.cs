@@ -20,10 +20,6 @@ public static class ServerData
 
 	public static readonly string GithubSuperAdminEndpoint = "https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/SuperAdmins.txt";
 
-	public static readonly string ConsoleAssetsURL = "https://raw.githubusercontent.com/hamburbur-org/Public-Assets/refs/heads/main";
-
-	public static readonly string FallbackAssetsURL = "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData";
-
 	public static readonly string ConsoleSuperAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Chud%20Super%20Admin.png";
 
 	public static readonly string ConsoleAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Super%20admin%20Flower%20Crown.png";
@@ -53,9 +49,6 @@ public static class ServerData
 		}
 		return -1;
 	}
-	public static bool IsAdmin(string userId) { lock (AdminLock) return Administrators.ContainsKey(userId); }
-	public static bool TryGetAdmin(string userId, out string name) { lock (AdminLock) return Administrators.TryGetValue(userId, out name); }
-
 	public static IEnumerator DownloadAdminTextures()
 	{
 		UnityWebRequest iconReq = UnityWebRequestTexture.GetTexture(ConsoleSuperAdminIcon);

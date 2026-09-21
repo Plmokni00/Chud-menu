@@ -1635,7 +1635,7 @@ private static VRRig ghostRig;
 				instance.StopCoroutine(minosRestoreCoroutine);
 			}
 			myRecorder.SourceType = Recorder.InputSourceType.AudioClip;
-			myRecorder.AudioClip = clip;
+		myRecorder.AudioClip = clip;
 			myRecorder.RestartRecording(true);
 			myRecorder.DebugEchoMode = true;
 			minosRestoreCoroutine = instance.StartCoroutine(RestoreMicAfter(clip.length));
@@ -2157,19 +2157,6 @@ private static VRRig ghostRig;
 		}
 	}
 
-	private static Transform FindBoneTransform(VRRig rig, string prefix)
-	{
-		if (rig.mainSkin != null && rig.mainSkin.bones != null)
-		{
-			foreach (Transform b in rig.mainSkin.bones)
-			{
-				if (b != null && b.name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-					return b;
-			}
-		}
-		return null;
-	}
-
 	public static void DisableSkeletonEsp()
 	{
 		foreach (LineRenderer[] arr in skeletonLines.Values)
@@ -2350,158 +2337,196 @@ private static VRRig ghostRig;
 		}
 	}
 
-	public static void NameTags()
+	private sealed class TagProvider
 	{
-		CleanTagDict(nameTagObjects);
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
+		public readonly string ObjectName;
+
+		public readonly int Slot;
+
+		public readonly Func<VRRig, string> GetText;
+
+		public readonly Func<VRRig, Color> GetColor;
+
+		public readonly Dictionary<VRRig, GameObject> Objects;
+
+		public TagProvider(string objectName, int slot, Func<VRRig, string> getText, Func<VRRig, Color> getColor, Dictionary<VRRig, GameObject> objects)
 		{
-			if (activeRig.isLocal)
+			ObjectName = objectName;
+			Slot = slot;
+			GetText = getText;
+			GetColor = getColor;
+			Objects = objects;
+		}
+	}
+
+	private static readonly TagProvider NameTagProvider = new TagProvider("Chud_Nametag", TagStackName, GetNameTagText, TagColor, nameTagObjects);
+
+	private static readonly TagProvider FpsTagProvider = new TagProvider("Chud_FPStag", TagStackFps, GetFpsTagText, TagColor, fpsNameTagObjects);
+
+	private static readonly TagProvider IdTagProvider = new TagProvider("Chud_IDtag", TagStackId, GetIdTagText, TagColor, idNameTagObjects);
+
+	private static readonly TagProvider PlatformTagProvider = new TagProvider("Chud_PlatformTag", TagStackPlatform, GetPlatformProperty, TagColor, platformNameTagObjects);
+
+	private static readonly TagProvider CosmeticTagProvider = new TagProvider("Chud_CosmeticTag", TagStackCosmetics, GetCosmeticTagText, GetAlertTagColor, cosmeticNameTagObjects);
+
+	private static readonly TagProvider ArsTagProvider = new TagProvider("Chud_ARStag", TagStackArs, GetArsTagText, GetAlertTagColor, arsTagObjects);
+
+	private static string GetNameTagText(VRRig rig)
+	{
+		NetPlayer creator = rig.Creator;
+		return ((creator != null) ? creator.NickName : null) ?? "?";
+	}
+
+	private static string GetFpsTagText(VRRig rig)
+	{
+		return GetFps(rig) + " FPS";
+	}
+
+	private static string GetIdTagText(VRRig rig)
+	{
+		NetPlayer creator = rig.Creator;
+		return ((creator != null) ? creator.UserId : null) ?? "?";
+	}
+
+	private static string GetCosmeticTagText(VRRig rig)
+	{
+		HashSet<string> owned = GetOwnedCosmetics(rig);
+		if (owned == null || owned.Count == 0)
+		{
+			return null;
+		}
+		List<string> names = new List<string>(owned.Count);
+		foreach (string item in owned)
+		{
+			if (cosmeticNames.TryGetValue(item, out var display))
+			{
+				names.Add(display);
+			}
+		}
+		if (names.Count == 0)
+		{
+			return null;
+		}
+		return string.Join(", ", names);
+	}
+
+	private static string GetArsTagText(VRRig rig)
+	{
+		NetPlayer creator = rig.Creator;
+		string id = (creator != null) ? creator.UserId : null;
+		if (id == null || !arsPlayersToReport.Contains(id))
+		{
+			return null;
+		}
+		return "ARS";
+	}
+
+	private static Color GetAlertTagColor(VRRig rig)
+	{
+		return Color.red;
+	}
+
+	private static void UpdateLiveTag(TagProvider provider)
+	{
+		CleanTagDict(provider.Objects);
+		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		{
+			if (rig.isLocal)
 			{
 				continue;
 			}
-			if (!nameTagObjects.TryGetValue(activeRig, out var value))
+			string text = provider.GetText(rig);
+			if (string.IsNullOrEmpty(text))
 			{
-				Text val = CreateTagObj("Chud_Nametag", nameTagObjects, activeRig);
-				value = ((Component)val).gameObject;
-				NetPlayer creator = activeRig.Creator;
-				string text = ((creator != null) ? creator.NickName : null) ?? "?";
-				val.text = text;
-				((Graphic)val).color = TagColor(activeRig);
-			}
-			else
-			{
-				Text component = value.GetComponent<Text>();
-				if ((Object)(object)component != (Object)null)
+				if (provider.Objects.TryGetValue(rig, out var stale))
 				{
-					NetPlayer creator2 = activeRig.Creator;
-					string text2 = ((creator2 != null) ? creator2.NickName : null) ?? "?";
-					component.text = text2;
-					((Graphic)component).color = TagColor(activeRig);
+					Object.Destroy((Object)(object)stale);
+					provider.Objects.Remove(rig);
 				}
+				continue;
 			}
-			PlaceTag(value, activeRig, TagStackName);
+			GameObject go;
+			if (!provider.Objects.TryGetValue(rig, out go))
+			{
+				Text created = CreateTagObj(provider.ObjectName, provider.Objects, rig);
+				go = ((Component)created).gameObject;
+			}
+			Text label = go.GetComponent<Text>();
+			if ((Object)(object)label != (Object)null)
+			{
+				label.text = text;
+				((Graphic)label).color = provider.GetColor(rig);
+			}
+			PlaceTag(go, rig, provider.Slot);
 		}
+	}
+
+	private static void UpdateStickyTag(TagProvider provider)
+	{
+		CleanTagDict(provider.Objects);
+		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		{
+			if (rig.isLocal || provider.Objects.ContainsKey(rig))
+			{
+				continue;
+			}
+			string text = provider.GetText(rig);
+			if (string.IsNullOrEmpty(text))
+			{
+				continue;
+			}
+			Text created = CreateTagObj(provider.ObjectName, provider.Objects, rig);
+			created.text = text;
+			((Graphic)created).color = provider.GetColor(rig);
+		}
+		foreach (KeyValuePair<VRRig, GameObject> entry in provider.Objects)
+		{
+			PlaceTag(entry.Value, entry.Key, provider.Slot);
+		}
+	}
+
+	private static void DisableTag(TagProvider provider)
+	{
+		foreach (GameObject go in provider.Objects.Values)
+		{
+			Object.Destroy((Object)(object)go);
+		}
+		provider.Objects.Clear();
+	}
+
+	public static void NameTags()
+	{
+		UpdateLiveTag(NameTagProvider);
 	}
 
 	public static void DisableNameTags()
 	{
-		foreach (GameObject value in nameTagObjects.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		nameTagObjects.Clear();
+		DisableTag(NameTagProvider);
 	}
 
 	public static void FPSTags()
 	{
-		CleanTagDict(fpsNameTagObjects);
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-		{
-			if (activeRig.isLocal)
-			{
-				continue;
-			}
-			if (!fpsNameTagObjects.TryGetValue(activeRig, out var value))
-			{
-				Text val = CreateTagObj("Chud_FPStag", fpsNameTagObjects, activeRig);
-				value = ((Component)val).gameObject;
-				string text = GetFps(activeRig) + " FPS";
-				val.text = text;
-				((Graphic)val).color = TagColor(activeRig);
-			}
-			else
-			{
-				Text component = value.GetComponent<Text>();
-				if ((Object)(object)component != (Object)null)
-				{
-					string text2 = GetFps(activeRig) + " FPS";
-					component.text = text2;
-					((Graphic)component).color = TagColor(activeRig);
-				}
-			}
-			PlaceTag(value, activeRig, TagStackFps);
-		}
+		UpdateLiveTag(FpsTagProvider);
 	}
 
 	public static void DisableFPSTags()
 	{
-		foreach (GameObject value in fpsNameTagObjects.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		fpsNameTagObjects.Clear();
+		DisableTag(FpsTagProvider);
 	}
 
 	public static void IDTags()
 	{
-		CleanTagDict(idNameTagObjects);
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-		{
-			if (activeRig.isLocal)
-			{
-				continue;
-			}
-			if (!idNameTagObjects.TryGetValue(activeRig, out var value))
-			{
-				Text val = CreateTagObj("Chud_IDtag", idNameTagObjects, activeRig);
-				value = ((Component)val).gameObject;
-				NetPlayer creator = activeRig.Creator;
-				string text = ((creator != null) ? creator.UserId : null) ?? "?";
-				val.text = text;
-				((Graphic)val).color = TagColor(activeRig);
-			}
-			else
-			{
-				Text component = value.GetComponent<Text>();
-				if ((Object)(object)component != (Object)null)
-				{
-					NetPlayer creator2 = activeRig.Creator;
-					string text2 = ((creator2 != null) ? creator2.UserId : null) ?? "?";
-					component.text = text2;
-					((Graphic)component).color = TagColor(activeRig);
-				}
-			}
-			PlaceTag(value, activeRig, TagStackId);
-		}
+		UpdateLiveTag(IdTagProvider);
 	}
 
 	public static void DisableIDTags()
 	{
-		foreach (GameObject value in idNameTagObjects.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		idNameTagObjects.Clear();
+		DisableTag(IdTagProvider);
 	}
 
 	public static void PlatformTags()
 	{
-		CleanTagDict(platformNameTagObjects);
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-		{
-			if (activeRig.isLocal)
-			{
-				continue;
-			}
-			string text = GetPlatformProperty(activeRig);
-			if (!platformNameTagObjects.TryGetValue(activeRig, out var value))
-			{
-				Text val = CreateTagObj("Chud_PlatformTag", platformNameTagObjects, activeRig);
-				value = ((Component)val).gameObject;
-				val.text = text;
-				((Graphic)val).color = TagColor(activeRig);
-			}
-			else
-			{
-				Text component = value.GetComponent<Text>();
-				if ((Object)(object)component != (Object)null)
-				{
-					component.text = text;
-					((Graphic)component).color = TagColor(activeRig);
-				}
-			}
-			PlaceTag(value, activeRig, TagStackPlatform);
-		}
+		UpdateLiveTag(PlatformTagProvider);
 	}
 
 	private static string GetPlatformProperty(VRRig rig)
@@ -2538,11 +2563,7 @@ private static VRRig ghostRig;
 
 	public static void DisablePlatformTags()
 	{
-		foreach (GameObject value in platformNameTagObjects.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		platformNameTagObjects.Clear();
+		DisableTag(PlatformTagProvider);
 	}
 
 	private static HashSet<string> GetOwnedCosmetics(VRRig rig)
@@ -2556,47 +2577,12 @@ private static VRRig ghostRig;
 
 	public static void CosmeticNameTags()
 	{
-		CleanTagDict(cosmeticNameTagObjects);
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-		{
-			if (activeRig.isLocal || cosmeticNameTagObjects.ContainsKey(activeRig))
-			{
-				continue;
-			}
-			HashSet<string> ownedCosmetics = GetOwnedCosmetics(activeRig);
-			if (ownedCosmetics == null || ownedCosmetics.Count == 0)
-			{
-				continue;
-			}
-			List<string> list = new List<string>(ownedCosmetics.Count);
-			foreach (string item in ownedCosmetics)
-			{
-				if (cosmeticNames.TryGetValue(item, out var value))
-				{
-					list.Add(value);
-				}
-			}
-			if (list.Count != 0)
-			{
-				string text = string.Join(", ", list);
-				Text val = CreateTagObj("Chud_CosmeticTag", cosmeticNameTagObjects, activeRig);
-				val.text = text;
-				((Graphic)val).color = Color.red;
-			}
-		}
-		foreach (KeyValuePair<VRRig, GameObject> cosmeticNameTagObject in cosmeticNameTagObjects)
-		{
-			PlaceTag(cosmeticNameTagObject.Value, cosmeticNameTagObject.Key, TagStackCosmetics);
-		}
+		UpdateStickyTag(CosmeticTagProvider);
 	}
 
 	public static void DisableCosmeticNameTags()
 	{
-		foreach (GameObject value in cosmeticNameTagObjects.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		cosmeticNameTagObjects.Clear();
+		DisableTag(CosmeticTagProvider);
 	}
 
 	public static void EnableARS()
@@ -2652,25 +2638,7 @@ private static VRRig ghostRig;
 		{
 			return;
 		}
-		CleanTagDict(arsTagObjects);
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-		{
-			if (!activeRig.isLocal)
-			{
-				NetPlayer creator = activeRig.Creator;
-				string text = ((creator != null) ? creator.UserId : null);
-				if (text != null && arsPlayersToReport.Contains(text) && !arsTagObjects.ContainsKey(activeRig))
-				{
-					Text val = CreateTagObj("Chud_ARStag", arsTagObjects, activeRig);
-					val.text = "ARS";
-					((Graphic)val).color = Color.red;
-				}
-			}
-		}
-		foreach (KeyValuePair<VRRig, GameObject> arsTagObject in arsTagObjects)
-		{
-			PlaceTag(arsTagObject.Value, arsTagObject.Key, TagStackArs);
-		}
+		UpdateStickyTag(ArsTagProvider);
 	}
 
 	public static void ARSDetect()
@@ -3376,50 +3344,6 @@ private static VRRig ghostRig;
 			}
 		}
 		savedGroupKickRoom = null;
-	}
-
-	public static void CreateRoom(string roomName, bool pub)
-	{
-		int savedDecay = NotifiLib.DecayTime;
-		NotifiLib.DecayTime = 240;
-		NotifiLib.SendNotification("Creating room: " + roomName + ". This works best in city, it will take a bit for people to join", 1);
-		NotifiLib.DecayTime = savedDecay;
-		var trigger = PhotonNetworkController.Instance.currentJoinTrigger ?? GorillaComputer.instance.GetJoinTriggerForZone("forest");
-
-		bool isSubscribed = false;
-		try
-		{
-			Type subType = AppDomain.CurrentDomain.GetAssemblies()
-				.SelectMany(a => a.GetTypes())
-				.FirstOrDefault(t => t.FullName == "GorillaTagScripts.SubscriptionManager");
-			if (subType != null)
-			{
-				var method = subType.GetMethod("IsLocalSubscribed", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
-				if (method != null)
-					isSubscribed = (bool)method.Invoke(null, null);
-			}
-		}
-		catch { }
-
-		var hash = new ExitGames.Client.Photon.Hashtable
-		{
-			{ "platform", "OTHER" },
-			{ "gameMode", trigger.GetFullDesiredGameModeString() },
-			{ "language", "English" },
-			{ "fan_club", isSubscribed ? "true" : "false" },
-			{ "queueName", GorillaComputer.instance.currentQueue }
-		};
-
-		var config = new RoomConfig
-		{
-			createIfMissing = true,
-			isJoinable = true,
-			isPublic = pub,
-			MaxPlayers = (byte)(isSubscribed ? 20 : 10),
-			CustomProps = hash
-		};
-
-		NetworkSystem.Instance.ConnectToRoom(roomName, config, -1);
 	}
 
 	public static void GetPlayerIDGun()

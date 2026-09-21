@@ -8,11 +8,6 @@ public class MenuCategory
 
 	public List<ButtonInfo> Buttons = new List<ButtonInfo>();
 
-	public MenuCategory(string name)
-	{
-		Name = name;
-	}
-
 	public MenuCategory(string name, List<ButtonInfo> buttons)
 	{
 		Name = name;

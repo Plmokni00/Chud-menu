@@ -39,7 +39,7 @@ internal partial class WristMenu
 		val3.referencePixelsPerUnit = 100f;
 		GameObject val4 = new GameObject();
 		val4.transform.parent = canvasObj.transform;
-		Text val5 = (titiel = val4.AddComponent<Text>());
+		Text val5 = val4.AddComponent<Text>();
 		val5.font = MenuFont;
 		val5.text = MenuTitle;
 		val5.fontSize = 200;

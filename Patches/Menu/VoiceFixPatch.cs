@@ -28,7 +28,6 @@ namespace Chud.Backend
                 if (arr == null) return false;
 
                 var voiceClientField = AccessTools.Field(__instance.GetType(), "voiceClient");
-                var loggerField = AccessTools.Field(__instance.GetType(), "logger");
                 var voiceClient = voiceClientField?.GetValue(__instance) as VoiceClient;
                 if (voiceClient == null) return false;
 

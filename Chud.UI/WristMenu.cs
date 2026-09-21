@@ -101,8 +101,6 @@ internal partial class WristMenu : MonoBehaviour
 
 	public static bool triggerDownR;
 
-	public static bool abuttonDown;
-
 	public static bool bbuttonDown;
 
 	public static bool xbuttonDown;
@@ -187,8 +185,6 @@ internal partial class WristMenu : MonoBehaviour
 	public static bool toggleMenu = false;
 	private static bool _prevToggleButton = false;
 	private static bool _menuStickyOpen = false;
-
-	public static Text titiel;
 
 	
 

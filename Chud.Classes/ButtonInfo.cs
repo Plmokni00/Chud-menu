@@ -18,8 +18,6 @@ public class ButtonInfo
 
 	public ButtonType type = ButtonType.Toggle;
 
-	public bool isTogglable = true;
-
 	public string requiredGameMode;
 
 	public bool requiresLobby;

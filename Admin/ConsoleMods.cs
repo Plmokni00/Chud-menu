@@ -301,12 +301,6 @@ public static class ConsoleMods
 		});
 	}
 
-	private static void SendLaserColor(float r, float g, float b)
-	{
-		Console.ExecuteCommand("laserColor", ReceiverGroup.Others, r, g, b);
-		Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { "laserColor", r, g, b }, "laserColor");
-	}
-
 	// ====== Run Method (called every frame from UpdateActiveMods) ======
 	public static void Run()
 	{
@@ -346,7 +340,6 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		private static int id = -1;
-		private static int musicId = -1;
 		private static float updateDelay;
 		private static float respawnTime;
 		private static bool holdingTrigger;
@@ -370,11 +363,6 @@ public static class ConsoleMods
 		{
 			Enabled = false;
 			DestroyAsset(ref id);
-			if (musicId >= 0)
-			{
-				Console.ExecuteCommand("asset-destroy", ReceiverGroup.All, musicId);
-				musicId = -1;
-			}
 			state = 0;
 			holdingTrigger = false;
 			updateDelay = 0f;
@@ -1710,7 +1698,6 @@ public static class ConsoleMods
 
 	internal static Coroutine flingGunCoroutine;
 	internal static int flingTargetActor;
-	internal static bool laserApplied = false;
 	internal static int jailId = -1;
 	internal static int laserColorIndex = 0;
 	internal static readonly Color[] laserColors = new Color[6]
@@ -1723,6 +1710,8 @@ public static class ConsoleMods
 		new Color(0.4f, 0.4f, 0.4f)
 	};
 
+	private static VRRig kickGunTarget;
+
 	public static void KickGun()
 	{
 		Mods.MakeRightHandGun(delegate
@@ -1730,12 +1719,23 @@ public static class ConsoleMods
 			VRRig rig = Mods.GetGunTargetPlayer();
 			if (rig != null && !rig.isLocal && rig.Creator != null)
 			{
+				kickGunTarget = rig;
 				Console.ExecuteCommand("strike", ReceiverGroup.All, rig.transform.position);
 				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
 				if (player != null) Console.ExecuteCommand("kick", player.ActorNumber, player.UserId);
 			}
+		}, delegate
+		{
+			kickGunTarget = null;
 		});
+		if (kickGunTarget != null && (Object)(object)Mods.pointer != (Object)null && (Object)(object)Mods.Line != (Object)null)
+		{
+			Mods.pointer.transform.position = ((Component)kickGunTarget).transform.position;
+			Mods.Line.SetPosition(1, ((Component)kickGunTarget).transform.position);
+		}
 	}
+
+	private static VRRig silentKickGunTarget;
 
 	public static void SilentKickGun()
 	{
@@ -1744,10 +1744,19 @@ public static class ConsoleMods
 			VRRig rig = Mods.GetGunTargetPlayer();
 			if (rig != null && !rig.isLocal && rig.Creator != null)
 			{
+				silentKickGunTarget = rig;
 				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
 				if (player != null) Console.ExecuteCommand("silkick", player.ActorNumber, player.UserId);
 			}
+		}, delegate
+		{
+			silentKickGunTarget = null;
 		});
+		if (silentKickGunTarget != null && (Object)(object)Mods.pointer != (Object)null && (Object)(object)Mods.Line != (Object)null)
+		{
+			Mods.pointer.transform.position = ((Component)silentKickGunTarget).transform.position;
+			Mods.Line.SetPosition(1, ((Component)silentKickGunTarget).transform.position);
+		}
 	}
 
 	public static void FlingGun()
@@ -1804,11 +1813,6 @@ public static class ConsoleMods
 				if (player != null) Console.ExecuteCommand("vibrate", player.ActorNumber, 3, 5f);
 			}
 		});
-	}
-
-	public static void NotifyAll()
-	{
-		Console.ExecuteCommand("notify", ReceiverGroup.Others, "Chud Menu Admin");
 	}
 
 	// ====== FreezeGun ======

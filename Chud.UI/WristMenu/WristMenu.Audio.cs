@@ -11,17 +11,21 @@ internal partial class WristMenu
 	{
 		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/button%20click.mp3",
 		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/button%20click%202.mp3",
-		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/button%20click%203.mp3"
+		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/button%20click%203.mp3",
+		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/Button%20click%204.mp3",
+		"https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/Button%20click%205.mp3"
 	};
 
 	public static readonly string[] ButtonClickNames = new string[]
 	{
 		"Default button click",
 		"Clicker trainer",
-		"DDLC"
+		"DDLC",
+		"Minecraft Lever",
+		"Skype"
 	};
 
-	public static AudioClip[] buttonClickClips = new AudioClip[3];
+	public static AudioClip[] buttonClickClips = new AudioClip[5];
 
 	public static int buttonClickIndex = 0;
 

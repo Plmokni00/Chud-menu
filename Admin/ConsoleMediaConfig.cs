@@ -22,10 +22,6 @@ public static class ConsoleMediaConfig
 	private static List<MediaEntry> _videos;
 	private static bool _loaded;
 
-	public static bool IsLoaded => _loaded;
-	public static IReadOnlyList<MediaEntry> Sounds => _sounds ?? (IReadOnlyList<MediaEntry>)Array.Empty<MediaEntry>();
-	public static IReadOnlyList<MediaEntry> Videos => _videos ?? (IReadOnlyList<MediaEntry>)Array.Empty<MediaEntry>();
-
 	public static string GetSoundName(int index)
 	{
 		if (_loaded && _sounds != null && index >= 0 && index < _sounds.Count)
