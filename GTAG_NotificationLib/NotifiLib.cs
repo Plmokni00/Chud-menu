@@ -22,17 +22,43 @@ public class NotifiLib : MonoBehaviour
 
 	private Material textMaterial = new Material(Shader.Find("GUI/Text Shader"));
 
-	private int decayCounter = 200;
-
 	private bool hasInit = false;
 
-	public static bool IsEnabled = true;
+	private static bool _isEnabled = true;
+
+	public static bool IsEnabled
+	{
+		get { return _isEnabled; }
+		set
+		{
+			if (_isEnabled == value)
+			{
+				return;
+			}
+			_isEnabled = value;
+			if (!_isEnabled)
+			{
+				ClearAllNotifications();
+			}
+		}
+	}
 
 	public static int DecayTime = 150;
 
 	private static float lastNotifyTime;
 
-	private static Queue<int> lineDecayTimes = new Queue<int>();
+	private struct VrLine
+	{
+		public string text;
+
+		public float expireTime;
+	}
+
+	private static readonly List<VrLine> _vrLines = new List<VrLine>();
+
+	private const int MAX_VR_LINES = 4;
+
+	private static bool? _lastSeenDesktopMode;
 
 	private static readonly List<DesktopNoti> _desktopNotis = new List<DesktopNoti>();
 
@@ -49,9 +75,14 @@ public class NotifiLib : MonoBehaviour
 		public float expireTime;
 	}
 
-	private static bool IsDesktopMode()
+	public static bool IsDesktopMode()
 	{
 		return !XRSettings.isDeviceActive;
+	}
+
+	public static bool IsVrMode()
+	{
+		return XRSettings.isDeviceActive;
 	}
 
 	private static Texture2D GetNotiBgTex()
@@ -67,7 +98,7 @@ public class NotifiLib : MonoBehaviour
 
 	private void OnGUI()
 	{
-		if (!IsDesktopMode() || _desktopNotis.Count == 0)
+		if (!_isEnabled || !IsDesktopMode() || _desktopNotis.Count == 0)
 		{
 			return;
 		}
@@ -137,6 +168,10 @@ public class NotifiLib : MonoBehaviour
 	private void Init()
 	{
 		mainCamera = GameObject.Find("Main Camera");
+		if ((Object)(object)mainCamera == (Object)null && (Object)(object)Camera.main != (Object)null)
+		{
+			mainCamera = ((Component)Camera.main).gameObject;
+		}
 		if (!((Object)(object)mainCamera == (Object)null))
 		{
 			hudObj = new GameObject("NOTIFICATIONLIB_HUD_OBJ");
@@ -146,7 +181,8 @@ public class NotifiLib : MonoBehaviour
 			hudObj.AddComponent<GraphicRaycaster>();
 			((Behaviour)val).enabled = true;
 			val.renderMode = (RenderMode)2;
-			val.worldCamera = mainCamera.GetComponent<Camera>();
+			Camera cam = mainCamera.GetComponent<Camera>();
+			val.worldCamera = cam;
 			hudObj.GetComponent<RectTransform>().sizeDelta = new Vector2(5f, 5f);
 			((Transform)hudObj.GetComponent<RectTransform>()).position = new Vector3(mainCamera.transform.position.x, mainCamera.transform.position.y, mainCamera.transform.position.z);
 			hudObjParent.transform.position = new Vector3(mainCamera.transform.position.x, mainCamera.transform.position.y, mainCamera.transform.position.z - 4.6f);
@@ -167,54 +203,196 @@ public class NotifiLib : MonoBehaviour
 			notificationText.alignment = (TextAnchor)6;
 			((Transform)((Graphic)notificationText).rectTransform).localScale = new Vector3(0.002f, 0.002f, 1f);
 			((Transform)((Graphic)notificationText).rectTransform).localPosition = new Vector3(-0.3f, -0.35f, -0.15f);
-			((Graphic)notificationText).material = textMaterial;
+			if ((Object)(object)textMaterial != (Object)null)
+			{
+				((Graphic)notificationText).material = textMaterial;
+			}
+			hudObjParent.SetActive(IsVrMode() && _isEnabled);
 		}
 	}
 
-	private void FixedUpdate()
+	private void EnsureInit()
 	{
-		if (!hasInit)
+		if ((Object)(object)mainCamera == (Object)null)
 		{
-			if ((Object)(object)GameObject.Find("Main Camera") != (Object)null)
+			GameObject found = GameObject.Find("Main Camera");
+			if ((Object)(object)found == (Object)null && (Object)(object)Camera.main != (Object)null)
 			{
-				Init();
-				hasInit = true;
+				found = ((Component)Camera.main).gameObject;
 			}
+			mainCamera = found;
 		}
-		else
+		if (!hasInit && (Object)(object)mainCamera != (Object)null)
 		{
-			if ((Object)(object)mainCamera == (Object)null)
+			Init();
+			hasInit = (Object)(object)hudObjParent != (Object)null;
+		}
+		if (hasInit && ((Object)(object)hudObjParent == (Object)null || (Object)(object)notificationText == (Object)null))
+		{
+			hasInit = false;
+		}
+	}
+
+	private void HandleModeSwitch()
+	{
+		bool desktop = IsDesktopMode();
+		if (_lastSeenDesktopMode.HasValue && _lastSeenDesktopMode.Value != desktop)
+		{
+			if (desktop)
 			{
-				return;
-			}
-			hudObjParent.transform.position = mainCamera.transform.position;
-			hudObjParent.transform.rotation = mainCamera.transform.rotation;
-			if (notificationText.text != "")
-			{
-				decayCounter++;
-				int num = ((lineDecayTimes.Count > 0) ? lineDecayTimes.Peek() : DecayTime);
-				if (decayCounter > num)
-				{
-					int removeCount = 1;
-					if (lineDecayTimes.Count > 1)
-					{
-						int[] arr = lineDecayTimes.ToArray();
-						for (int i = 1; i < arr.Length; i++) if (arr[i] == num) removeCount++; else break;
-					}
-					string[] array = (from l in notificationText.text.Split(Environment.NewLine.ToCharArray()).Skip(removeCount)
-						where l != ""
-						select l).ToArray();
-					notificationText.text = string.Join("\n", array) + ((array.Length != 0) ? "\n" : "");
-					for (int i = 0; i < removeCount && lineDecayTimes.Count > 0; i++) lineDecayTimes.Dequeue();
-					decayCounter = 0;
-				}
+				ClearVrLines();
 			}
 			else
 			{
-				decayCounter = 0;
-				lineDecayTimes.Clear();
+				_desktopNotis.Clear();
 			}
 		}
+		_lastSeenDesktopMode = desktop;
+	}
+
+	private void FollowCamera()
+	{
+		if ((Object)(object)mainCamera == (Object)null || (Object)(object)hudObjParent == (Object)null)
+		{
+			return;
+		}
+		if (!IsVrMode())
+		{
+			return;
+		}
+		hudObjParent.transform.position = mainCamera.transform.position;
+		hudObjParent.transform.rotation = mainCamera.transform.rotation;
+	}
+
+	private void RefreshVrFont()
+	{
+		if ((Object)(object)notificationText != (Object)null && (Object)(object)notificationText.font == (Object)null && (Object)(object)WristMenu.MenuFont != (Object)null)
+		{
+			notificationText.font = WristMenu.MenuFont;
+		}
+	}
+
+	private void UpdateVrVisibility()
+	{
+		if ((Object)(object)hudObjParent == (Object)null)
+		{
+			return;
+		}
+		bool visible = IsVrMode() && _isEnabled;
+		if (hudObjParent.activeSelf != visible)
+		{
+			hudObjParent.SetActive(visible);
+		}
+	}
+
+	private void TickVrExpiry()
+	{
+		if ((Object)(object)notificationText == (Object)null)
+		{
+			return;
+		}
+		if (_vrLines.Count == 0)
+		{
+			if (notificationText.text != "")
+			{
+				notificationText.text = "";
+			}
+			return;
+		}
+		bool removed = false;
+		for (int i = _vrLines.Count - 1; i >= 0; i--)
+		{
+			if (Time.time >= _vrLines[i].expireTime)
+			{
+				_vrLines.RemoveAt(i);
+				removed = true;
+			}
+		}
+		if (removed)
+		{
+			RebuildVrText();
+			return;
+		}
+		if (notificationText.text == "")
+		{
+			RebuildVrText();
+		}
+	}
+
+	private static void CleanExpiredVrLines()
+	{
+		for (int i = _vrLines.Count - 1; i >= 0; i--)
+		{
+			if (Time.time >= _vrLines[i].expireTime)
+			{
+				_vrLines.RemoveAt(i);
+			}
+		}
+	}
+
+	private static void RebuildVrText()
+	{
+		if ((Object)(object)notificationText == (Object)null)
+		{
+			return;
+		}
+		if (_vrLines.Count == 0)
+		{
+			notificationText.text = "";
+			return;
+		}
+		string[] parts = new string[_vrLines.Count];
+		for (int i = 0; i < _vrLines.Count; i++)
+		{
+			parts[i] = _vrLines[i].text;
+		}
+		notificationText.text = string.Join("\n", parts) + "\n";
+	}
+
+	private static void ClearVrLines()
+	{
+		_vrLines.Clear();
+		if ((Object)(object)notificationText != (Object)null)
+		{
+			notificationText.text = "";
+		}
+	}
+
+	private static void AddVrNoti(string richText, int decayMultiplier)
+	{
+		CleanExpiredVrLines();
+		for (int i = 0; i < _vrLines.Count; i++)
+		{
+			if (_vrLines[i].text == richText && Time.time < _vrLines[i].expireTime - 0.5f)
+			{
+				return;
+			}
+		}
+		while (_vrLines.Count >= MAX_VR_LINES)
+		{
+			_vrLines.RemoveAt(0);
+		}
+		float duration = (DecayTime * decayMultiplier) * 0.02f;
+		if (duration < 0.5f)
+		{
+			duration = 0.5f;
+		}
+		_vrLines.Add(new VrLine
+		{
+			text = richText,
+			expireTime = Time.time + duration
+		});
+		RebuildVrText();
+	}
+
+	private void LateUpdate()
+	{
+		EnsureInit();
+		HandleModeSwitch();
+		RefreshVrFont();
+		FollowCamera();
+		TickVrExpiry();
+		UpdateVrVisibility();
 	}
 
 	public static void SendNotification(string text, int decayMultiplier = 1)
@@ -224,7 +402,7 @@ public class NotifiLib : MonoBehaviour
 			return;
 		}
 		lastNotifyTime = Time.time + 0.2f;
-		if (!IsEnabled)
+		if (!_isEnabled)
 		{
 			return;
 		}
@@ -235,67 +413,70 @@ public class NotifiLib : MonoBehaviour
 		}
 		string plainText = Regex.Replace(text, "<[^>]*>", "").Trim();
 		if (plainText.Length > 120) plainText = plainText.Substring(0, 120);
-		string desktopRich = "<color=green>[Noti]</color> - " + plainText;
-		if (IsDesktopMode())
+		if (plainText.Length == 0)
 		{
-			AddDesktopNoti(desktopRich, decayMultiplier);
+			return;
 		}
-		bool wasSplit = false;
+		bool desktop = IsDesktopMode();
+		if (_lastSeenDesktopMode.HasValue && _lastSeenDesktopMode.Value != desktop)
+		{
+			if (desktop)
+			{
+				ClearVrLines();
+			}
+			else
+			{
+				_desktopNotis.Clear();
+			}
+		}
+		_lastSeenDesktopMode = desktop;
+		if (desktop)
+		{
+			string desktopRich = "<color=green>[Noti]</color> - " + plainText;
+			AddDesktopNoti(desktopRich, decayMultiplier);
+			return;
+		}
 		string vrPlain = plainText;
-		if (!IsDesktopMode() && vrPlain.Length > 50 && !vrPlain.Contains("\n"))
+		if (vrPlain.Length > 50 && !vrPlain.Contains("\n"))
 		{
 			int mid = vrPlain.Length / 2;
 			int split = vrPlain.LastIndexOf(' ', mid);
 			if (split < 18) split = vrPlain.IndexOf(' ', mid);
-			if (split > 18 && split < vrPlain.Length - 8) { vrPlain = vrPlain.Substring(0, split) + "\n" + vrPlain.Substring(split + 1); wasSplit = true; }
+			if (split > 18 && split < vrPlain.Length - 8) { vrPlain = vrPlain.Substring(0, split) + "\n" + vrPlain.Substring(split + 1); }
 		}
 		string vrRich = "<color=green>[Noti]</color> - " + vrPlain;
 		if ((Object)(object)notificationText == (Object)null)
 		{
+			CleanExpiredVrLines();
+			for (int i = 0; i < _vrLines.Count; i++)
+			{
+				if (_vrLines[i].text == vrRich && Time.time < _vrLines[i].expireTime - 0.5f)
+				{
+					return;
+				}
+			}
+			while (_vrLines.Count >= MAX_VR_LINES)
+			{
+				_vrLines.RemoveAt(0);
+			}
+			float pendingDuration = (DecayTime * decayMultiplier) * 0.02f;
+			if (pendingDuration < 0.5f)
+			{
+				pendingDuration = 0.5f;
+			}
+			_vrLines.Add(new VrLine
+			{
+				text = vrRich,
+				expireTime = Time.time + pendingDuration
+			});
 			return;
 		}
-		string vrText = vrRich;
-		if (!vrText.Contains(Environment.NewLine))
-		{
-			vrText += Environment.NewLine;
-		}
-		string[] array = notificationText.text.Split(Environment.NewLine.ToCharArray());
-		int num2 = 0;
-		for (int i = 0; i < array.Length; i++)
-		{
-			if (array[i] != "")
-			{
-				num2++;
-			}
-		}
-		int num3 = 4;
-		if (num2 >= num3)
-		{
-			int num4 = num2 - num3 + 1;
-			string[] value = array.Where((string l) => l != "").Skip(num4).ToArray();
-			notificationText.text = string.Join("\n", value) + "\n";
-			for (int num5 = 0; num5 < num4; num5++)
-			{
-				if (lineDecayTimes.Count <= 0)
-				{
-					break;
-				}
-				lineDecayTimes.Dequeue();
-			}
-		}
-		Text obj = notificationText;
-		obj.text += vrText;
-		int linesThisNoti = wasSplit ? 2 : 1;
-		for (int i = 0; i < linesThisNoti; i++) lineDecayTimes.Enqueue(DecayTime * decayMultiplier);
+		AddVrNoti(vrRich, decayMultiplier);
 	}
 
 	public static void ClearAllNotifications()
 	{
-		if ((Object)(object)notificationText != (Object)null)
-		{
-			notificationText.text = "";
-		}
-		lineDecayTimes.Clear();
+		ClearVrLines();
 		_desktopNotis.Clear();
 	}
 

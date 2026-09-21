@@ -81,15 +81,15 @@ public static class Buttons
 		new[] {
 			new ButtonInfo { buttonText = "Exit Menu Colors", method = () => MenuManager.ToggleCategory("Menu Colors"), isTogglable = false, type = ButtonType.Action, toolTip = "Returns to the settings page" },
 			new ButtonInfo { buttonText = "Gray", method = () => Mods.SetMenuColor(0), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to gray" },
-			new ButtonInfo { buttonText = "Blue", method = () => Mods.SetMenuColor(1), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to blue" },
+			new ButtonInfo { buttonText = "Brown", method = () => Mods.SetMenuColor(1), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to brown" },
 			new ButtonInfo { buttonText = "Red", method = () => Mods.SetMenuColor(2), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to red" },
 			new ButtonInfo { buttonText = "Orange", method = () => Mods.SetMenuColor(3), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to orange" },
-			new ButtonInfo { buttonText = "Green", method = () => Mods.SetMenuColor(4), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to green" },
-			new ButtonInfo { buttonText = "Cyan", method = () => Mods.SetMenuColor(5), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to cyan" },
+			new ButtonInfo { buttonText = "Yellow", method = () => Mods.SetMenuColor(4), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to yellow" },
+			new ButtonInfo { buttonText = "Pink", method = () => Mods.SetMenuColor(5), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to pink" },
 			new ButtonInfo { buttonText = "Purple", method = () => Mods.SetMenuColor(6), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to purple" },
-			new ButtonInfo { buttonText = "Magenta", method = () => Mods.SetMenuColor(7), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to magenta" },
-			new ButtonInfo { buttonText = "Pink", method = () => Mods.SetMenuColor(8), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to pink" },
-			new ButtonInfo { buttonText = "Brown", method = () => Mods.SetMenuColor(9), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to brown" }
+			new ButtonInfo { buttonText = "Blue", method = () => Mods.SetMenuColor(7), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to blue" },
+			new ButtonInfo { buttonText = "Cyan", method = () => Mods.SetMenuColor(8), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to cyan" },
+			new ButtonInfo { buttonText = "Green", method = () => Mods.SetMenuColor(9), isTogglable = false, type = ButtonType.Action, toolTip = "Set menu color to green" }
 		},
 
 		new[] {

@@ -3166,7 +3166,7 @@ private static VRRig ghostRig;
 	{
 		menuColorIndex = index;
 		ApplyMenuColor(index);
-		string[] colorNames = new string[] { "Gray", "Blue", "Red", "Orange", "Green", "Cyan", "Purple", "Magenta", "Pink", "Brown" };
+		string[] colorNames = new string[] { "Gray", "Brown", "Red", "Orange", "Yellow", "Pink", "Purple", "Blue", "Cyan", "Green" };
 		string name = (index >= 0 && index < colorNames.Length) ? colorNames[index] : "Custom";
 		NotifiLib.SendNotification("Menu Color: " + name, 2);
 		Save();
@@ -3293,18 +3293,22 @@ private static VRRig ghostRig;
 			trigger = GorillaComputer.instance.GetJoinTriggerForZone(ZoneManagement.instance.activeZones.First().GetName());
 		if (trigger == null && GorillaComputer.instance != null)
 		{
-			var dict = Traverse.Create(GorillaComputer.instance).Field("primaryTriggersByZone").GetValue<Dictionary<string, GorillaNetworkJoinTrigger>>();
-			if (dict != null)
+			try
 			{
-				foreach (var kv in dict)
+				var dict = Traverse.Create(GorillaComputer.instance).Field("primaryTriggersByZone").GetValue<Dictionary<string, GorillaNetworkJoinTrigger>>();
+				if (dict != null)
 				{
-					if (kv.Value != null)
+					foreach (var kv in dict)
 					{
-						trigger = kv.Value;
-						break;
+						if (kv.Value != null)
+						{
+							trigger = kv.Value;
+							break;
+						}
 					}
 				}
 			}
+			catch { }
 		}
 		if (trigger == null)
 		{
@@ -4270,29 +4274,29 @@ private static VRRig ghostRig;
 				else gunDir = (visualHand != null ? -visualHand.up : -arm.up);
 				Physics.Raycast(gunOrigin, gunDir, out raycastHit, 512f, GetNoInvisLayerMask());
 			}
-			if ((Object)(object)pointer == (Object)null)
-			{
-				pointer = GameObject.CreatePrimitive(pointershape);
-			}
-			pointer.transform.localScale = pointersize;
-			pointer.GetComponent<Renderer>().material.shader = ShaderCache.Uber;
-			pointer.transform.position = raycastHit.point;
-			pointer.GetComponent<Renderer>().material.color = color;
-			pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", color);
+		if ((Object)(object)pointer == (Object)null)
+		{
+			pointer = GameObject.CreatePrimitive(pointershape);
+		}
+		pointer.transform.localScale = pointersize;
+		pointer.GetComponent<Renderer>().material.shader = ShaderCache.Uber;
+		pointer.transform.position = raycastHit.point;
+		pointer.GetComponent<Renderer>().material.color = color;
+		pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", color);
 			if (liner)
 			{
 				if ((Object)(object)Line == (Object)null)
 				{
 					GameObject val3 = new GameObject("GunLine");
 					Line = val3.AddComponent<LineRenderer>();
-					Line.material.shader = ShaderCache.Uber;
-					Line.startWidth = linesize;
-					Line.endWidth = linesize;
-					Line.positionCount = 2;
-					Line.useWorldSpace = true;
-				}
-			Line.startColor = Color.white;
-			Line.endColor = Color.white;
+				Line.material.shader = ShaderCache.Uber;
+				Line.startWidth = linesize;
+				Line.endWidth = linesize;
+				Line.positionCount = 2;
+				Line.useWorldSpace = true;
+			}
+		Line.startColor = Color.white;
+		Line.endColor = Color.white;
 			Line.material.color = color;
 			Line.material.SetColor("_BaseColor", color);
 				Vector3 lineStart;
@@ -4303,15 +4307,16 @@ private static VRRig ghostRig;
 					lineStart = gh4 != null ? gh4.position : ghostRig.transform.position + Vector3.up * 0.2f;
 				}
 				else lineStart = (visualHand != null ? visualHand.position : arm.position);
-				Line.SetPosition(0, lineStart);
-				Line.SetPosition(1, pointer.transform.position);
-				float pulse = triggerHeld ? (1f + Mathf.Sin(Time.time * 12f) * 0.4f) : 1f;
-				Line.startWidth = linesize * pulse;
-				Line.endWidth = linesize * pulse;
-			}
-			Object.Destroy((Object)(object)pointer.GetComponent<BoxCollider>());
-			Object.Destroy((Object)(object)pointer.GetComponent<Rigidbody>());
-			Object.Destroy((Object)(object)pointer.GetComponent<Collider>());
+			Line.SetPosition(0, lineStart);
+			Line.SetPosition(1, pointer.transform.position);
+			float pulse = triggerHeld ? (1f + Mathf.Sin(Time.time * 12f) * 0.4f) : 1f;
+			Line.startWidth = linesize * pulse;
+			Line.endWidth = linesize * pulse;
+			Line.positionCount = 2;
+		}
+		Object.Destroy((Object)(object)pointer.GetComponent<BoxCollider>());
+		Object.Destroy((Object)(object)pointer.GetComponent<Rigidbody>());
+		Object.Destroy((Object)(object)pointer.GetComponent<Collider>());
 			if (triggerHeld && !gunTriggerWasDown)
 			{
 				try
@@ -4332,11 +4337,11 @@ private static VRRig ghostRig;
 				{
 				}
 			}
-			if (triggerHeld)
-			{
-				pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorDisable;
-			pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", WristMenu.ButtonColorDisable);
-			}
+		if (triggerHeld)
+		{
+			pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorDisable;
+		pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", WristMenu.ButtonColorDisable);
+		}
 			gunTriggerWasDown = triggerHeld;
 		}
 		else
@@ -4867,12 +4872,12 @@ private static VRRig ghostRig;
 			result.NextPrevButtonColor = new Color(0.18f, 0.18f, 0.22f);
 			break;
 		case 1:
-			result.NormalColor = new Color(0.05f, 0.12f, 0.15f);
-			result.ButtonColorEnabled = new Color(0.133f, 0.267f, 0.333f);
-			result.ButtonColorDisable = new Color(0.07f, 0.17f, 0.21f);
-			result.EnableTextColor = new Color(0.55f, 0.7f, 0.85f);
-			result.DisableTextColor = new Color(0.33f, 0.47f, 0.6f);
-			result.NextPrevButtonColor = new Color(0.06f, 0.13f, 0.17f);
+			result.NormalColor = new Color(0.15f, 0.1f, 0.04f);
+			result.ButtonColorEnabled = new Color(0.7f, 0.45f, 0.2f);
+			result.ButtonColorDisable = new Color(0.35f, 0.22f, 0.1f);
+			result.EnableTextColor = new Color(0.9f, 0.75f, 0.5f);
+			result.DisableTextColor = new Color(0.65f, 0.55f, 0.35f);
+			result.NextPrevButtonColor = new Color(0.22f, 0.14f, 0.06f);
 			break;
 		case 2:
 			result.NormalColor = new Color(0.18f, 0.04f, 0.04f);
@@ -4891,20 +4896,20 @@ private static VRRig ghostRig;
 			result.NextPrevButtonColor = new Color(0.3f, 0.15f, 0.06f);
 			break;
 		case 4:
-			result.NormalColor = new Color(0.1f, 0.15f, 0.1f);
-			result.ButtonColorEnabled = new Color(0.4f, 0.6f, 0.4f);
-			result.ButtonColorDisable = new Color(0.22f, 0.33f, 0.22f);
-			result.EnableTextColor = new Color(0.6f, 0.9f, 0.6f);
-			result.DisableTextColor = new Color(0.35f, 0.55f, 0.35f);
-			result.NextPrevButtonColor = new Color(0.12f, 0.18f, 0.12f);
+			result.NormalColor = new Color(0.18f, 0.15f, 0.04f);
+			result.ButtonColorEnabled = new Color(0.9f, 0.8f, 0.15f);
+			result.ButtonColorDisable = new Color(0.5f, 0.42f, 0.08f);
+			result.EnableTextColor = new Color(1f, 0.95f, 0.6f);
+			result.DisableTextColor = new Color(0.75f, 0.68f, 0.35f);
+			result.NextPrevButtonColor = new Color(0.3f, 0.26f, 0.06f);
 			break;
 		case 5:
-			result.NormalColor = new Color(0.04f, 0.14f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.15f, 0.75f, 0.9f);
-			result.ButtonColorDisable = new Color(0.08f, 0.38f, 0.5f);
-			result.EnableTextColor = new Color(0.5f, 0.9f, 1f);
-			result.DisableTextColor = new Color(0.3f, 0.65f, 0.75f);
-			result.NextPrevButtonColor = new Color(0.06f, 0.22f, 0.3f);
+			result.NormalColor = new Color(0.24f, 0.12f, 0.18f);
+			result.ButtonColorEnabled = new Color(0.7f, 0.24f, 0.48f);
+			result.ButtonColorDisable = new Color(0.42f, 0.18f, 0.29f);
+			result.EnableTextColor = new Color(1f, 0.85f, 0.93f);
+			result.DisableTextColor = new Color(0.72f, 0.45f, 0.58f);
+			result.NextPrevButtonColor = new Color(0.3f, 0.13f, 0.2f);
 			break;
 		case 6:
 			result.NormalColor = new Color(0.14f, 0.04f, 0.2f);
@@ -4915,28 +4920,28 @@ private static VRRig ghostRig;
 			result.NextPrevButtonColor = new Color(0.2f, 0.08f, 0.32f);
 			break;
 		case 7:
-			result.NormalColor = new Color(0.18f, 0.04f, 0.16f);
-			result.ButtonColorEnabled = new Color(0.85f, 0.25f, 0.7f);
-			result.ButtonColorDisable = new Color(0.45f, 0.1f, 0.35f);
-			result.EnableTextColor = new Color(1f, 0.5f, 0.85f);
-			result.DisableTextColor = new Color(0.7f, 0.3f, 0.55f);
-			result.NextPrevButtonColor = new Color(0.28f, 0.06f, 0.22f);
+			result.NormalColor = new Color(0.05f, 0.12f, 0.15f);
+			result.ButtonColorEnabled = new Color(0.133f, 0.267f, 0.333f);
+			result.ButtonColorDisable = new Color(0.07f, 0.17f, 0.21f);
+			result.EnableTextColor = new Color(0.55f, 0.7f, 0.85f);
+			result.DisableTextColor = new Color(0.33f, 0.47f, 0.6f);
+			result.NextPrevButtonColor = new Color(0.06f, 0.13f, 0.17f);
 			break;
 		case 8:
-			result.NormalColor = new Color(0.24f, 0.12f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.7f, 0.24f, 0.48f);
-			result.ButtonColorDisable = new Color(0.42f, 0.18f, 0.29f);
-			result.EnableTextColor = new Color(1f, 0.85f, 0.93f);
-			result.DisableTextColor = new Color(0.72f, 0.45f, 0.58f);
-			result.NextPrevButtonColor = new Color(0.3f, 0.13f, 0.2f);
+			result.NormalColor = new Color(0.04f, 0.14f, 0.18f);
+			result.ButtonColorEnabled = new Color(0.15f, 0.75f, 0.9f);
+			result.ButtonColorDisable = new Color(0.08f, 0.38f, 0.5f);
+			result.EnableTextColor = new Color(0.5f, 0.9f, 1f);
+			result.DisableTextColor = new Color(0.3f, 0.65f, 0.75f);
+			result.NextPrevButtonColor = new Color(0.06f, 0.22f, 0.3f);
 			break;
 		case 9:
-			result.NormalColor = new Color(0.15f, 0.1f, 0.04f);
-			result.ButtonColorEnabled = new Color(0.7f, 0.45f, 0.2f);
-			result.ButtonColorDisable = new Color(0.35f, 0.22f, 0.1f);
-			result.EnableTextColor = new Color(0.9f, 0.75f, 0.5f);
-			result.DisableTextColor = new Color(0.65f, 0.55f, 0.35f);
-			result.NextPrevButtonColor = new Color(0.22f, 0.14f, 0.06f);
+			result.NormalColor = new Color(0.1f, 0.15f, 0.1f);
+			result.ButtonColorEnabled = new Color(0.4f, 0.6f, 0.4f);
+			result.ButtonColorDisable = new Color(0.22f, 0.33f, 0.22f);
+			result.EnableTextColor = new Color(0.6f, 0.9f, 0.6f);
+			result.DisableTextColor = new Color(0.35f, 0.55f, 0.35f);
+			result.NextPrevButtonColor = new Color(0.12f, 0.18f, 0.12f);
 			break;
 		default:
 			result = GetMenuColors(0);
@@ -5247,11 +5252,12 @@ private static VRRig ghostRig;
 					{
 						SoundboardStop();
 						SoundboardPlay(text2);
+						NotifiLib.SendNotification(fileName);
 					},
 					disableMethod = SoundboardStop,
 					enabled = false,
 					requiresLobby = true,
-					toolTip = fileName
+					toolTip = ""
 				});
 			}
 		}

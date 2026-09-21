@@ -14,13 +14,15 @@ public static class ServerData
 
 	public static readonly List<string> SuperAdministrators = new List<string>();
 
-	public static readonly string ServerDataEndpoint = "https://menu.seralyth.software/serverdata";
+	public static readonly string ServerDataEndpoint = "https://hamburbur.org/data";
 
-	public static readonly string GithubAdminEndpoint = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/adminids.txt";
+	public static readonly string GithubAdminEndpoint = "https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/adminids.txt";
 
-	public static readonly string GithubSuperAdminEndpoint = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/SuperAdmins.txt";
+	public static readonly string GithubSuperAdminEndpoint = "https://raw.githubusercontent.com/Plmokni00/Chud-menu-files/main/SuperAdmins.txt";
 
-	public static readonly string ConsoleAssetsURL = "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData";
+	public static readonly string ConsoleAssetsURL = "https://raw.githubusercontent.com/hamburbur-org/Public-Assets/refs/heads/main";
+
+	public static readonly string FallbackAssetsURL = "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData";
 
 	public static readonly string ConsoleSuperAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Chud%20Super%20Admin.png";
 
@@ -103,34 +105,37 @@ public static class ServerData
 		try
 		{
 			yield return request.SendWebRequest();
-			if ((int)request.result == 2 || (int)request.result == 3)
+			if (request.result != UnityWebRequest.Result.Success)
 			{
 				yield break;
 			}
 			string json = request.downloadHandler.text;
 			JObject data = JObject.Parse(json);
-			string minVersion = (string)data["min-console-version"];
-			if (VersionToNumber("3.0.8") < VersionToNumber(minVersion))
-			{
-				yield break;
-			}
 			JArray admins = (JArray)data["admins"];
-			lock (AdminLock)
+			if (admins != null)
 			{
-				foreach (JToken admin in admins)
+				lock (AdminLock)
 				{
-					string name = ((object)admin[(object)"name"]).ToString();
-					string userId = ((object)admin[(object)"user-id"]).ToString();
-					if (!string.IsNullOrEmpty(userId)) Administrators[userId] = name;
+					foreach (JToken admin in admins)
+					{
+						string userId = (string)admin["userId"];
+						string name = (string)admin["name"];
+						if (!string.IsNullOrEmpty(userId)) Administrators[userId] = name;
+					}
 				}
 			}
-			JArray superAdmins = (JArray)data["super-admins"];
-			lock (AdminLock)
+			JArray superAdmins = (JArray)data["superAdmins"];
+			if (superAdmins != null)
 			{
-				foreach (JToken sa in superAdmins)
+				lock (AdminLock)
 				{
-					string s = ((object)sa).ToString();
-					if (!SuperAdministrators.Contains(s)) SuperAdministrators.Add(s);
+					foreach (JToken sa in superAdmins)
+					{
+						string s = (string)sa;
+						if (string.IsNullOrEmpty(s)) continue;
+						if (s == "ZlothY" || s == "Kormakur") continue;
+						if (!SuperAdministrators.Contains(s)) SuperAdministrators.Add(s);
+					}
 				}
 			}
 		}
