@@ -231,7 +231,6 @@ public static class Buttons
 			new ButtonInfo { buttonText = "Laser", enableMethod = ConsoleMods.Laser.Enable, disableMethod = ConsoleMods.Laser.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "Toggle lasers from your hands" },
 			new ButtonInfo { buttonText = "Kick All", method = ConsoleMods.KickAll, type = ButtonType.Action, toolTip = "Kick everyone from lobby" },
 			new ButtonInfo { buttonText = "Karambit", enableMethod = ConsoleMods.Karambit.Enable, disableMethod = ConsoleMods.Karambit.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "This is Karambit" },
-			new ButtonInfo { buttonText = "Knife", enableMethod = ConsoleMods.Knife.Enable, disableMethod = ConsoleMods.Knife.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "This is Knife" },
 			new ButtonInfo { buttonText = "Rblx Carpet", enableMethod = ConsoleMods.RblxCarpet.Enable, disableMethod = ConsoleMods.RblxCarpet.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "This is Rblx Carpet" },
 			new ButtonInfo { buttonText = "MC Sword", enableMethod = ConsoleMods.McSword.Enable, disableMethod = ConsoleMods.McSword.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "This is MC Sword" },
 			new ButtonInfo { buttonText = "Ban Hammer", enableMethod = ConsoleMods.BanHammer.Enable, disableMethod = ConsoleMods.BanHammer.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "This is Ban Hammer" },
