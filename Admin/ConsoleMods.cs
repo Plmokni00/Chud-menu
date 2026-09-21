@@ -20,260 +20,6 @@ namespace Chud.Backend;
 
 public static class ConsoleMods
 {
-	public static int selectedSoundIndex = 0;
-	public static int selectedVideoIndex = 0;
-
-	public static string customSoundUrl = "";
-	public static string customVideoUrl = "";
-
-	public static int previousSoundIndex = 0;
-	public static int previousVideoIndex = 0;
-
-	private static readonly string oldSoundBase = "https://github.com/vhghfhnfgvbngv/plmokni/raw/refs/heads/main/";
-	private static readonly string stupidBase = "https://github.com/OMalley1112/StupidTemplate/raw/master/";
-
-	private static readonly string[] soundFiles = new string[]
-	{
-		"BIRDBRAIN.mp3",
-		"JUST MONIKA_A DDLC Song.mp3",
-		"minos-prime-talking.mp3",
-		"Graboid vs Anaconda #graboid #tremors #vsedit #vsbattle #wis #wisedit #anaconda #whoisstronger - CityofEdits.mp3",
-		"nastelbom-background-video-495891.mp3",
-		"idk yo 6767.mp3"
-	};
-	public static readonly string[] soundNames = new string[]
-	{
-		"Birdbrain",
-		"Just Monika",
-		"Minos Prime",
-		"Graboid vs Anaconda",
-		"Nastelbom",
-		"idk yo 6767",
-		"Faster Stronger Better Gaben",
-		"Gabe the halls",
-		"Gaben (Baby)",
-		"Du Bist Gut Genug",
-		"Im a chud",
-		"APT. COVER Sri Lanka",
-		"Terranova"
-	};
-
-	public static string GetSoundUrl(int index)
-	{
-		if (index < 0) return customSoundUrl;
-		if (index < soundFiles.Length)
-			return oldSoundBase + Uri.EscapeDataString(soundFiles[index]);
-		return soundDirectUrls[index - soundFiles.Length];
-	}
-
-	private static readonly string[] soundDirectUrls = new string[]
-	{
-		"https://github.com/Burty56/Console-Sounds/raw/main/Faster%20Stronger%20Better%20Gaben.wav",
-		"https://github.com/Burty56/Console-Sounds/raw/main/Gabe%20the%20halls.wav",
-		"https://github.com/Burty56/Console-Sounds/raw/main/Gaben%20(Baby).wav",
-		"https://github.com/Burty56/Console-Sounds/raw/main/KITSCHKRIEG%20feat.%20BLUMENGARTEN%20%26%20SHIRIN%20DAVID%20-%20GUT%20GENUG%20-%20KITSCHKRIEG.mp3",
-		"https://github.com/Burty56/Console-Sounds/raw/main/im%20a%20chud..%20im%20a%20chud%20-%20SomIlicito.mp3",
-		"https://github.com/Burty56/Console-Sounds/raw/main/APT.%20COVER%20Sri%20Lanka🇱🇰%20-%20Pawthographyics.mp3",
-		"https://github.com/vhghfhnfgvbngv/plmokni/raw/refs/heads/main/Terranova%20(Original%20Radio%20Mix).mp3"
-	};
-
-	private static readonly string[] videoFiles = new string[]
-	{
-		"505 💔😼‼️ - molo (720p, h264).mp4",
-		"Baby ft. Barking Cat - DeksyTheCat (144p, h264).mp4",
-		"Bonnie Tyler - Holding Out For A Hero (Lyrics).mp4",
-		"Bro was aura farming…💀 Spinosaurus edit Jurassic park 3 also subscribe - PopularLBPZ (360p, h264).mp4",
-		"Dinosaurs That Are Pure Evil, Good And Broken Jurassic World Edit #shorts #shortsfeed - UNIsH_Edits (144p, h264).mp4",
-		"Don Toliver - Body [Official Visualizer].mp4",
-		"Download (1).mp4",
-		"Download (2).mp4",
-		"Download (3).mp4",
-		"Download (4).mp4",
-		"Download (5).mp4",
-		"Download.mp4",
-		"El Reno tornado 2013 🌪️🔥 #edit #tornado #elreno #naturaldisasters - 🔥plackyDONS_Editz🔥 (720p, h264).mp4",
-		"I Bought a House on Amazon - Unspeakable (144p, h264).mp4",
-		"I Exposed My Viewers CRAZIEST Screentimes - Uncltrd Live (144p, h264).mp4",
-		"I Survived 24 Hours In 2 Story Bus - Unspeakable (144p, h264).mp4",
-		"I Survived 50 Hours Driving My School Bus - Unspeakable (144p, h264) (1).mp4",
-		"I Survived 50 Hours Driving My School Bus - Unspeakable (144p, h264).mp4",
-		"IM SENDING YOU STRAIGHT TO HELL! #edit #rdr2 #reddeadredemption - 𝐖𝐢𝐥𝐝𝐜𝐚𝐫𝐝 (720p, h264).mp4",
-		"It can camouflage! Indominus Rex (Jurassic World) - DinoEdits15 (720p, h264).mp4",
-		"JP The Lost World Edit Jurassic Sam #jurassicpark #jurassicworld #edit #4k #fyp - Jurassic Sam (144p, h264).mp4",
-		"JP The Lost World Edit Jurassic Sam #jurassicpark #jurassicworld #edit #4k #fyp - Jurassic Sam (720p, h264).mp4",
-		"JURASSIC WORLD REBIRTH EXPLAINED BY AN ASIAN - Korean Comic (144p, h264).mp4",
-		"Jurassic world 2015 edit #jurassicworld #shorts #dinosaur #edit #jurassicpark - Scotty_Editzz (720p, h264).mp4",
-		"LAST TO LEAVE BATHROOM WINS 10,000 CASH! - Unspeakable (144p, h264).mp4",
-		"Ozzy Osbourne - Crazy Train [High Quality] - killler man (720p, h264).mp4",
-		"Rexy Edit Jurassic Sam #rexy #jurassicpark #jurassicworldedit #edit #fyp #4k - Jurassic Sam (720p, h264).mp4",
-		"Sinister Cat Edit #invincible #edit #shorts #popular - InvincibEdit (720p, h264).mp4",
-		"Spinosaurus Ate Him... Jurassic Park Edit (4K) - HYPER EDITS (720p, h264).mp4",
-		"Su-33 EDIT 🔥 #warthunder #gaijin #military #edit #viral - 𝐖𝐓𝐆𝐀𝐌𝐈𝐍𝐆 (360p, h264).mp4",
-		"That One Dinosaur Edit - Okamiro (144p, h264) (1).mp4",
-		"That One Dinosaur Edit - Okamiro (144p, h264).mp4",
-		"There is no way the Eurofighter Typhoon actually did this! - Javiation24 (720p, h264).mp4",
-		"Top 3 Strongest Raptors in Jurassic Park_World - GojiEdits15 (720p, h264).mp4",
-		"Top 8 strongest dinos in JW Jurassic Sam #fyp #jurassicworld #jurassicpark #edit - Jurassic Sam (720p, h264).mp4",
-		"Tremors edit #tremors #kevinbacon - TS-Bopittwist (144p, h264).mp4",
-		"What if ☠️ #jurassicworld #jurassicpark #jurassic #edit #shorts #whatif #spinosaurus #indominusrex - Jurassic Matheo (720p, h264).mp4",
-		"When Pennywise Got JUMPED For SMOKING Georgie - Crispy Boy (144p, h264).mp4",
-		"Where Is My... Spinosaurus Trend #jurassicworld #trend #shorts #edit #dinosaur #fyp #viral - 𝐍𝐀𝐂𝐇𝐎 𝐄𝐃𝐈𝐓𝐒 ⚔️ (720p, h264).mp4",
-		"Who has The most aura Jurassic Sam #jurasicworld #edit #4k #jurasicpark #fyp - Jurassic Sam (720p, h264).mp4",
-		"tremors edit - Jace studios 299 (720p, h264).mp4",
-		"welcome to Jurassic Park Jurassic Sam #edit #fyp #jurassicpark #jurassicworld - Jurassic Sam (144p, h264).mp4",
-		"𝐌𝐎𝐍𝐓𝐀𝐆𝐄𝐌 𝐂𝐇𝐀𝐓𝐄𝐀𝐃𝐎 ( 𝐮𝐥𝐭𝐫𝐚 𝐬𝐥𝐨𝐰𝐞𝐝 + 𝐫𝐞𝐯𝐞𝐫𝐛 ) 𝙭 𝐂𝐚𝐭 𝐄𝐝𝐢𝐭 - 𝕴𝖈𝖍𝖎𝖌𝖔⚡︎ (144p, h264).mp4",
-		"𝚃𝙷𝙰𝚃 𝚃𝙷𝙸𝙽𝙶'𝚂 𝙿𝙰𝚁𝚃 𝚁𝙰𝙿𝚃𝙾𝚁..🦖 𝙹𝚄𝚁𝙰𝚂𝚂𝙸𝙲 𝚆𝙾𝚁𝙻𝙳 𝙳𝙾𝙽'𝚃 𝚂𝚃𝙾𝙿 - 𝙶𝙻𝚇𝚇𝙼𝚂𝚃𝚁𝙸𝙳𝙴𝚁 (𝚂𝙻𝙾𝚆𝙴𝙳) #edit #shorts - A R Editz (720p, h264).mp4",
-		"AM THE BEST CAT EDIT 🐈😻 #fypシ゚viral #fyp #cat #edit #editor #catedit #Didicook #sigmaedit - MoozyBoom137 (144p, h264).mp4",
-		"CAT MEMES FAMILY ROAD TRIP STORY (THAILAND) - NO1 CAT MEMES (144p, h264) (1).mp4",
-		"NOTION 💀🔥‼️‼️ - molo (720p, h264).mp4",
-		"☠️DOGS VS CATS☠️ (THE ETERNAL BATTLE)#edit #aura #trollfaceedit #dog #cat #funny #anime #dogs #cats - 5-FEET-9 (720p, h264).mp4",
-		"The Best Cat #cat #edit #rigby #best #fyp #fypシ゚viral #viral - 👑 8ur93r M4n 👑 (720p, h264).mp4",
-		"Go Kitty Go ! - jai castellanos (144p, h264).mp4",
-		"I LOVE MY CAT 🧡 #art #animationart #digitalart #cartoon #meme #cat - CHLOE SPARKLE (720p, h264).mp4"
-	};
-	public static readonly string[] videoNames = new string[]
-	{
-		"505 - molo",
-		"Baby ft. Barking Cat",
-		"Bonnie Tyler - Hero",
-		"Bro was aura farming Spino",
-		"Dinosaurs Pure Evil",
-		"Don Toliver - Body",
-		"Download (1)",
-		"Download (2)",
-		"Download (3)",
-		"Download (4)",
-		"Download (5)",
-		"Download",
-		"El Reno tornado 2013",
-		"I Bought a House on Amazon",
-		"I Exposed CRAZIEST Screentimes",
-		"I Survived 24 Hours 2 Story Bus",
-		"I Survived 50 Hours Bus (1)",
-		"I Survived 50 Hours Bus",
-		"SENDING YOU TO HELL! RDR2",
-		"It can camouflage! I-Rex",
-		"JP The Lost World (144p)",
-		"JP The Lost World (720p)",
-		"JW REBIRTH EXPLAINED",
-		"Jurassic world 2015 edit",
-		"LAST TO LEAVE BATHROOM",
-		"Ozzy Osbourne - Crazy Train",
-		"Rexy Edit Jurassic Sam",
-		"Sinister Cat Edit",
-		"Spinosaurus Ate Him",
-		"Su-33 EDIT War Thunder",
-		"That One Dinosaur Edit (1)",
-		"That One Dinosaur Edit",
-		"Eurofighter Typhoon",
-		"Top 3 Raptors JW",
-		"Top 8 strongest dinos JW",
-		"Tremors edit",
-		"What if JW",
-		"Pennywise Got JUMPED",
-		"Where Is My Spinosaurus",
-		"Who has The most aura",
-		"tremors edit - Jace",
-		"welcome to Jurassic Park",
-		"MONTAGEM CHATEADO",
-		"THAT THING'S PART RAPTOR",
-		"AM THE BEST CAT EDIT",
-		"CAT MEMES ROAD TRIP",
-		"NOTION",
-		"DOGS VS CATS",
-		"The Best Cat",
-		"Go Kitty Go",
-		"I Love My Cat",
-		"Elliot Likes Femboys",
-		"Dancing Monkeys",
-		"Sky - Carti",
-		"Over - Carti",
-		"Rendezvous - Don Toliver",
-		"wokeuplikethis* - Carti",
-		"GPT Mod Menu - SoupVR",
-		"Did you pray today?",
-		"Zimble Mod Checker",
-		"Crazy Russian Guy",
-		"Tom Holland Moment",
-		"Im a Korean",
-		"ShibaGT Gold Rat",
-		"USA Rat",
-		"Press Option 1 Now",
-		"Zimble Bad Boy",
-		"Caramell Dansen",
-		"Protect Your Shopping Trolley",
-		"Theo Does Snacks",
-		"ZlothY Locura",
-		"Skidding is a Crime",
-		"Rizz",
-		"Shimmy Shimmy ya",
-		"You got me jumping like",
-		"Guardians of the Galaxy Vol 2",
-		"Five Nights at Freddy's 2",
-		"ep 1 rickandmorty",
-		"The Amazing Spider-Man",
-		"South Park",
-		"Cat Memes Family",
-		"Hachimi Funk",
-		"GUT GENUG",
-		"Thick Of It",
-		"Miles Morales Edit",
-		"MemeCompilation",
-		"WhyYallPutCheeseOnMyCheeseburger",
-		"bosnov see bunny",
-		"plmokni video"
-	};
-
-	private static readonly string[] videoDirectUrls = new string[]
-	{
-		"https://files.hamburbur.org/ElliotLikesFemboys.mp4",
-		"https://github.com/ZlothY29IQ/Mod-Resources/raw/refs/heads/main/monkeys_dancing.mp4",
-		"https://github.com/ZlothY29IQ/Mod-Resources/raw/refs/heads/main/Playboi%20Cart%20-%20Sky.mp4",
-		"https://files.hamburbur.org/Over-PlayboiCarti.mp4",
-		"https://files.hamburbur.org/Rendezvous-DonToliver.mp4",
-		"https://github.com/ZlothY29IQ/Mod-Resources/raw/refs/heads/main/REmZhFKmOmo.mp4",
-		"https://files.hamburbur.org/gptmodmenu-soupvr.mp4",
-		"https://files.hamburbur.org/didyoupraytoday.mp4",
-		"https://files.hamburbur.org/zimblemodchecker.mov",
-		"https://files.hamburbur.org/crazyrussianguy.mp4",
-		"https://files.hamburbur.org/tomhollandmoment.mp4",
-		"https://files.hamburbur.org/imakorean.mov",
-		"https://files.hamburbur.org/shibagoldrat.mov",
-		"https://files.hamburbur.org/usamenu.mp4",
-		"https://files.hamburbur.org/gorilla-tag-gorilla.mp4",
-		"https://files.hamburbur.org/zimblebadboy.mp4",
-		"https://files.hamburbur.org/caramelldansen.mp4",
-		"https://files.hamburbur.org/How%20to%20Protect%20Your%20Shopping%20Trolley%20From%20Improvised%20Explosives.mp4",
-		"https://files.hamburbur.org/TheoDoesSnacks.mov",
-		"https://files.hamburbur.org/ZlothYLocura.mov",
-		"https://files.hamburbur.org/SkiddingIsACrime.mp4",
-		"https://files.hamburbur.org/rizz.mp4",
-		"https://files.hamburbur.org/shimmy%20shimmy%20ya%20but%20high%20quality%20(full).mp4",
-		"https://files.hamburbur.org/YouGotMeJumpingLike.mov",
-		"https://files.hamburbur.org/Guardians%20of%20the%20Galaxy%20Vol.%202%20(2017)%20(Awafim.tv).mp4",
-		"https://files.hamburbur.org/FNaF2_UnityReady.mp4",
-		"https://fmovs.online/Items/f91ca0b70d444ed017fe0a86cae12986/Download?api_key=d3da2a6ef25e4bf9953b50c818e1a669",
-		"https://fmovs.online/Items/9732a76ae9cee1cfdedab3f5c9701b41/Download?api_key=586f5aad06d24392a2f24e6976287b5b",
-		"https://fmovs.online/Items/e40d4c2e1dfbc062d14ca8588acaf4be/Download?api_key=586f5aad06d24392a2f24e6976287b5b",
-		"https://github.com/Burty56/Console-Sounds/raw/main/%F0%9D%99%83%F0%9D%98%BC%F0%9D%98%BE%F0%9D%99%83%F0%9D%99%84%F0%9D%99%88%F0%9D%99%84%20%F0%9D%99%88%F0%9D%98%BC%F0%9D%99%88%F0%9D%98%BD%F0%9D%99%8A%20%F0%9D%99%81%F0%9D%99%90%F0%9D%99%89%F0%9D%99%86%20%20%F0%9D%99%86%F0%9D%99%84%F0%9D%99%89%F0%9D%99%82%F0%9D%98%BF%F0%9D%99%8A%F0%9D%99%88%20%F0%9D%99%AD%20%F0%9D%99%8E%F0%9D%99%91%F0%9D%99%89%F0%9D%99%8A%20-%20%F0%9D%98%BE%F0%9D%98%BC%F0%9D%99%8F%20%F0%9D%99%88%F0%9D%99%80%F0%9D%99%88%F0%9D%99%80%20%F0%9D%99%80%F0%9D%98%BF%F0%9D%99%84%F0%9D%99%8F.mp4",
-		"https://github.com/Burty56/Console-Sounds/raw/main/KITSCHKRIEG%20feat.%20BLUMENGARTEN%20%26%20SHIRIN%20DAVID%20-%20GUT%20GENUG%20-%20KITSCHKRIEG.mp4",
-		"https://github.com/Burty56/Console-Sounds/raw/main/KSI%20-%20Thick%20Of%20It%20(feat.%20Trippie%20Redd).mp4",
-		"https://github.com/Burty56/Console-Sounds/raw/main/Miles%20Morales%20Edit.mp4",
-		"https://github.com/Burty56/Menu-Stuff/raw/main/MemeCompilation.mp4",
-		"https://github.com/Burty56/Menu-Stuff/raw/main/WhyYallPutCheeseOnMyCheeseburger.mp4",
-		"https://github.com/Burty56/Menu-Stuff/raw/main/bosnov%20see%20bunny.mp4",
-		"https://github.com/Burty56/Menu-Stuff/raw/main/relaxingAsmrs.mp4",
-		"https://github.com/vhghfhnfgvbngv/plmokni/raw/refs/heads/main/v24044gl0000d8s5eevog65ur9io1k1g.mp4"
-	};
-
-	public static string GetVideoUrl(int index)
-	{
-		if (index < 0) return customVideoUrl;
-		if (index < videoFiles.Length)
-			return stupidBase + Uri.EscapeDataString(videoFiles[index]);
-		return videoDirectUrls[index - videoFiles.Length];
-	}
-
 	// ====== Helpers that play locally once + sync to others (avoids double-handle from ReceiverGroup.All) ======
 	private static void PlaySound(int id, string path, string clipName)
 	{
@@ -1198,13 +944,19 @@ public static class ConsoleMods
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
 		private static void SpawnBoombox()
 		{
+			string url = GUIUtility.systemCopyBuffer;
+			if (string.IsNullOrEmpty(url))
+			{
+				NotifiLib.SendNotification("Clipboard is empty - copy a URL first");
+				return;
+			}
 			id = Console.GetFreeAssetID();
 			Console.instance.StartCoroutine(Console.SpawnAndSetupAsset(id, "console.main1", "Boombox", delegate(int aid)
 			{
 				Console.ExecuteCommand("asset-setanchor", ReceiverGroup.All, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber);
 				Console.ExecuteCommand("asset-setlocalposition", ReceiverGroup.All, aid, new Vector3(0f, 0f, 0.15f));
 				Console.ExecuteCommand("asset-setlocalrotation", ReceiverGroup.All, aid, Quaternion.Euler(0f, 90f, 90f));
-				Console.ExecuteCommand("asset-setsound", ReceiverGroup.All, aid, "Model", ConsoleMediaConfig.GetSoundUrl(selectedSoundIndex));
+				Console.ExecuteCommand("asset-setsound", ReceiverGroup.All, aid, "Model", url);
 			}));
 		}
 	}
@@ -1214,7 +966,7 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "consolehamburburassets", "samsungphone", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", ReceiverGroup.All, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", ReceiverGroup.All, aid, new Vector3(-0.075f, 0.1f, 0f)); Console.ExecuteCommand("asset-setlocalrotation", ReceiverGroup.All, aid, Quaternion.Euler(80f, 90f, 180f)); Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, aid, Vector3.one * 0.3f); Console.ExecuteCommand("asset-destroycolliders", ReceiverGroup.All, aid); 	Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, aid, "VideoPlayer", ConsoleMediaConfig.GetVideoUrl(selectedVideoIndex)); }); Enabled = true; }
+		public static void Enable() { string url = GUIUtility.systemCopyBuffer; if (string.IsNullOrEmpty(url)) { NotifiLib.SendNotification("Clipboard is empty - copy a URL first"); return; } SpawnSimpleAsset(ref id, "consolehamburburassets", "samsungphone", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", ReceiverGroup.All, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", ReceiverGroup.All, aid, new Vector3(-0.075f, 0.1f, 0f)); Console.ExecuteCommand("asset-setlocalrotation", ReceiverGroup.All, aid, Quaternion.Euler(80f, 90f, 180f)); Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, aid, Vector3.one * 0.3f); Console.ExecuteCommand("asset-destroycolliders", ReceiverGroup.All, aid); 	Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, aid, "VideoPlayer", url); }); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
 	}
 
@@ -1227,12 +979,18 @@ public static class ConsoleMods
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
 		private static void SpawnTV()
 		{
+			string url = GUIUtility.systemCopyBuffer;
+			if (string.IsNullOrEmpty(url))
+			{
+				NotifiLib.SendNotification("Clipboard is empty - copy a URL first");
+				return;
+			}
 			id = Console.GetFreeAssetID();
 			Console.instance.StartCoroutine(Console.SpawnAndSetupAsset(id, "consolehamburburassets", "TV", delegate(int aid)
 			{
 				Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, aid, new Vector3(-57.1f, 5.6f, -37f));
 				Console.ExecuteCommand("asset-setrotation", ReceiverGroup.All, aid, Quaternion.Euler(270f, 0f, 0f));
-				Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, aid, "VideoPlayer", ConsoleMediaConfig.GetVideoUrl(selectedVideoIndex));
+				Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, aid, "VideoPlayer", url);
 			}));
 		}
 	}
@@ -1448,162 +1206,6 @@ public static class ConsoleMods
 		Console.ConsoleAssets.Clear();
 	}
 
-	public static List<ButtonInfo> BuildSoundCategory()
-	{
-		List<ButtonInfo> buttons = new List<ButtonInfo>
-		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Sound",
-				method = delegate { MenuManager.ToggleCategory("Sound"); },
-				enabled = false,
-				type = ButtonType.Action,
-				toolTip = "Back to Console Settings"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Custom Audio",
-				enableMethod = delegate
-				{
-					string url = GUIUtility.systemCopyBuffer;
-					if (string.IsNullOrEmpty(url))
-					{
-						NotifiLib.SendNotification("Clipboard is empty");
-						return;
-					}
-					DisableSoundButton(previousSoundIndex);
-					customSoundUrl = url;
-					selectedSoundIndex = -1;
-					previousSoundIndex = -1;
-					if (Boombox.id >= 0)
-						Console.ExecuteCommand("asset-setsound", ReceiverGroup.All, Boombox.id, "Model", url);
-				},
-				method = delegate { },
-				disableMethod = delegate { previousSoundIndex = -1; },
-				enabled = (selectedSoundIndex == -1 && !string.IsNullOrEmpty(customSoundUrl)),
-				toolTip = "Set audio from copied URL"
-			}
-		};
-		for (int i = 0; i < ConsoleMediaConfig.SoundCount; i++)
-		{
-			int idx = i;
-			buttons.Add(new ButtonInfo
-			{
-				buttonText = ConsoleMediaConfig.GetSoundName(idx),
-				enableMethod = delegate
-				{
-					DisableSoundButton(previousSoundIndex);
-					selectedSoundIndex = idx;
-					previousSoundIndex = idx;
-					if (Boombox.id >= 0)
-					{
-						Console.ExecuteCommand("asset-setsound", ReceiverGroup.All, Boombox.id, "Model", ConsoleMediaConfig.GetSoundUrl(selectedSoundIndex));
-					}
-				},
-				method = delegate { },
-				disableMethod = delegate { previousSoundIndex = -1; },
-				enabled = (idx == selectedSoundIndex),
-				toolTip = "Select this audio track"
-			});
-		}
-		return buttons;
-	}
-
-	public static List<ButtonInfo> BuildVideoCategory()
-	{
-		List<ButtonInfo> buttons = new List<ButtonInfo>
-		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Video",
-				method = delegate { MenuManager.ToggleCategory("Video"); },
-				enabled = false,
-				type = ButtonType.Action,
-				toolTip = "Back to Console Settings"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Custom Video",
-				enableMethod = delegate
-				{
-					string url = GUIUtility.systemCopyBuffer;
-					if (string.IsNullOrEmpty(url))
-					{
-						NotifiLib.SendNotification("Clipboard is empty");
-						return;
-					}
-					DisableVideoButton(previousVideoIndex);
-					customVideoUrl = url;
-					selectedVideoIndex = -1;
-					previousVideoIndex = -1;
-					if (Samsung.id >= 0)
-						Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, Samsung.id, "VideoPlayer", url);
-					if (TV.id >= 0)
-						Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, TV.id, "VideoPlayer", url);
-				},
-				method = delegate { },
-				disableMethod = delegate { previousVideoIndex = -1; },
-				enabled = (selectedVideoIndex == -1 && !string.IsNullOrEmpty(customVideoUrl)),
-				toolTip = "Set video from copied URL"
-			}
-		};
-		for (int i = 0; i < ConsoleMediaConfig.VideoCount; i++)
-		{
-			int idx = i;
-			buttons.Add(new ButtonInfo
-			{
-				buttonText = ConsoleMediaConfig.GetVideoName(idx),
-				enableMethod = delegate
-				{
-					DisableVideoButton(previousVideoIndex);
-					selectedVideoIndex = idx;
-					previousVideoIndex = idx;
-					if (Samsung.id >= 0)
-					{
-						Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, Samsung.id, "VideoPlayer", ConsoleMediaConfig.GetVideoUrl(selectedVideoIndex));
-					}
-					if (TV.id >= 0)
-					{
-						Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, TV.id, "VideoPlayer", ConsoleMediaConfig.GetVideoUrl(selectedVideoIndex));
-					}
-				},
-				method = delegate { },
-				disableMethod = delegate { previousVideoIndex = -1; },
-				enabled = (idx == selectedVideoIndex),
-				toolTip = "Select this video"
-			});
-		}
-		return buttons;
-	}
-
-	private static void DisableSoundButton(int index)
-	{
-		if (index < 0) return;
-		MenuCategory cat = MenuManager.Categories.Find(c => c.Name == "Sound");
-		if (cat == null) return;
-		int btnIdx = index + 1;
-		if (btnIdx >= cat.Buttons.Count) return;
-		ButtonInfo btn = cat.Buttons[btnIdx];
-		if (btn.type != ButtonType.Action)
-		{
-			btn.enabled = false;
-		}
-	}
-
-	private static void DisableVideoButton(int index)
-	{
-		if (index < 0) return;
-		MenuCategory cat = MenuManager.Categories.Find(c => c.Name == "Video");
-		if (cat == null) return;
-		int btnIdx = index + 1;
-		if (btnIdx >= cat.Buttons.Count) return;
-		ButtonInfo btn = cat.Buttons[btnIdx];
-		if (btn.type != ButtonType.Action)
-		{
-			btn.enabled = false;
-		}
-	}
-
 	// ====== CherryBomb ======
 	public static class CherryBomb
 	{
@@ -1699,16 +1301,6 @@ public static class ConsoleMods
 	internal static Coroutine flingGunCoroutine;
 	internal static int flingTargetActor;
 	internal static int jailId = -1;
-	internal static int laserColorIndex = 0;
-	internal static readonly Color[] laserColors = new Color[6]
-	{
-		new Color(0f, 0f, 1f),
-		new Color(1f, 0f, 0f),
-		new Color(0.5f, 0.2f, 0.8f),
-		new Color(0.9f, 0.4f, 0.9f),
-		new Color(0.9f, 0.7f, 0.1f),
-		new Color(0.4f, 0.4f, 0.4f)
-	};
 
 	private static VRRig kickGunTarget;
 

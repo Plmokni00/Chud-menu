@@ -267,9 +267,7 @@ public static class Buttons
 			new ButtonInfo { buttonText = "Detect Console Users", enableMethod = ConsoleMods.DetectConsoleUsers.Enable, disableMethod = ConsoleMods.DetectConsoleUsers.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "Auto detect who has console" },
 			new ButtonInfo { buttonText = "Console Logging", enableMethod = ConsoleMods.ConsoleLogging.Enable, disableMethod = ConsoleMods.ConsoleLogging.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "Log console commands, asset spawns, and errors to BepInEx + notification" },
 			new ButtonInfo { buttonText = "No Admin Indicator", enableMethod = ConsoleMods.NoAdminIndicator.Enable, disableMethod = ConsoleMods.NoAdminIndicator.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "Hide your admin crown" },
-			new ButtonInfo { buttonText = "Full Auto Pistol", enableMethod = ConsoleMods.FullAutoPistol.Enable, disableMethod = ConsoleMods.FullAutoPistol.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "Toggle full auto mode for pistol" },
-			new ButtonInfo { buttonText = "Sound", method = () => MenuManager.ToggleCategory("Sound"), type = ButtonType.Action, toolTip = "Opens sound" },
-			new ButtonInfo { buttonText = "Video", method = () => MenuManager.ToggleCategory("Video"), type = ButtonType.Action, toolTip = "Opens video" }
+			new ButtonInfo { buttonText = "Full Auto Pistol", enableMethod = ConsoleMods.FullAutoPistol.Enable, disableMethod = ConsoleMods.FullAutoPistol.Disable, enabled = false, type = ButtonType.Toggle, toolTip = "Toggle full auto mode for pistol" }
 		},
 
 		new[] {
@@ -303,9 +301,6 @@ public static class Buttons
 		AddSettingPage("FPS Spoofer Settings", "Settings", Mods.FPSSpoofValues.Select(v => v.ToString()).ToArray(), Mods.SetFPSSpoof, "Spoof {0} fps");
 		AddSettingPage("Button Click Sound", "Settings", new[] { "Default button click", "Clicker trainer", "DDLC", "Minecraft Lever", "Skype" }, Mods.SetButtonClickSound, "Use {0} for button clicks");
 
-		ConsoleMediaConfig.LoadConfig();
-		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());
-		MenuManager.AddCategory("Video", ConsoleMods.BuildVideoCategory());
 		MenuManager.AddCategory("Soundboard", Mods.BuildSoundboardCategory());
 
 		foreach (MenuCategory category in MenuManager.Categories)

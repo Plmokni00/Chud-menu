@@ -1579,7 +1579,8 @@ private static VRRig ghostRig;
 		}
 		if (minosPrimaryBtn && !minosPrimaryWasDown && minosPrimedForSlam)
 		{
-			Vector3 val = (((Object)(object)Camera.main != (Object)null) ? Camera.main.transform.forward : Vector3.forward);
+			Camera mainCam = MainCamera();
+			Vector3 val = (((Object)(object)mainCam != (Object)null) ? mainCam.transform.forward : Vector3.forward);
 			GorillaTagger.Instance.rigidbody.linearVelocity = val * 35f;
 			minosPrimedForSlam = false;
 			minosWaitingForImpact = true;
@@ -1745,6 +1746,7 @@ private static VRRig ghostRig;
 		WristMenu.UpdateGradientAnimations(Time.time);
 		ConsoleMods.Run();
 		Console.UpdateAdminIndicators();
+		FlushSave();
 	}
 
 	public static void EnableThirdPerson()
@@ -1787,8 +1789,12 @@ private static VRRig ghostRig;
 	public static void BoxEspRender()
 	{
 		reusableBoxEspRemovals.Clear();
-		foreach (KeyValuePair<VRRig, GameObject> item in boxEspObjects.Where((KeyValuePair<VRRig, GameObject> box) => !VRRigCache.ActiveRigs.Contains(box.Key)))
+		foreach (KeyValuePair<VRRig, GameObject> item in boxEspObjects)
 		{
+			if (VRRigCache.ActiveRigs.Contains(item.Key))
+			{
+				continue;
+			}
 			reusableBoxEspRemovals.Add(item.Key);
 			Object.Destroy((Object)(object)item.Value);
 		}
@@ -1796,8 +1802,12 @@ private static VRRig ghostRig;
 		{
 			boxEspObjects.Remove(item2);
 		}
-		foreach (VRRig item3 in VRRigCache.ActiveRigs.Where((VRRig rig) => !rig.isLocal))
+		foreach (VRRig item3 in VRRigCache.ActiveRigs)
 		{
+			if (item3.isLocal)
+			{
+				continue;
+			}
 			if (!boxEspObjects.TryGetValue(item3, out var value))
 			{
 				value = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -2253,12 +2263,24 @@ private static VRRig ghostRig;
 		return anchor + Vector3.up * (GetTagStackOffset(rig, slot) * EspScale(rig));
 	}
 
+	private static Camera cachedMainCamera;
+
+	internal static Camera MainCamera()
+	{
+		if ((Object)(object)cachedMainCamera == (Object)null)
+		{
+			cachedMainCamera = Camera.main;
+		}
+		return cachedMainCamera;
+	}
+
 	internal static void BillboardTag(GameObject obj)
 	{
-		if (!((Object)(object)Camera.main == (Object)null))
+		Camera mainCam = MainCamera();
+		if (!((Object)(object)mainCam == (Object)null))
 		{
 			Vector3 position = obj.transform.position;
-			obj.transform.LookAt(2f * position - Camera.main.transform.position);
+			obj.transform.LookAt(2f * position - mainCam.transform.position);
 		}
 	}
 
@@ -2865,6 +2887,39 @@ private static VRRig ghostRig;
 
 	public static void Save()
 	{
+		if (Time.time - lastSaveTime >= SaveFlushInterval)
+		{
+			WriteSave();
+			return;
+		}
+		saveDirty = true;
+	}
+
+	private static void FlushSave()
+	{
+		if (!saveDirty)
+		{
+			return;
+		}
+		if (Time.time - lastSaveTime < SaveFlushInterval)
+		{
+			return;
+		}
+		WriteSave();
+	}
+
+	private const int PaletteVersion = 1;
+
+	private static readonly int[] LegacyColorIndexMap = new int[] { 0, 7, 2, 3, 9, 8, 6, 5, 5, 1 };
+
+	private static bool saveDirty = false;
+
+	private static float lastSaveTime = -99f;
+
+	private const float SaveFlushInterval = 5f;
+
+	private static void WriteSave()
+	{
 		try
 		{
 			if (!Directory.Exists(WristMenu.FolderName))
@@ -2890,14 +2945,13 @@ private static VRRig ghostRig;
 			root["WasdFlyMouseSense"] = wasdFlyMouseSense;
 			root["IsRightHanded"] = isRightHanded;
 			root["MenuColorIndex"] = menuColorIndex;
+			root["PaletteVersion"] = PaletteVersion;
 			root["NotificationTimeIndex"] = notificationTimeIndex;
 			root["Jspeed"] = jspeed;
 			root["Jmulti"] = jmulti;
 			root["TagAuraRange"] = tagAuraRange;
 			root["TagAuraRangeIndex"] = tagAuraRangeIndex;
 			root["AdminScale"] = Console.adminScale;
-			root["CustomSoundUrl"] = ConsoleMods.customSoundUrl;
-			root["CustomVideoUrl"] = ConsoleMods.customVideoUrl;
 			root["AnimationsEnabled"] = WristMenu.animationsEnabled;
 			root["ToggleMenu"] = WristMenu.toggleMenu;
 			root["ShowFPS"] = WristMenu.showFPS;
@@ -2912,10 +2966,6 @@ private static VRRig ghostRig;
 			root["WaterSplashSpeedIndex"] = waterSplashSpeedIndex;
 			root["BreakGuardianActive"] = breakGuardianActive;
 			root["ButtonClickIndex"] = WristMenu.buttonClickIndex;
-
-			root["LaserColorIndex"] = ConsoleMods.laserColorIndex;
-			root["SelectedSoundIndex"] = ConsoleMods.selectedSoundIndex;
-			root["SelectedVideoIndex"] = ConsoleMods.selectedVideoIndex;
 
 			root["ConsoleAllowKickSelf"] = Console.allowKickSelf;
 			root["ConsoleAllowTpSelf"] = Console.allowTpSelf;
@@ -2934,6 +2984,8 @@ private static VRRig ghostRig;
 			File.Move(tempPath, ConfigPath);
 		}
 		catch { }
+		lastSaveTime = Time.time;
+		saveDirty = false;
 	}
 
 	public static void Load()
@@ -2956,10 +3008,16 @@ private static VRRig ghostRig;
 			flySpeed = (float)(root["FlySpeed"] ?? 8f);
 			speedboostCycle = (int)(root["SpeedboostCycle"] ?? 0);
 			pullPowerInt = (int)(root["PullPowerInt"] ?? 0);
-			ConsoleMods.laserColorIndex = (int)(root["LaserColorIndex"] ?? 0);
 			wasdFlyMouseSense = (float)(root["WasdFlyMouseSense"] ?? 1f);
 			isRightHanded = (bool)(root["IsRightHanded"] ?? false);
 			menuColorIndex = (int)(root["MenuColorIndex"] ?? 0);
+			if ((int)(root["PaletteVersion"] ?? 0) < PaletteVersion)
+			{
+				if (menuColorIndex >= 0 && menuColorIndex < LegacyColorIndexMap.Length)
+				{
+					menuColorIndex = LegacyColorIndexMap[menuColorIndex];
+				}
+			}
 			notificationTimeIndex = (int)(root["NotificationTimeIndex"] ?? 5);
 			jspeed = (float)(root["Jspeed"] ?? 7.5f);
 			jmulti = (float)(root["Jmulti"] ?? 1.1f);
@@ -2967,8 +3025,6 @@ private static VRRig ghostRig;
 			tagAuraRangeIndex = (int)(root["TagAuraRangeIndex"] ?? 3);
 
 			Console.adminScale = (float)(root["AdminScale"] ?? 1f);
-			ConsoleMods.customSoundUrl = (string)root["CustomSoundUrl"] ?? "";
-			ConsoleMods.customVideoUrl = (string)root["CustomVideoUrl"] ?? "";
 
 			WristMenu.animationsEnabled = (bool)(root["AnimationsEnabled"] ?? false);
 			WristMenu.toggleMenu = (bool)(root["ToggleMenu"] ?? false);
@@ -2993,10 +3049,6 @@ private static VRRig ghostRig;
 			Console.consoleLogging = (bool)(root["ConsoleLogging"] ?? false);
 			Console.fullAutoPistol = (bool)(root["ConsoleFullAutoPistol"] ?? false);
 
-			ConsoleMods.selectedSoundIndex = (int)(root["SelectedSoundIndex"] ?? 0);
-			ConsoleMods.selectedVideoIndex = (int)(root["SelectedVideoIndex"] ?? 0);
-			if (ConsoleMods.laserColorIndex < 0 || ConsoleMods.laserColorIndex >= ConsoleMods.laserColors.Length)
-				ConsoleMods.laserColorIndex = 0;
 			if (menuColorIndex < 0 || menuColorIndex >= 10)
 				menuColorIndex = 0;
 			if (notificationTimeIndex < 0 || notificationTimeIndex >= notificationTimeValues.Length)

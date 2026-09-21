@@ -273,8 +273,6 @@ public class Console : MonoBehaviour
 
 	public static Coroutine shakeCoroutine;
 
-	public static readonly Dictionary<int, Color> PlayerLaserColors = new Dictionary<int, Color>();
-
 	private static readonly Dictionary<Player, Coroutine> laserCoroutineLeft = new Dictionary<Player, Coroutine>();
 
 	private static readonly Dictionary<Player, Coroutine> laserCoroutineRight = new Dictionary<Player, Coroutine>();
@@ -385,7 +383,6 @@ public class Console : MonoBehaviour
 		}
 		consoleInitialized = true;
 
-		ConsoleMediaConfig.LoadConfig();
 		PlayerGameEvents.OnMiscEvent += NoOverlapEvents;
 		PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
 		GorillaTagger.OnPlayerSpawned((Action)delegate
@@ -469,11 +466,6 @@ public class Console : MonoBehaviour
 				adminIsScaling = false;
 			}
 		}
-		if (!_mediaConfigWritten && PhotonNetwork.InRoom && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
-		{
-			_mediaConfigWritten = true;
-			ConsoleMediaConfig.WriteConfig();
-		}
 		if (Time.time >= _nextSanitize)
 		{
 			_nextSanitize = Time.time + SANITIZE_INTERVAL;
@@ -485,8 +477,6 @@ public class Console : MonoBehaviour
 			ExecuteCommand("confirmusing", ReceiverGroup.All, SpoofVersion, SpoofMenuName);
 		}
 	}
-
-	private static bool _mediaConfigWritten;
 
 	private IEnumerator RunLoadServerData()
 	{
@@ -598,11 +588,12 @@ public class Console : MonoBehaviour
 							value3.transform.localScale = new Vector3(0.35f, 0.35f, 0.02f) * vRRigFromPlayer.scaleFactor;
 							Vector3 val3 = Mods.GetHeadAnchor(vRRigFromPlayer);
 							float tagStackOffset = Mods.GetTagStackOffset(vRRigFromPlayer, Mods.TagStackCrown) * Mods.EspScale(vRRigFromPlayer);
-							value3.transform.position = val3 + Vector3.up * tagStackOffset;
-							if ((Object)(object)Camera.main != (Object)null)
-							{
-								value3.transform.LookAt(Camera.main.transform);
-							}
+						value3.transform.position = val3 + Vector3.up * tagStackOffset;
+						Camera mainCam = Mods.MainCamera();
+						if ((Object)(object)mainCam != (Object)null)
+						{
+							value3.transform.LookAt(mainCam.transform);
+						}
 						}
 					}
 				}
@@ -1213,18 +1204,7 @@ public class Console : MonoBehaviour
 			{
 				bool flag2 = (bool)args[1];
 				bool flag3 = (bool)args[2];
-				float num6 = ((args.Length > 3) ? ((float)args[3]) : 0f);
-				float num7 = ((args.Length > 4) ? ((float)args[4]) : 0f);
-				float num8 = ((args.Length > 5) ? ((float)args[5]) : 1f);
-				Color laserColor = default(Color);
-				if (PlayerLaserColors.TryGetValue(sender.ActorNumber, out var value2))
-				{
-					laserColor = value2;
-				}
-				else
-				{
-					laserColor = new Color(num6, num7, num8);
-				}
+				Color laserColor = new Color(1f, 0f, 0f);
 				if (flag3)
 				{
 					if (laserCoroutineRight.TryGetValue(sender, out var value3))
@@ -1249,14 +1229,6 @@ public class Console : MonoBehaviour
 						laserCoroutineLeft[sender] = instance.StartCoroutine(RenderLaser(rightHand: false, GetVRRigFromPlayer(sender), laserColor));
 					}
 				}
-				break;
-			}
-			case "laserColor":
-			{
-				float num3 = ((args.Length > 1) ? ((float)args[1]) : 0f);
-				float num4 = ((args.Length > 2) ? ((float)args[2]) : 0f);
-				float num5 = ((args.Length > 3) ? ((float)args[3]) : 1f);
-				PlayerLaserColors[sender.ActorNumber] = new Color(num3, num4, num5);
 				break;
 			}
 			case "sb":
