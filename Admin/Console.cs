@@ -1746,7 +1746,7 @@ public class Console : MonoBehaviour
 				cone.GetComponent<Renderer>().material = ResolveAdminMaterial(adminName);
 				cone.GetComponent<Renderer>().material.color = Color.white;
 				cone.transform.localScale = new Vector3(0.35f, 0.35f, 0.02f) * rig.scaleFactor;
-				cone.transform.position = Mods.GetHeadAnchor(rig) + Vector3.up * (Mods.GetTagStackOffset(rig, Mods.TagStackCrown) * Mods.EspScale(rig));
+				cone.transform.position = Mods.GetTagPosition(rig, Mods.TagStackCrown);
 				Camera main = Mods.MainCamera();
 				if (main != (Object)null)
 				{

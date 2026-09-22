@@ -194,14 +194,27 @@ internal partial class Mods
 		}
 		catch { }
 		if (rig != null)
-			return rig.transform.position + Vector3.up * (1.6f * EspScale(rig));
+			return rig.transform.position + GetRigUp(rig) * (1.6f * EspScale(rig));
 		return Vector3.zero;
+	}
+
+	internal static Vector3 GetRigUp(VRRig rig)
+	{
+		if (rig != null)
+		{
+			Vector3 up = rig.transform.up;
+			if (up.sqrMagnitude > 0.001f)
+			{
+				return up.normalized;
+			}
+		}
+		return Vector3.up;
 	}
 
 	public static Vector3 GetTagPosition(VRRig rig, int slot)
 	{
 		Vector3 anchor = GetHeadAnchor(rig);
-		return anchor + Vector3.up * (GetTagStackOffset(rig, slot) * EspScale(rig));
+		return anchor + GetRigUp(rig) * (GetTagStackOffset(rig, slot) * EspScale(rig));
 	}
 
 	internal static Camera MainCamera()

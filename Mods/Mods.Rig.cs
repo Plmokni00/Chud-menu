@@ -117,6 +117,7 @@ internal partial class Mods
 		instance.FakeFBTTick();
 		instance.DinnerboneTick();
 		instance.NatsukiNeckTick();
+		instance.LookAtTick();
 	}
 
 	private void TakeRigSnapshot(out TransformSnapshot s)
@@ -803,16 +804,170 @@ internal partial class Mods
 	{
 		if (!natsukiNeckEnabled) return;
 		VRRig rig = VRRig.LocalRig;
-		if (rig == null || rig.head == null || rig.head.rigTarget == (Object)null) return;
-		if (GorillaTagger.Instance == (Object)null || GorillaTagger.Instance.headCollider == (Object)null) return;
+		if (rig == null || rig.head == null || rig.head.rigTarget == null) return;
+		if (GorillaTagger.Instance == null || GorillaTagger.Instance.headCollider == null) return;
 		Quaternion live = GorillaTagger.Instance.headCollider.transform.rotation;
-		float scale = rig.scaleFactor;
-		if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
-			scale = 1f;
-		Vector3 offset = (rig.head != null) ? rig.head.trackingPositionOffset : Vector3.zero;
-		rig.head.rigTarget.transform.SetPositionAndRotation(
-			GorillaTagger.Instance.headCollider.transform.position + live * offset * scale,
-			live * Quaternion.Euler(0f, 0f, -90f));
-		rig.transform.rotation = GorillaLocomotion.GTPlayerTransform.BodyRotation;
+		rig.head.rigTarget.transform.rotation = live * Quaternion.Euler(0f, 0f, -90f);
+	}
+
+	public static void CopyMovementGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null && !rig.isLocal)
+			{
+				if (instance == null)
+				{
+					return;
+				}
+				instance.copyMovementTarget = rig;
+				instance.copyMovementActive = true;
+				instance.SubscribeGhostRig();
+			}
+		}, delegate
+		{
+			StopCopyMovementGun();
+		});
+		if (instance != null && instance.copyMovementTarget != null && pointer != null && Line != null)
+		{
+			pointer.transform.position = ((Component)instance.copyMovementTarget).transform.position;
+			Line.SetPosition(1, ((Component)instance.copyMovementTarget).transform.position);
+		}
+	}
+
+	public static void StopCopyMovementGun()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		bool wasCopying = instance.copyMovementActive || instance.copyMovementTarget != null;
+		instance.copyMovementActive = false;
+		instance.copyMovementTarget = null;
+		instance.TryUnsubscribeGhostRig();
+		if (!wasCopying)
+		{
+			return;
+		}
+		VRRig local = VRRig.LocalRig;
+		if (local == null)
+		{
+			return;
+		}
+		EnsureLocalRigEnabled();
+		if (GorillaTagger.Instance != null && GorillaTagger.Instance.bodyCollider != null)
+		{
+			local.transform.SetPositionAndRotation(
+				GorillaTagger.Instance.bodyCollider.transform.position,
+				GorillaLocomotion.GTPlayerTransform.BodyRotation);
+		}
+		if (GorillaTagger.Instance != null)
+		{
+			if (local.head != null && local.head.rigTarget != null && GorillaTagger.Instance.headCollider != null)
+			{
+				local.head.rigTarget.transform.SetPositionAndRotation(
+					GorillaTagger.Instance.headCollider.transform.position,
+					GorillaTagger.Instance.headCollider.transform.rotation);
+			}
+			if (local.leftHand != null && local.leftHand.rigTarget != null && GorillaTagger.Instance.leftHandTransform != null)
+			{
+				local.leftHand.rigTarget.transform.SetPositionAndRotation(
+					GorillaTagger.Instance.leftHandTransform.position,
+					GorillaTagger.Instance.leftHandTransform.rotation);
+			}
+			if (local.rightHand != null && local.rightHand.rigTarget != null && GorillaTagger.Instance.rightHandTransform != null)
+			{
+				local.rightHand.rigTarget.transform.SetPositionAndRotation(
+					GorillaTagger.Instance.rightHandTransform.position,
+					GorillaTagger.Instance.rightHandTransform.rotation);
+			}
+		}
+	}
+
+	public static void StopCopyMovementGunFull()
+	{
+		StopCopyMovementGun();
+		CleanupGun();
+	}
+
+	private VRRig lookAtTarget = null;
+
+	public static void LookAtGun()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null && !rig.isLocal)
+			{
+				instance.lookAtTarget = rig;
+			}
+		}, delegate
+		{
+			StopLookAtGun();
+		});
+		if (instance.lookAtTarget != null && pointer != null && Line != null)
+		{
+			pointer.transform.position = ((Component)instance.lookAtTarget).transform.position;
+			Line.SetPosition(1, ((Component)instance.lookAtTarget).transform.position);
+		}
+	}
+
+	public static void StopLookAtGun()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		bool wasLocked = instance.lookAtTarget != null;
+		instance.lookAtTarget = null;
+		if (!wasLocked)
+		{
+			return;
+		}
+		VRRig local = VRRig.LocalRig;
+		if (local != null)
+		{
+			EnsureLocalRigEnabled();
+			if (local.head != null && local.head.rigTarget != null && GorillaTagger.Instance != null && GorillaTagger.Instance.headCollider != null)
+			{
+				local.head.rigTarget.transform.SetPositionAndRotation(
+					GorillaTagger.Instance.headCollider.transform.position,
+					GorillaTagger.Instance.headCollider.transform.rotation);
+			}
+		}
+	}
+
+	public static void StopLookAtGunFull()
+	{
+		StopLookAtGun();
+		CleanupGun();
+	}
+
+	private void LookAtTick()
+	{
+		if (lookAtTarget == null || lookAtTarget.isLocal)
+		{
+			lookAtTarget = null;
+			return;
+		}
+		VRRig local = VRRig.LocalRig;
+		if (local == null || local.head == null || local.head.rigTarget == null)
+		{
+			return;
+		}
+		EnsureLocalRigEnabled();
+		Transform headTransform = local.head.rigTarget.transform;
+		Vector3 targetHead = GetHeadAnchor(lookAtTarget);
+		Vector3 direction = targetHead - headTransform.position;
+		if (direction.sqrMagnitude < 0.0001f)
+		{
+			return;
+		}
+		headTransform.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
 	}
 }

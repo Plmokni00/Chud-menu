@@ -3208,53 +3208,6 @@ internal partial class Mods : MonoBehaviour
 		}
 	}
 
-	public static void CopyMovementGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null && !rig.isLocal)
-			{
-				if (instance == null)
-				{
-					return;
-				}
-				instance.copyMovementTarget = rig;
-				instance.copyMovementActive = true;
-				instance.SubscribeGhostRig();
-			}
-		}, delegate
-		{
-			StopCopyMovementGun();
-		});
-		if (instance != null && instance.copyMovementTarget != null && pointer != null && Line != null)
-		{
-			pointer.transform.position = ((Component)instance.copyMovementTarget).transform.position;
-			Line.SetPosition(1, ((Component)instance.copyMovementTarget).transform.position);
-		}
-	}
-
-	public static void StopCopyMovementGun()
-	{
-		if (instance == null)
-		{
-			return;
-		}
-		if (instance.copyMovementActive && VRRig.LocalRig != (Object)null)
-		{
-			EnsureLocalRigEnabled();
-		}
-		instance.copyMovementActive = false;
-		instance.copyMovementTarget = null;
-		instance.TryUnsubscribeGhostRig();
-	}
-
-	public static void StopCopyMovementGunFull()
-	{
-		StopCopyMovementGun();
-		CleanupGun();
-	}
-
 	public static void OrbitGun()
 	{
 		MakeRightHandGun(delegate

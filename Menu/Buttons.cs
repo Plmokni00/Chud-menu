@@ -108,7 +108,6 @@ public static class Buttons
 			new ButtonInfo { id = "movement_sticky_platforms", buttonText = "Sticky Platforms", method = Mods.StickyPlatforms, type = ButtonType.FrameToggle, enabled = false, toolTip = "Sticky ver of plats" },
 			new ButtonInfo { id = "movement_pull_mod", buttonText = "Pull Mod", method = Mods.PullMod, type = ButtonType.FrameToggle, enabled = false, toolTip = "Pull forward while gripping" },
 			new ButtonInfo { id = "movement_tp_gun", buttonText = "TP Gun", method = Mods.TPGun, disableMethod = Mods.CleanupGun, enabled = false, type = ButtonType.Gun, toolTip = "Shoot to teleport" },
-			new ButtonInfo { id = "movement_copy_gun", buttonText = "Copy Movement Gun", method = Mods.CopyMovementGun, disableMethod = Mods.StopCopyMovementGunFull, enabled = false, type = ButtonType.Gun, toolTip = "Lock onto player and copy their movements" },
 			new ButtonInfo { id = "movement_tp_stump", buttonText = "Teleport to Stump", method = Mods.TeleportToSpawn, type = ButtonType.Action, toolTip = "Teleport to the forest stump" },
 			new ButtonInfo { id = "movement_minos", buttonText = "Minos Prime", method = Mods.MinosPrime, disableMethod = Mods.DisableMinosPrime, enabled = false, type = ButtonType.FrameToggle, toolTip = "Right B to jump, then Right A to slam" },
 			new ButtonInfo { id = "movement_spider", buttonText = "Spider monke", enableMethod = Mods.EnableSpiderMonkey, disableMethod = Mods.DisableSpiderMonkey, enabled = false, type = ButtonType.Toggle, toolTip = "Walk on any surface you touch" },
@@ -187,7 +186,9 @@ public static class Buttons
 			new ButtonInfo { id = "rig_fake_fbt", buttonText = "Fake FBT", enableMethod = Mods.EnableFakeFBT, disableMethod = Mods.DisableFakeFBT, enabled = false, type = ButtonType.Toggle, toolTip = "Fake Full Body Tracking" },
 			new ButtonInfo { id = "rig_dinnerbone", buttonText = "Dinnerbone", enableMethod = Mods.EnableDinnerbone, disableMethod = Mods.DisableDinnerbone, enabled = false, type = ButtonType.Toggle, toolTip = "Flip yourself upside down" },
 			new ButtonInfo { id = "rig_natsuki", buttonText = "Natsuki Neck", enableMethod = Mods.EnableNatsukiNeck, disableMethod = Mods.DisableNatsukiNeck, enabled = false, type = ButtonType.Toggle, toolTip = "Snap your neck to the right" },
-			new ButtonInfo { id = "rig_grab_rig", buttonText = "Grab Rig", method = Mods.GrabRig, disableMethod = Mods.DisableGrabRig, enabled = false, type = ButtonType.FrameToggle, toolTip = "Hold grip to grab your rig" }
+			new ButtonInfo { id = "rig_grab_rig", buttonText = "Grab Rig", method = Mods.GrabRig, disableMethod = Mods.DisableGrabRig, enabled = false, type = ButtonType.FrameToggle, toolTip = "Hold grip to grab your rig" },
+			new ButtonInfo { id = "movement_copy_gun", buttonText = "Copy Movement Gun", method = Mods.CopyMovementGun, disableMethod = Mods.StopCopyMovementGunFull, enabled = false, type = ButtonType.Gun, toolTip = "Lock onto player and copy their movements" },
+			new ButtonInfo { id = "rig_look_at_gun", buttonText = "Look At Gun", method = Mods.LookAtGun, disableMethod = Mods.StopLookAtGunFull, enabled = false, type = ButtonType.Gun, toolTip = "Makes your rigs stare at whoever Your gun is Shooting" }
 		},
 
 		new[] {
