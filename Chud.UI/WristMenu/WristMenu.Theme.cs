@@ -51,6 +51,43 @@ internal partial class WristMenu
 		return mat;
 	}
 
+	private static readonly List<Material> _ownedOutlineMaterials = new List<Material>();
+	private static Shader _outlineShader;
+	public static Material MakeOutlineMat(Color c)
+	{
+		if (_outlineShader == null)
+		{
+			_outlineShader = Shader.Find("Universal Render Pipeline/Unlit");
+		}
+		if ((Object)(object)_outlineShader == (Object)null) _outlineShader = UnlitColorShader;
+		if ((Object)(object)_outlineShader == (Object)null) _outlineShader = Shader.Find("GUI/Text Shader");
+		Material mat = new Material(_outlineShader);
+		mat.hideFlags = HideFlags.HideAndDontSave;
+		mat.SetFloat("_Surface", 1f);
+		mat.SetFloat("_Blend", 0f);
+		mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+		mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+		mat.SetFloat("_ZWrite", 0f);
+		mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+		mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+		mat.color = c;
+		_ownedOutlineMaterials.Add(mat);
+		return mat;
+	}
+
+	private static void DestroyOutlineMaterials()
+	{
+		for (int i = 0; i < _ownedOutlineMaterials.Count; i++)
+		{
+			if ((Object)(object)_ownedOutlineMaterials[i] != (Object)null)
+			{
+				Object.Destroy((Object)(object)_ownedOutlineMaterials[i]);
+			}
+		}
+		_ownedOutlineMaterials.Clear();
+		ClearMenuText();
+	}
+
 	internal static void UpdateGradientAnimations(float time)
 	{
 		float offsetY = time * 0.2f;
@@ -96,6 +133,7 @@ internal partial class WristMenu
 		gradientMaterials.Clear();
 		_gradientCache.Clear();
 		roundedRenderers.Clear();
+		DestroyOutlineMaterials();
 		if (reference != null)
 		{
 			Renderer refRenderer = reference.GetComponent<Renderer>();

@@ -52,11 +52,8 @@ internal partial class WristMenu
 		if (!MenuFontInitialized)
 		{
 			MenuFontInitialized = true;
-			MenuFont = Font.CreateDynamicFontFromOSFont("Comic Sans MS", 200);
-			if ((Object)(object)MenuFont == (Object)null)
-			{
-				MenuFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
-			}
+			InitMenuFonts();
+			MenuFont = GetNotificationFont();
 		}
 	}
 
@@ -148,5 +145,77 @@ internal partial class WristMenu
 		mesh.RecalculateBounds();
 		_roundedMeshCache[key] = mesh;
 		return mesh;
+	}
+
+	private static readonly Dictionary<string, Mesh> _frameMeshCache = new Dictionary<string, Mesh>();
+	internal static Mesh GenerateRoundedFrameMesh(float radius, float border, int cornerSegments)
+	{
+		string key = radius.ToString("F4") + ":" + border.ToString("F4") + ":" + cornerSegments;
+		if (_frameMeshCache.TryGetValue(key, out var cached) && (Object)(object)cached != (Object)null) return cached;
+		int outerSegments = (cornerSegments + 1) * 4;
+		List<Vector2> outer = FrameOutline(radius, outerSegments);
+		List<Vector2> inner = FrameOutline(Mathf.Max(0.001f, radius - border), outerSegments);
+		List<Vector3> verts = new List<Vector3>();
+		List<Vector2> uvs = new List<Vector2>();
+		List<int> tris = new List<int>();
+		for (int i = 0; i < outerSegments; i++)
+		{
+			verts.Add(new Vector3(0f, outer[i].x, outer[i].y));
+			uvs.Add(new Vector2(outer[i].x * 0.5f + 0.5f, outer[i].y * 0.5f + 0.5f));
+		}
+		for (int i = 0; i < outerSegments; i++)
+		{
+			verts.Add(new Vector3(0f, inner[i].x, inner[i].y));
+			uvs.Add(new Vector2(inner[i].x * 0.5f + 0.5f, inner[i].y * 0.5f + 0.5f));
+		}
+		for (int i = 0; i < outerSegments; i++)
+		{
+			int next = (i + 1) % outerSegments;
+			int o0 = i;
+			int o1 = next;
+			int i0 = outerSegments + i;
+			int i1 = outerSegments + next;
+			tris.Add(o0); tris.Add(i0); tris.Add(o1);
+			tris.Add(o1); tris.Add(i0); tris.Add(i1);
+			tris.Add(o0); tris.Add(i1); tris.Add(i0);
+		}
+		Mesh mesh = new Mesh();
+		mesh.hideFlags = HideFlags.HideAndDontSave;
+		mesh.SetVertices(verts);
+		mesh.SetUVs(0, uvs);
+		mesh.SetTriangles(tris, 0);
+		mesh.RecalculateNormals();
+		mesh.RecalculateBounds();
+		_frameMeshCache[key] = mesh;
+		return mesh;
+	}
+
+	private static List<Vector2> FrameOutline(float radius, int segments)
+	{
+		List<Vector2> outline = new List<Vector2>();
+		float half = 0.5f;
+		radius = Mathf.Clamp(radius, 0f, half - 0.0001f);
+		Vector2[] centers = new Vector2[]
+		{
+			new Vector2(half - radius, half - radius),
+			new Vector2(half - radius, -(half - radius)),
+			new Vector2(-(half - radius), -(half - radius)),
+			new Vector2(-(half - radius), half - radius)
+		};
+		float[] starts = new float[] { 90f, 0f, -90f, -180f };
+		float[] ends = new float[] { 0f, -90f, -180f, -270f };
+		int perCorner = segments / 4;
+		for (int c = 0; c < 4; c++)
+		{
+			for (int i = 0; i < perCorner; i++)
+			{
+				float t = (float)i / perCorner;
+				float angle = Mathf.Lerp(starts[c], ends[c], t) * Mathf.Deg2Rad;
+				outline.Add(new Vector2(
+					centers[c].x + Mathf.Cos(angle) * radius,
+					centers[c].y + Mathf.Sin(angle) * radius));
+			}
+		}
+		return outline;
 	}
 }

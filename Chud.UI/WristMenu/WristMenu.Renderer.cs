@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Chud.Backend;
 using Chud.Classes;
 using GorillaLocomotion;
@@ -10,7 +9,19 @@ namespace Chud.UI;
 
 internal partial class WristMenu
 {
+	private static int _pageCount = 1;
+
 	public void Draw()
+	{
+		if (menuLayout == 0)
+		{
+			MenuLayout2.Draw2();
+			return;
+		}
+		DrawLayout1();
+	}
+
+	private void DrawLayout1()
 	{
 		if (MenuManager.Instance.CurrentCategoryName == "Enabled Mods")
 		{
@@ -19,203 +30,16 @@ internal partial class WristMenu
 		pageSize = 7;
 		menu = new GameObject();
 		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH * 0.95625f);
-		menuObj = MakeCylinder();
-		menuObj.transform.parent = menu.transform;
-		menuObj.transform.rotation = Quaternion.identity;
-		menuObj.transform.localScale = new Vector3(0.1f, 1f, 1f);
-		Renderer bgRenderer = menuObj.GetComponent<Renderer>();
-		Color bgTop = NormalColor * 0.35f;
-		Color bgBot = NormalColor;
-		bgRenderer.material = MakeGradientMat(bgTop, bgBot);
-		menuObj.transform.position = new Vector3(0.05f, 0f, 0f);
-		RoundGameObject(menuObj, "__background__", bgTop, bgBot);
-		canvasObj = new GameObject();
-		canvasObj.transform.parent = menu.transform;
-		Canvas canvas = canvasObj.AddComponent<Canvas>();
-		CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-		canvasObj.AddComponent<GraphicRaycaster>();
-		canvas.renderMode = RenderMode.WorldSpace;
-		scaler.dynamicPixelsPerUnit = 1900f;
-		scaler.referencePixelsPerUnit = 100f;
-		GameObject titleObj = new GameObject();
-		titleObj.transform.parent = canvasObj.transform;
-		Text titleText = titleObj.AddComponent<Text>();
-		titleText.font = MenuFont;
-		titleText.text = MenuTitle;
-		titleText.fontSize = 200;
-		((Graphic)titleText).color = MenuTitleColor;
-		titleText.fontStyle = FontStyle.Bold;
-		titleText.alignment = TextAnchor.MiddleCenter;
-		titleText.resizeTextForBestFit = true;
-		titleText.resizeTextMinSize = 0;
-		titleText.resizeTextMaxSize = 200;
-		RectTransform titleRect = ((Component)titleText).GetComponent<RectTransform>();
-		((Transform)titleRect).localPosition = Vector3.zero;
-		titleRect.sizeDelta = new Vector2(0.28f, 0.05f);
-		((Transform)titleRect).position = new Vector3(0.06f, 0f, 0.175f);
-		((Transform)titleRect).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-		GameObject bottomBarObj = new GameObject();
-		bottomBarObj.transform.parent = canvasObj.transform;
-		fpsText = bottomBarObj.AddComponent<Text>();
-		fpsText.font = MenuFont;
-		fpsText.text = bottomBarStr;
-		fpsText.fontSize = 200;
-		((Graphic)fpsText).color = ToolTipColor;
-		fpsText.fontStyle = FontStyle.Bold;
-		fpsText.alignment = TextAnchor.MiddleCenter;
-		fpsText.resizeTextForBestFit = true;
-		fpsText.resizeTextMinSize = 0;
-		fpsText.resizeTextMaxSize = 200;
-		RectTransform bottomBarRect = ((Component)fpsText).GetComponent<RectTransform>();
-		((Transform)bottomBarRect).localPosition = Vector3.zero;
-		bottomBarRect.sizeDelta = new Vector2(0.28f, 0.02f);
-		((Transform)bottomBarRect).position = new Vector3(0.06f, 0f, 0.135f);
-		((Transform)bottomBarRect).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-		List<ButtonInfo> currentButtons = MenuManager.Instance.CurrentButtons;
-		GameObject disconnectBtn = MakeCylinderButton();
-		disconnectBtn.transform.parent = menu.transform;
-		disconnectBtn.transform.rotation = Quaternion.identity;
-		disconnectBtn.transform.localScale = new Vector3(BUTTON_CYLINDER_SCALE_X, BUTTON_CYLINDER_SCALE_Y, BUTTON_CYLINDER_SCALE_Z);
-		disconnectBtn.transform.localPosition = new Vector3(0.56f, 0f, 0.6f);
-		Color dcTop = DisconnectButtonColor * 0.35f;
-		Color dcBot = DisconnectButtonColor;
-		disconnectBtn.GetComponent<Renderer>().material = MakeGradientMat(dcTop, dcBot);
-		BtnCollider disconnectCollider = disconnectBtn.AddComponent<BtnCollider>();
-		disconnectCollider.buttonId = "DisconnectingButton";
-		disconnectCollider.displayText = "Disconnect";
-		RoundGameObject(disconnectBtn, "DisconnectingButton", dcTop, dcBot);
-		GameObject disconnectLabelObj = new GameObject();
-		disconnectLabelObj.transform.parent = canvasObj.transform;
-		Text disconnectLabel = disconnectLabelObj.AddComponent<Text>();
-		disconnectLabel.font = MenuFont;
-		disconnectLabel.text = "Disconnect";
-		disconnectLabel.fontSize = 200;
-		disconnectLabel.supportRichText = true;
-		((Graphic)disconnectLabel).color = DisconnectTextColor;
-		disconnectLabel.alignment = TextAnchor.MiddleCenter;
-		disconnectLabel.resizeTextForBestFit = true;
-		disconnectLabel.resizeTextMinSize = 0;
-		disconnectLabel.resizeTextMaxSize = 200;
-		disconnectLabel.fontStyle = FontStyle.Bold;
-		RectTransform disconnectRect = ((Component)disconnectLabel).GetComponent<RectTransform>();
-		((Transform)disconnectRect).localPosition = Vector3.zero;
-		disconnectRect.sizeDelta = new Vector2(0.2f, 0.03f);
-		((Transform)disconnectRect).localPosition = new Vector3(0.064f, 0f, 0.111f - (0.28f - 0.6f) / 2.6f);
-		((Transform)disconnectRect).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-		GameObject prevBtn = MakeCylinderButton();
-		prevBtn.transform.parent = menu.transform;
-		prevBtn.transform.rotation = Quaternion.identity;
-		prevBtn.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
-		prevBtn.transform.localPosition = new Vector3(0.56f, 0.65f, 0f);
-		Color npTop = NextPrevButtonColor * 0.35f;
-		Color npBot = NextPrevButtonColor;
-		prevBtn.GetComponent<Renderer>().material = MakeGradientMat(npTop, npBot);
-		BtnCollider prevCollider = prevBtn.AddComponent<BtnCollider>();
-		prevCollider.buttonId = "PreviousPage";
-		prevCollider.displayText = "<";
-		RoundGameObject(prevBtn, "PreviousPage", npTop, npBot);
-		GameObject prevLabelObj = new GameObject();
-		prevLabelObj.transform.parent = canvasObj.transform;
-		Text prevLabel = prevLabelObj.AddComponent<Text>();
-		prevLabel.font = MenuFont;
-		prevLabel.text = "<";
-		prevLabel.fontSize = 200;
-		((Graphic)prevLabel).color = NextPrevTextColor;
-		prevLabel.fontStyle = FontStyle.Bold;
-		prevLabel.alignment = TextAnchor.MiddleCenter;
-		prevLabel.resizeTextForBestFit = true;
-		prevLabel.resizeTextMinSize = 0;
-		prevLabel.resizeTextMaxSize = 200;
-		RectTransform prevRect = ((Component)prevLabel).GetComponent<RectTransform>();
-		((Transform)prevRect).localPosition = Vector3.zero;
-		prevRect.sizeDelta = new Vector2(0.2f, 0.03f);
-		((Transform)prevRect).localPosition = new Vector3(0.064f, 0.195f, 0f);
-		((Transform)prevRect).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-		GameObject nextBtn = MakeCylinderButton();
-		nextBtn.transform.parent = menu.transform;
-		nextBtn.transform.rotation = Quaternion.identity;
-		nextBtn.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
-		nextBtn.transform.localPosition = new Vector3(0.56f, -0.65f, 0f);
-		nextBtn.GetComponent<Renderer>().material = MakeGradientMat(npTop, npBot);
-		BtnCollider nextCollider = nextBtn.AddComponent<BtnCollider>();
-		nextCollider.buttonId = "NextPage";
-		nextCollider.displayText = ">";
-		RoundGameObject(nextBtn, "NextPage", npTop, npBot);
-		GameObject nextLabelObj = new GameObject();
-		nextLabelObj.transform.parent = canvasObj.transform;
-		Text nextLabel = nextLabelObj.AddComponent<Text>();
-		nextLabel.font = MenuFont;
-		nextLabel.text = ">";
-		nextLabel.fontSize = 200;
-		((Graphic)nextLabel).color = NextPrevTextColor;
-		nextLabel.fontStyle = FontStyle.Bold;
-		nextLabel.alignment = TextAnchor.MiddleCenter;
-		nextLabel.resizeTextForBestFit = true;
-		nextLabel.resizeTextMinSize = 0;
-		nextLabel.resizeTextMaxSize = 200;
-		RectTransform nextRect = ((Component)nextLabel).GetComponent<RectTransform>();
-		((Transform)nextRect).localPosition = Vector3.zero;
-		nextRect.sizeDelta = new Vector2(0.2f, 0.03f);
-		((Transform)nextRect).localPosition = new Vector3(0.064f, -0.195f, 0f);
-		((Transform)nextRect).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-		if (currentButtons != null)
-		{
-			ButtonInfo[] page = currentButtons.Skip(pageNumber * pageSize).Take(pageSize).ToArray();
-			string[] labels = (from b in page
-				select b.buttonText).ToArray();
-			string[] ids = (from b in page
-				select b.id ?? b.buttonText).ToArray();
-			for (int slot = 0; slot < labels.Length; slot++)
-			{
-				float slotOffset = (float)slot * ((pageSize == 7) ? 0.116f : 0.1f);
-				GameObject buttonObj = MakeCylinderButton();
-				buttonObj.transform.parent = menu.transform;
-				buttonObj.transform.rotation = Quaternion.identity;
-				buttonObj.transform.localScale = new Vector3(BUTTON_CYLINDER_SCALE_X, BUTTON_CYLINDER_SCALE_Y, BUTTON_CYLINDER_SCALE_Z);
-				buttonObj.transform.localPosition = new Vector3(0.56f, 0f, 0.28f - slotOffset);
-				BtnCollider pageCollider = buttonObj.AddComponent<BtnCollider>();
-				pageCollider.buttonId = ids[slot];
-				pageCollider.displayText = labels[slot];
-				int buttonIndex = -1;
-				for (int scanIndex = 0; scanIndex < currentButtons.Count; scanIndex++)
-				{
-					if (ids[slot] == currentButtons[scanIndex].id)
-					{
-						buttonIndex = scanIndex;
-						break;
-					}
-				}
-				bool? isEnabled = null;
-				if (buttonIndex >= 0 && buttonIndex < currentButtons.Count)
-				{
-					isEnabled = currentButtons[buttonIndex].enabled;
-				}
-				Color baseColor = (isEnabled == true) ? ButtonColorEnabled : ButtonColorDisable;
-				Color topColor = baseColor * 0.35f;
-				Color bottomColor = baseColor;
-				buttonObj.GetComponent<Renderer>().material = MakeGradientMat(topColor, bottomColor);
-				RoundGameObject(buttonObj, ids[slot], topColor, bottomColor);
-				GameObject labelObj = new GameObject();
-				labelObj.transform.parent = canvasObj.transform;
-				Text label = labelObj.AddComponent<Text>();
-				label.font = MenuFont;
-				label.text = labels[slot];
-				label.fontSize = 200;
-				label.supportRichText = true;
-				((Graphic)label).color = ((isEnabled == true) ? EnableTextColor : DisableTextColor);
-				label.fontStyle = FontStyle.Bold;
-				label.alignment = TextAnchor.MiddleCenter;
-				label.resizeTextForBestFit = true;
-				label.resizeTextMinSize = 0;
-				label.resizeTextMaxSize = 200;
-				RectTransform labelRect = ((Component)label).GetComponent<RectTransform>();
-				((Transform)labelRect).localPosition = Vector3.zero;
-				labelRect.sizeDelta = new Vector2(0.2f, 0.03f);
-				((Transform)labelRect).localPosition = new Vector3(0.064f, 0f, 0.111f - slotOffset / 2.6f);
-				((Transform)labelRect).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-			}
-		}
-		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * 0.8f * (_menuCameraAnchored ? 1f : ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f));
+		InitTextLayer();
+
+		BuildPanel();
+		BuildHeader();
+		BuildDisconnect();
+		BuildPage();
+		BuildNavRow();
+		BuildFooter();
+
+		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * MenuScaleFactor * (_menuCameraAnchored ? 1f : ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f));
 		try
 		{
 			foreach (Transform t in menu.GetComponentsInChildren<Transform>(true))
@@ -223,5 +47,150 @@ internal partial class WristMenu
 			menu.layer = 2;
 		}
 		catch { }
+	}
+
+	private void BuildPanel()
+	{
+		menuObj = MakeCylinder();
+		menuObj.transform.parent = menu.transform;
+		menuObj.transform.rotation = Quaternion.identity;
+		menuObj.transform.localPosition = new Vector3(PanelX, 0f, 0f);
+		menuObj.transform.localScale = new Vector3(PanelThickness, PanelWidth, PanelHeight);
+		Color bgTop = NormalColor * 0.35f;
+		Color bgBot = NormalColor;
+		menuObj.GetComponent<Renderer>().material = MakeGradientMat(bgTop, bgBot);
+		RoundGameObject(menuObj, "__background__", bgTop, bgBot);
+	}
+
+	private void BuildHeader()
+	{
+		bool noStatus = string.IsNullOrEmpty(bottomBarStr);
+		float titleZ = noStatus ? TitleZ : TitleZ - TitleStatusShift;
+		MakeMenuText("title", MenuTitle, new Vector3(LabelX, 0f, titleZ), TitleWidth, noStatus ? TitleHeightBig : TitleHeight, MenuTitleColor);
+	}
+
+	private void BuildDisconnect()
+	{
+		GameObject disconnectBtn = MakeCylinderButton();
+		disconnectBtn.transform.parent = menu.transform;
+		disconnectBtn.transform.rotation = Quaternion.identity;
+		disconnectBtn.transform.localScale = new Vector3(DisconnectDepth, DisconnectWidth, DisconnectHeight);
+		disconnectBtn.transform.localPosition = new Vector3(PanelFrontX, 0f, DisconnectZ);
+		Color dcTop = DisconnectButtonColor * 0.35f;
+		Color dcBot = DisconnectButtonColor;
+		disconnectBtn.GetComponent<Renderer>().material = MakeGradientMat(dcTop, dcBot);
+		BtnCollider disconnectCollider = disconnectBtn.AddComponent<BtnCollider>();
+		disconnectCollider.buttonId = "DisconnectingButton";
+		disconnectCollider.displayText = "Disconnect";
+		RoundGameObject(disconnectBtn, "DisconnectingButton", dcTop, dcBot);
+
+		MakeMenuTextStretched("DisconnectingButton", "Disconnect", new Vector3(LabelX, 0f, DisconnectZ + LabelShiftZ), DisconnectWidth * ButtonTextWidthRatio, DisconnectHeight * ButtonTextHeightRatio, DisconnectTextColor);
+	}
+
+	private void BuildPage()
+	{
+		List<ButtonInfo> currentButtons = MenuManager.Instance.CurrentButtons;
+		if (currentButtons == null)
+		{
+			return;
+		}
+		int total = currentButtons.Count;
+		int pageCount = PageCountFor(total);
+		pageNumber = ClampPage(pageNumber, pageCount);
+		_pageCount = pageCount;
+
+		int start = pageNumber * pageSize;
+		int end = Mathf.Min(start + pageSize, total);
+		for (int i = start; i < end; i++)
+		{
+			ButtonInfo info = currentButtons[i];
+			if (info == null)
+			{
+				continue;
+			}
+			int slot = i - start;
+			string id = string.IsNullOrEmpty(info.id) ? info.buttonText : info.id;
+			bool? isEnabled = info.enabled;
+			Color baseColor = (isEnabled == true) ? ButtonColorEnabled : ButtonColorDisable;
+			Color topColor = baseColor * 0.35f;
+			float z = ButtonZForSlot(slot);
+
+			GameObject buttonObj = MakeCylinderButton();
+			buttonObj.transform.parent = menu.transform;
+			buttonObj.transform.rotation = Quaternion.identity;
+			buttonObj.transform.localScale = new Vector3(ButtonDepth, ButtonWidth, ButtonHeight);
+			buttonObj.transform.localPosition = new Vector3(PanelFrontX, 0f, z);
+			buttonObj.GetComponent<Renderer>().material = MakeGradientMat(topColor, baseColor);
+			BtnCollider pageCollider = buttonObj.AddComponent<BtnCollider>();
+			pageCollider.buttonId = id;
+			pageCollider.displayText = info.buttonText;
+			RoundGameObject(buttonObj, id, topColor, baseColor);
+
+			Color accent = isEnabled == true
+				? new Color(ButtonColorEnabled.r, ButtonColorEnabled.g, ButtonColorEnabled.b, 0.75f)
+				: new Color(ButtonColorDisable.r, ButtonColorDisable.g, ButtonColorDisable.b, 0.4f);
+
+			MakeOutline(
+				"frame_" + id,
+				menu.transform,
+				new Vector3(PanelFrontX + 0.016f, 0f, z),
+				new Vector3(0.01f, ButtonWidth, ButtonHeight),
+				ButtonRadius,
+				ButtonCornerSegments,
+				0.018f,
+				accent);
+
+			MakeMenuText(
+				id,
+				TruncateLabel(info.buttonText),
+				new Vector3(LabelX, LabelShiftY, z + LabelShiftZ),
+				LabelMaxWidth,
+				LabelMaxHeight,
+				isEnabled == true ? EnableTextColor : DisableTextColor);
+		}
+	}
+
+	private void BuildNavRow()
+	{
+		Color npTop = NextPrevButtonColor * 0.35f;
+		Color npBot = NextPrevButtonColor;
+		BuildNavButton("PreviousPage", "<", NavOffsetY, npTop, npBot);
+		BuildNavButton("NextPage", ">", -NavOffsetY, npTop, npBot);
+	}
+
+	private void BuildNavButton(string id, string glyph, float y, Color top, Color bot)
+	{
+		GameObject navBtn = MakeCylinderButton();
+		navBtn.transform.parent = menu.transform;
+		navBtn.transform.rotation = Quaternion.identity;
+		navBtn.transform.localScale = new Vector3(NavDepth, NavWidth, NavHeight);
+		navBtn.transform.localPosition = new Vector3(PanelFrontX, y, NavZ);
+		navBtn.GetComponent<Renderer>().material = MakeGradientMat(top, bot);
+		BtnCollider navCollider = navBtn.AddComponent<BtnCollider>();
+		navCollider.buttonId = id;
+		navCollider.displayText = glyph;
+		RoundGameObject(navBtn, id, top, bot);
+
+		MakeOutline(
+			"frame_" + id,
+			menu.transform,
+			new Vector3(PanelFrontX + 0.016f, y, NavZ),
+			new Vector3(0.01f, NavWidth, NavHeight),
+			0.22f,
+			ButtonCornerSegments,
+			0.018f,
+			new Color(NextPrevButtonColor.r * 2.2f, NextPrevButtonColor.g * 2.2f, NextPrevButtonColor.b * 2.2f, 0.55f));
+
+		MakeMenuText(id, glyph, new Vector3(LabelX, y, NavZ + LabelShiftZ), NavWidth * NavTextWidthRatio, NavHeight * NavTextHeightRatio, NextPrevTextColor);
+	}
+
+	private void BuildFooter()
+	{
+		fpsText = null;
+		Text status = MakeMenuText("status", bottomBarStr, new Vector3(LabelX, 0f, StatusZ), StatusWidth, StatusHeight, ToolTipColor);
+		if (status != null)
+		{
+			fpsText = status;
+		}
 	}
 }

@@ -592,6 +592,7 @@ internal partial class Mods : MonoBehaviour
 			root["WaterSplashSpeedIndex"] = waterSplashSpeedIndex;
 			root["BreakGuardianActive"] = breakGuardianActive;
 			root["ButtonClickIndex"] = WristMenu.buttonClickIndex;
+			root["MenuLayout"] = WristMenu.menuLayout;
 
 			root["ConsoleAllowKickSelf"] = Console.allowKickSelf;
 			root["ConsoleAllowTpSelf"] = Console.allowTpSelf;
@@ -692,6 +693,7 @@ internal partial class Mods : MonoBehaviour
 			waterSplashSpeedIndex = (int)(root["WaterSplashSpeedIndex"] ?? 1);
 			breakGuardianActive = (bool)(root["BreakGuardianActive"] ?? false);
 			WristMenu.buttonClickIndex = (int)(root["ButtonClickIndex"] ?? 0);
+			WristMenu.menuLayout = Mathf.Clamp((int)(root["MenuLayout"] ?? 0), 0, 1);
 			Console.allowKickSelf = (bool)(root["ConsoleAllowKickSelf"] ?? false);
 			Console.allowTpSelf = (bool)(root["ConsoleAllowTpSelf"] ?? true);
 			Console.disableFlingSelf = (bool)(root["ConsoleDisableFlingSelf"] ?? false);
@@ -2533,6 +2535,27 @@ internal partial class Mods : MonoBehaviour
 		WristMenu.ApplyButtonClickSound(index);
 		NotifiLib.SendNotification("Button click: " + WristMenu.ButtonClickNames[WristMenu.buttonClickIndex]);
 		Save();
+	}
+
+	public static void SetMenuLayout(int index)
+	{
+		if (index < 0 || index > 1)
+		{
+			index = 0;
+		}
+		WristMenu.menuLayout = index;
+		string[] layoutNames = new string[] { "Normal layout", "Modern layout" };
+		NotifiLib.SendNotification("Menu Layout: " + layoutNames[index], 2);
+		Save();
+		if (WristMenu.toggleMenu)
+		{
+			WristMenu.RefreshMenu();
+		}
+		else
+		{
+			WristMenu.DestroyMenu();
+			WristMenu.instance.Draw();
+		}
 	}
 
 	public static void UnlockAllCosmetics()

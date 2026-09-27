@@ -12,6 +12,7 @@ internal partial class WristMenu
 {
 	public static void DestroyMenu()
 	{
+		MenuLayout2.Teardown2();
 		DestroyGradientResources();
 		if ((Object)(object)reference != (Object)null)
 		{
@@ -33,6 +34,7 @@ internal partial class WristMenu
 
 	public static void RefreshMenu()
 	{
+		MenuLayout2.Teardown2();
 		DestroyGradientResources();
 		if ((Object)(object)reference != (Object)null)
 		{
@@ -51,8 +53,6 @@ internal partial class WristMenu
 		RestoreMenuAnchor();
 	}
 
-	// Live re-anchor when the Right Hand setting is toggled while the menu is open in toggle mode.
-	// Rebuilds the menu on the new hand (menu on the chosen hand, pointer on the opposite hand).
 	public static void ReanchorToCurrentHand()
 	{
 		if (!toggleMenu || _menuCameraAnchored)

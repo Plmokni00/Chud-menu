@@ -9,7 +9,30 @@ namespace Chud.UI;
 
 internal partial class WristMenu
 {
+	private static readonly Dictionary<string, Vector3> _animationScales = new Dictionary<string, Vector3>();
+
+	private static readonly Dictionary<string, Vector3> _visualRestScales = new Dictionary<string, Vector3>();
+
+	private static Vector3 VisualRestScale(string id)
+	{
+		Vector3 recorded;
+		if (!string.IsNullOrEmpty(id) && _visualRestScales.TryGetValue(id, out recorded))
+		{
+			return recorded;
+		}
+		return Vector3.one;
+	}
+
 	public static IEnumerator OpenAni()
+	{
+		if (menuLayout == 0)
+		{
+			return MenuLayout2.OpenAni2();
+		}
+		return OpenAni1();
+	}
+
+	private static IEnumerator OpenAni1()
 	{
 		if (menu == (Object)null)
 		{
@@ -18,14 +41,15 @@ internal partial class WristMenu
 		float scaleFactor = _menuCameraAnchored ? 1f : ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
 		if (!animationsEnabled)
 		{
-			menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * 0.8f * scaleFactor;
+			menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * MenuScaleFactor * scaleFactor;
 			yield break;
 		}
-		Vector3 targetScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * 0.8f * scaleFactor;
-		Vector3 foldedScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, 0f) * 0.8f * scaleFactor;
+		Vector3 targetScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * MenuScaleFactor * scaleFactor;
+		Vector3 foldedScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, 0f) * MenuScaleFactor * scaleFactor;
+
+		_animationScales.Clear();
+		_visualRestScales.Clear();
 		List<Transform> pageButtons = new List<Transform>();
-		Transform prevButton = null;
-		Transform nextButton = null;
 		Transform disconnectButton = null;
 		foreach (Transform child in menu.transform)
 		{
@@ -34,28 +58,29 @@ internal partial class WristMenu
 			{
 				continue;
 			}
-			switch (bc.buttonId)
+			_animationScales[bc.buttonId] = child.localScale;
+			List<Renderer> rends;
+			if (roundedRenderers.TryGetValue(bc.buttonId, out rends) && rends != null && rends.Count > 0 && rends[0] != (Object)null)
 			{
-			case "PreviousPage":
-				prevButton = child;
-				break;
-			case "NextPage":
-				nextButton = child;
-				break;
-			case "DisconnectingButton":
+				_visualRestScales[bc.buttonId] = rends[0].transform.localScale;
+			}
+			if (bc.buttonId == "DisconnectingButton")
+			{
 				disconnectButton = child;
-				break;
-			default:
+			}
+			else if (bc.buttonId != "PreviousPage" && bc.buttonId != "NextPage")
+			{
 				pageButtons.Add(child);
-				break;
 			}
 		}
+
 		SetBuildItemScale(disconnectButton, Vector3.zero, false);
 		foreach (Transform b in pageButtons)
 		{
 			SetBuildItemScale(b, Vector3.zero, false);
 		}
 		pageButtons.Sort((a, b) => b.localPosition.z.CompareTo(a.localPosition.z));
+
 		float elapsed = 0f;
 		float bookDur = 0.18f;
 		while (elapsed < bookDur)
@@ -74,11 +99,16 @@ internal partial class WristMenu
 		{
 			menu.transform.localScale = targetScale;
 		}
+
 		float btnDur = 0.08f;
 		float navDur = 0.04f;
 		float stagger = 0.03f;
 		for (int i = 0; i < pageButtons.Count; i++)
 		{
+			if (menu == (Object)null)
+			{
+				yield break;
+			}
 			instance.StartCoroutine(BuildItem(pageButtons[i], btnDur));
 			yield return new WaitForSeconds(stagger);
 		}
@@ -87,19 +117,30 @@ internal partial class WristMenu
 		yield return new WaitForSeconds(navDur);
 	}
 
-	private static Transform FindCanvasText(string content)
+	private static Vector3 ItemRestScale(Transform item)
 	{
-		if (canvasObj == (Object)null)
+		if (item == (Object)null)
 		{
-			return null;
+			return Vector3.one;
 		}
-		foreach (Transform t in canvasObj.transform)
+		BtnCollider bc = item.GetComponent<BtnCollider>();
+		if (bc != null && !string.IsNullOrEmpty(bc.buttonId))
 		{
-			Text txt = t.GetComponent<Text>();
-			if (txt != null && txt.text == content)
+			Vector3 recorded;
+			if (_animationScales.TryGetValue(bc.buttonId, out recorded))
 			{
-				return t;
+				return recorded;
 			}
+		}
+		return item.localScale;
+	}
+
+	private static RectTransform FindItemLabel(string id)
+	{
+		Text label;
+		if (!string.IsNullOrEmpty(id) && TextLabels.TryGetValue(id, out label) && label != null)
+		{
+			return label.rectTransform;
 		}
 		return null;
 	}
@@ -116,19 +157,15 @@ internal partial class WristMenu
 			return;
 		}
 		string id = bc.buttonId;
-		string textContent = bc.displayText;
-		if (id == "PreviousPage") textContent = "<";
-		else if (id == "NextPage") textContent = ">";
-		else if (id == "DisconnectingButton") textContent = "Disconnect";
 		cylinder.localScale = scale;
-		if (roundedRenderers.TryGetValue(id, out var rends) && rends != null && rends.Count > 0)
+		if (roundedRenderers.TryGetValue(id, out var rends) && rends != null && rends.Count > 0 && rends[0] != (Object)null)
 		{
 			rends[0].transform.localScale = scale;
 		}
-		Transform txt = FindCanvasText(textContent);
-		if (txt != null)
+		RectTransform label = FindItemLabel(id);
+		if (label != null)
 		{
-			txt.localScale = showText ? Vector3.one : Vector3.zero;
+			label.localScale = TextLabelScale(id, showText ? 1f : 0f);
 		}
 	}
 
@@ -144,12 +181,9 @@ internal partial class WristMenu
 			yield break;
 		}
 		string id = bc.buttonId;
-		Vector3 target = (id == "PreviousPage" || id == "NextPage") ? new Vector3(0.09f, 0.2f, 0.9f) : new Vector3(BUTTON_CYLINDER_SCALE_X, BUTTON_CYLINDER_SCALE_Y, BUTTON_CYLINDER_SCALE_Z);
-		string textContent = bc.displayText;
-		if (id == "PreviousPage") textContent = "<";
-		else if (id == "NextPage") textContent = ">";
-		else if (id == "DisconnectingButton") textContent = "Disconnect";
-		Transform txt = FindCanvasText(textContent);
+		Vector3 target = ItemRestScale(cylinder);
+		Vector3 visualTarget = VisualRestScale(id);
+		RectTransform label = FindItemLabel(id);
 		float elapsed = 0f;
 		while (elapsed < dur)
 		{
@@ -161,13 +195,13 @@ internal partial class WristMenu
 			float eased = 1f - (1f - t) * (1f - t);
 			Vector3 s = Vector3.Lerp(Vector3.zero, target, eased);
 			cylinder.localScale = s;
-			if (roundedRenderers.TryGetValue(id, out var rends) && rends != null && rends.Count > 0)
+			if (roundedRenderers.TryGetValue(id, out var rends) && rends != null && rends.Count > 0 && rends[0] != (Object)null)
 			{
-				rends[0].transform.localScale = s;
+				rends[0].transform.localScale = Vector3.Lerp(Vector3.zero, visualTarget, eased);
 			}
-			if (txt != null)
+			if (label != null)
 			{
-				txt.localScale = Vector3.one * eased;
+				label.localScale = TextLabelScale(id, eased);
 			}
 			elapsed += Time.deltaTime;
 			yield return null;
@@ -176,17 +210,26 @@ internal partial class WristMenu
 		{
 			cylinder.localScale = target;
 		}
-		if (roundedRenderers.TryGetValue(id, out var rends2) && rends2 != null && rends2.Count > 0)
+		if (roundedRenderers.TryGetValue(id, out var rends2) && rends2 != null && rends2.Count > 0 && rends2[0] != (Object)null)
 		{
-			rends2[0].transform.localScale = target;
+			rends2[0].transform.localScale = visualTarget;
 		}
-		if (txt != null)
+		if (label != null)
 		{
-			txt.localScale = Vector3.one;
+			label.localScale = TextLabelScale(id, 1f);
 		}
 	}
 
 	public static IEnumerator CloseAni()
+	{
+		if (menuLayout == 0)
+		{
+			return MenuLayout2.CloseAni2();
+		}
+		return CloseAni1();
+	}
+
+	private static IEnumerator CloseAni1()
 	{
 		if (menu == (Object)null || Close)
 		{
@@ -215,6 +258,7 @@ internal partial class WristMenu
 			elapsed += Time.deltaTime;
 			yield return null;
 		}
+		MenuLayout2.Teardown2();
 		DestroyGradientResources();
 		if (menu != (Object)null)
 		{
@@ -234,6 +278,8 @@ internal partial class WristMenu
 		}
 		_menuAnchor = null;
 		_menuFollowHand = null;
+		_animationScales.Clear();
+		_visualRestScales.Clear();
 		Close = false;
 	}
 }

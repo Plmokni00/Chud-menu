@@ -27,8 +27,6 @@ internal partial class WristMenu : MonoBehaviour
 
 	public static AudioClip customButtonClick;
 
-	
-
 	private static AudioSource buttonClickAudioSource;
 
 	private static bool MenuFontInitialized = false;
@@ -40,6 +38,8 @@ internal partial class WristMenu : MonoBehaviour
 	public static bool Close = false;
 
 	public static bool animationsEnabled = false;
+
+	public static int menuLayout = 0;
 
 	private const float MENU_CYLINDER_RADIUS = 0.1f;
 	private const float MENU_CYLINDER_HEIGHT = 0.3f;
@@ -69,8 +69,6 @@ internal partial class WristMenu : MonoBehaviour
 	public static Color NextPrevButtonColor = new Color(0.22f, 0.22f, 0.22f);
 
 	public static Color NextPrevTextColor = Color.white;
-
-	
 
 	private static Mesh _cylinderMesh;
 	private static Mesh CylinderMesh
@@ -141,7 +139,9 @@ internal partial class WristMenu : MonoBehaviour
 
 	private static DateTime sessionStartTime = DateTime.Now;
 
-	private static string bottomBarStr = "FPS: 0 | 12:00 AM | 0:00";
+	private static string bottomBarStr = "";
+
+	internal static string BottomBarText => bottomBarStr;
 
 	private static float fpsAccumulator;
 
@@ -180,47 +180,9 @@ internal partial class WristMenu : MonoBehaviour
 
 	public static bool showFPS = false;
 
-		public static bool showSessionTime = false;
+	public static bool showSessionTime = false;
 
 	public static bool toggleMenu = false;
 	private static bool _prevToggleButton = false;
 	private static bool _menuStickyOpen = false;
-
-	
-
-	
-
-	
-		
-		
-		
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-
-	
-
-	
-
-	
-
-	// Destroys all gradient materials + their textures and the reference sphere's material.
-	
-
-	
-
-	}
+}

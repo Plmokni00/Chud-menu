@@ -64,6 +64,7 @@ public static class Buttons
 			new ButtonInfo { id = "settings_controller_pred", buttonText = "Controller Predictions Settings", method = () => MenuManager.Instance.ToggleCategory("Controller Predictions Settings"), type = ButtonType.Action, toolTip = "Opens the controller predictions settings" },
 			new ButtonInfo { id = "settings_fps_spoof", buttonText = "FPS Spoofer Settings", method = () => MenuManager.Instance.ToggleCategory("FPS Spoofer Settings"), type = ButtonType.Action, toolTip = "Opens the FPS spoofer settings" },
 			new ButtonInfo { id = "settings_click_sound", buttonText = "Button Click Sound", method = () => MenuManager.Instance.ToggleCategory("Button Click Sound"), type = ButtonType.Action, toolTip = "Opens the button click sound settings" },
+			new ButtonInfo { id = "settings_menu_layout", buttonText = "Menu Layout", method = () => MenuManager.Instance.ToggleCategory("Menu Layout"), type = ButtonType.Action, toolTip = "Opens the menu layout settings" },
 			new ButtonInfo { id = "settings_animations", buttonText = "Menu Animations", enableMethod = () => WristMenu.animationsEnabled = true, disableMethod = () => WristMenu.animationsEnabled = false, enabled = false, type = ButtonType.Toggle, toolTip = "Toggle menu open/close and button press animations" },
 			new ButtonInfo { id = "settings_toggle_menu", buttonText = "Toggle Menu", enableMethod = () => WristMenu.toggleMenu = true, disableMethod = () => WristMenu.toggleMenu = false, enabled = false, type = ButtonType.Toggle, toolTip = "Press button once to open, press again to close" },
 			new ButtonInfo { id = "settings_right_hand", buttonText = "Right Hand", enableMethod = Mods.EnableRightHand, disableMethod = Mods.DisableRightHand, enabled = false, type = ButtonType.Toggle, toolTip = "Move menu to right hand" },
@@ -300,6 +301,7 @@ public static class Buttons
 		AddSettingPage("Controller Predictions Settings", "controller_pred", "Settings", Mods.ControllerPredNames, Mods.SetControllerPrediction, "Set controller predictions");
 		AddSettingPage("FPS Spoofer Settings", "fps_spoof_opt", "Settings", Mods.FPSSpoofValues.Select(v => v.ToString()).ToArray(), Mods.SetFPSSpoof, "Spoof {0} fps");
 		AddSettingPage("Button Click Sound", "click_sound", "Settings", new[] { "Default button click", "Clicker trainer", "DDLC", "Minecraft Lever", "Skype" }, Mods.SetButtonClickSound, "Use {0} for button clicks");
+		AddSettingPage("Menu Layout", "menu_layout", "Settings", new[] { "Normal layout", "Modern layout" }, Mods.SetMenuLayout, "Use {0} for the menu");
 
 		MenuManager.Instance.AddCategory("Soundboard", Mods.BuildSoundboardCategory());
 

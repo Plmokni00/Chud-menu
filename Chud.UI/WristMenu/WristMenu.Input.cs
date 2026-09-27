@@ -22,10 +22,11 @@ internal partial class WristMenu
 		try
 		{
 			if (ControllerInputPoller.instance == null) return;
-			gripDownL = ControllerInputPoller.instance.leftGrab;			gripDownR = ControllerInputPoller.instance.rightGrab;
-		triggerDownL = ControllerInputPoller.instance.leftControllerIndexFloat == 1f;
-		triggerDownR = ControllerInputPoller.instance.rightControllerIndexFloat == 1f;
-		bbuttonDown = ControllerInputPoller.instance.rightControllerSecondaryButton;
+			gripDownL = ControllerInputPoller.instance.leftGrab;
+			gripDownR = ControllerInputPoller.instance.rightGrab;
+			triggerDownL = ControllerInputPoller.instance.leftControllerIndexFloat == 1f;
+			triggerDownR = ControllerInputPoller.instance.rightControllerIndexFloat == 1f;
+			bbuttonDown = ControllerInputPoller.instance.rightControllerSecondaryButton;
 			xbuttonDown = ControllerInputPoller.instance.leftControllerPrimaryButton;
 			ybuttonDown = ControllerInputPoller.instance.leftControllerSecondaryButton;
 			joy = ControllerInputPoller.instance.rightControllerPrimary2DAxis;
@@ -47,7 +48,7 @@ internal partial class WristMenu
 			fpsFrameCount++;
 			if (fpsFrameCount >= 30)
 			{
-				int num = ((fpsAccumulator > 0f) ? Mathf.RoundToInt((float)fpsFrameCount / fpsAccumulator) : 0);
+				int num = (fpsAccumulator > 0f) ? Mathf.RoundToInt((float)fpsFrameCount / fpsAccumulator) : 0;
 				fpsAccumulator = 0f;
 				fpsFrameCount = 0;
 				cachedFPS = num;
@@ -63,10 +64,17 @@ internal partial class WristMenu
 				bottomBarStr = sessionPart;
 			else
 				bottomBarStr = "";
-			if (menu != null && fpsText != null)
+			if (menuLayout == 0)
+		{
+			if (menu != (Object)null && fpsText != (Object)null)
 			{
 				fpsText.text = bottomBarStr;
 			}
+		}
+		else
+		{
+			SetMenuText("status", bottomBarStr);
+		}
 			if (_frameCounter % 60 == 0)
 			{
 				if (!Directory.Exists(FolderName)) Directory.CreateDirectory(FolderName);
@@ -186,9 +194,9 @@ internal partial class WristMenu
 						if (val != (Object)null)
 						{
 							_tpc = val.GetComponent<Camera>();
-			}
-		}
-	}
+						}
+					}
+				}
 				if (_tpc != (Object)null)
 				{
 					menu.transform.parent = ((Component)_tpc).transform;

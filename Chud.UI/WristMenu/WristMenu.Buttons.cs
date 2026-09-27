@@ -89,11 +89,7 @@ internal partial class WristMenu
 			return;
 		}
 		int count = currentButtons.Count;
-		int pageCount = (count + pageSize - 1) / pageSize;
-		if (pageCount < 1)
-		{
-			pageCount = 1;
-		}
+		int pageCount = PageCountFor(count);
 		switch (buttonId)
 		{
 		case "NextPage":
@@ -191,7 +187,8 @@ internal partial class WristMenu
 				else buttonInfo.method?.Invoke();
 			}
 			else if (buttonInfo.disableMethod != null) buttonInfo.disableMethod();
-		} catch { }
+		}
+		catch { }
 		if (buttonInfo.enabled == true && !string.IsNullOrEmpty(buttonInfo.toolTip) && buttonInfo.toolTip != "This button doesn't have a tooltip/tutorial")
 		{
 			NotifiLib.SendNotification(buttonInfo.buttonText + ": " + buttonInfo.toolTip, 2);
@@ -207,6 +204,11 @@ internal partial class WristMenu
 	{
 		if (string.IsNullOrEmpty(buttonId)) return;
 		if (menu == (Object)null) return;
+		if (menuLayout == 0)
+		{
+			MenuLayout2.UpdateButtonVisual2(buttonId, buttonText, isEnabled);
+			return;
+		}
 		foreach (Transform item in menu.transform)
 		{
 			Transform val2 = item;
@@ -233,19 +235,6 @@ internal partial class WristMenu
 				}
 			}
 		}
-		if (!(canvasObj != (Object)null))
-		{
-			return;
-		}
-		foreach (Transform item3 in canvasObj.transform)
-		{
-			Transform val4 = item3;
-			Text component3 = ((Component)val4).GetComponent<Text>();
-			if (component3 != (Object)null && component3.text == buttonText)
-			{
-				((Graphic)component3).color = (isEnabled ? EnableTextColor : DisableTextColor);
-				break;
-			}
-		}
+		SetMenuTextColor(buttonId, isEnabled ? EnableTextColor : DisableTextColor);
 	}
 }
