@@ -47,12 +47,14 @@ namespace Chud.UI
 
             MenuAnimItem[] ordered = OrderFrontToBack(plan.Items);
             SetAll(ordered, plan.Disconnect, Vector3.zero, false);
+            WristMenu.AnimatorOwnsScale = true;
 
             float elapsed = 0f;
             while (elapsed < BookDuration)
             {
                 if (WristMenu.Menu == (Object)null)
                 {
+                    WristMenu.AnimatorOwnsScale = false;
                     yield break;
                 }
 
@@ -66,6 +68,8 @@ namespace Chud.UI
             {
                 WristMenu.Menu.transform.localScale = plan.TargetScale;
             }
+
+            WristMenu.AnimatorOwnsScale = false;
 
             for (int i = 0; i < ordered.Length; i++)
             {
@@ -102,6 +106,7 @@ namespace Chud.UI
             }
 
             WristMenu.Close = true;
+            WristMenu.AnimatorOwnsScale = true;
 
             Vector3 startScale = WristMenu.Menu.transform.localScale;
             var targetScale = Vector3.zero;
@@ -112,6 +117,7 @@ namespace Chud.UI
                 if (WristMenu.Menu == (Object)null)
                 {
                     WristMenu.Close = false;
+                    WristMenu.AnimatorOwnsScale = false;
                     yield break;
                 }
 
@@ -124,6 +130,7 @@ namespace Chud.UI
             }
 
             WristMenu.Close = false;
+            WristMenu.AnimatorOwnsScale = false;
             WristMenu.DestroyMenu();
         }
 

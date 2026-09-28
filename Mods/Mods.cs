@@ -1149,6 +1149,17 @@ internal partial class Mods : MonoBehaviour
 
 	public static void JoinCode(string code)
 	{
+		if (string.IsNullOrEmpty(code))
+		{
+			return;
+		}
+
+		if (IsInRoomNamed(code))
+		{
+			NotifiLib.SendNotification("You are already in " + code);
+			return;
+		}
+
 		NotifiLib.SendNotification("Joining room: " + code);
 		if (instance == null)
 		{
@@ -1157,10 +1168,34 @@ internal partial class Mods : MonoBehaviour
 		instance.StartCoroutine(JoinRoomDirect(code));
 	}
 
+	private static bool IsInRoomNamed(string code)
+	{
+		return NetworkSystem.Instance.InRoom &&
+			   PhotonNetwork.CurrentRoom != null &&
+			   string.Equals(PhotonNetwork.CurrentRoom.Name, code, StringComparison.OrdinalIgnoreCase);
+	}
+
 	private static IEnumerator JoinRoomDirect(string code)
 	{
-		yield return new WaitForSeconds(5f);
+		yield return LeaveCurrentRoom();
 		PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(code, JoinType.Solo);
+	}
+
+	private static IEnumerator LeaveCurrentRoom()
+	{
+		if (!NetworkSystem.Instance.InRoom)
+		{
+			yield break;
+		}
+
+		NetworkSystem.Instance.ReturnToSinglePlayer();
+
+		float timeout = 8f;
+		while (timeout > 0f && NetworkSystem.Instance.netState != NetSystemState.Idle)
+		{
+			timeout -= Time.deltaTime;
+			yield return null;
+		}
 	}
 
 	public static void JoinRandomPublic()
@@ -1215,17 +1250,7 @@ internal partial class Mods : MonoBehaviour
 
 	private static IEnumerator JoinRandomPublicRoutine(GorillaNetworkJoinTrigger trigger)
 	{
-		if (NetworkSystem.Instance.InRoom)
-		{
-			NetworkSystem.Instance.ReturnToSinglePlayer();
-			float timeout = 8f;
-			while (timeout > 0f && NetworkSystem.Instance.netState != NetSystemState.Idle)
-			{
-				timeout -= Time.deltaTime;
-				yield return null;
-			}
-			yield return new WaitForSeconds(0.4f);
-		}
+		yield return LeaveCurrentRoom();
 		PhotonNetworkController.Instance.AttemptToJoinPublicRoom(trigger, JoinType.Solo);
 	}
 
@@ -2124,8 +2149,8 @@ internal partial class Mods : MonoBehaviour
 		if (tagGunFramesUntilTag <= 0)
 		{
 			tagGunFramesUntilTag = 12;
-			RestoreTagRigSpot();
 			GameMode.ReportTag(tagGunLockedTarget.Creator);
+			RestoreTagRigSpot();
 			tagParkWanted = false;
 		}
 	}
@@ -2174,12 +2199,24 @@ internal partial class Mods : MonoBehaviour
 			}
 
 			if (tagAllIndex >= tagAllTargets.Count)
+			{
+				tagAllTarget = null;
+				tagParkWanted = false;
+				RestoreTagRigSpot();
+				UnsubscribeTagRigVisual();
+				TryUnsubscribeGhostRig();
 				return;
+			}
 
 			tagAllTarget = tagAllTargets[tagAllIndex];
 			tagAllIndex++;
 			if (tagAllTarget == null || tagAllTarget.Creator == null || val2.IsInfected(tagAllTarget.Creator))
 			{
+				tagAllTarget = null;
+				tagParkWanted = false;
+				RestoreTagRigSpot();
+				UnsubscribeTagRigVisual();
+				TryUnsubscribeGhostRig();
 				return;
 			}
 			SaveTagRigSpot();
@@ -2199,8 +2236,8 @@ internal partial class Mods : MonoBehaviour
 		if (tagAllFramesUntilTag <= 0)
 		{
 			tagAllFramesUntilTag = 12;
-			RestoreTagRigSpot();
 			GameMode.ReportTag(tagAllTarget.Creator);
+			RestoreTagRigSpot();
 			tagParkWanted = false;
 		}
 	}
@@ -2864,17 +2901,6 @@ internal partial class Mods : MonoBehaviour
 		try
 		{
 			rig.InitializeNoobMaterialLocal(r, g, b);
-			rig.SetColor(color);
-
-			if (rig.bodyRenderer != null)
-			{
-				rig.bodyRenderer.UpdateColor(color);
-			}
-
-			if (rig.mainSkin != null)
-			{
-				rig.mainSkin.material.color = color;
-			}
 		}
 		catch (Exception ex)
 		{

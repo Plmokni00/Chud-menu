@@ -11,7 +11,9 @@ namespace Chud.UI
         private static readonly Vector3 CameraDownOffset = Vector3.down * 0.03f;
         private static readonly Quaternion CameraMenuRotation = Quaternion.Euler(-90f, 90f, 0f);
         private static readonly Quaternion RightHandMenuRotation = Quaternion.Euler(0f, 0f, 180f);
-        private static readonly Vector3 AnchorUpOffset = Vector3.up * 0.02f;
+        private const float AnchorUpHeight = 0.02f;
+
+        private static Vector3 AnchorUpOffset => Vector3.up * (AnchorUpHeight * GameContext.PlayerScale);
         private const float CameraForwardDistance = 0.5f;
 
         public static void ReanchorToCurrentHand()
@@ -188,6 +190,19 @@ namespace Chud.UI
 
             MenuAnchor.transform.position = MenuFollowHand.position + AnchorUpOffset;
             MenuAnchor.transform.rotation = MenuFollowHand.rotation;
+            ApplyLiveMenuScale();
+        }
+
+        internal static void ApplyLiveMenuScale()
+        {
+            if (Menu == (Object)null || MenuCameraAnchored || AnimatorOwnsScale || Close)
+            {
+                return;
+            }
+
+            Menu.transform.localScale = IsNormal
+                ? NormalLayout.MenuTargetScale(GameContext.PlayerScale)
+                : ModernLayout.MenuTargetScale(GameContext.PlayerScale);
         }
     }
 }

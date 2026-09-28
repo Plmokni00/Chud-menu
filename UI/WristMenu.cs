@@ -148,6 +148,8 @@ namespace Chud.UI
 
         private static bool _fontInitialized;
 
+        internal static bool AnimatorOwnsScale;
+
         internal static MenuFont Fonts;
 
         internal static void SetBottomBar(string value)

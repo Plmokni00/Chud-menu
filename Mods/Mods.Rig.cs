@@ -390,7 +390,7 @@ internal partial class Mods
 		if (target == null) return;
 
 		EnsureLocalRigEnabled();
-		Vector3 targetPos = ((Component)target).transform.position - new Vector3(0f, 3f, 0f);
+		Vector3 targetPos = ((Component)target).transform.position;
 		localRig.transform.position = targetPos;
 		if (localRig.head != null && localRig.head.rigTarget != (Object)null)
 			localRig.head.rigTarget.transform.position = targetPos;

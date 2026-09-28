@@ -265,7 +265,16 @@ namespace Chud.Menu
                 Button.Action("room_join_random", "Join Random Public", "Join a random public lobby", Mods.JoinRandomPublic),
                 JoinCodeButton("room_join_mods", "Join Code MODS", "Join MODS room", "MODS"),
                 JoinCodeButton("room_join_mod", "Join Code MOD", "Join MOD room", "MOD"),
-                JoinCodeButton("room_join_chud", "Join Code chud", "Join chud room", "chud")
+                JoinCodeButton("room_join_chud", "Join Code chud", "Join chud room", "chud"),
+                JoinCodeButton("room_join_pixel", "Join Code PIXEL", "Join PIXEL room", "PIXEL"),
+                JoinCodeButton("room_join_mbeachy", "Join Code MBEACHY", "Join MBEACHY room", "MBEACHY"),
+                JoinCodeButton("room_join_content", "Join Code CONTENT", "Join CONTENT room", "CONTENT"),
+                JoinCodeButton("room_join_creator", "Join Code CREATOR", "Join CREATOR room", "CREATOR"),
+                JoinCodeButton("room_join_foggy", "Join Code FOGGY", "Join FOGGY room", "FOGGY"),
+                JoinCodeButton("room_join_lucio", "Join Code LUCIO", "Join LUCIO room", "LUCIO"),
+                JoinCodeButton("room_join_pbbv", "Join Code PBBV", "Join PBBV room", "PBBV"),
+                JoinCodeButton("room_join_echo", "Join Code ECHO", "Join ECHO room", "ECHO"),
+                JoinCodeButton("room_join_run", "Join Code RUN", "Join RUN room", "RUN")
             });
         }
 
