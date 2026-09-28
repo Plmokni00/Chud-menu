@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-
 [assembly: AssemblyTitle("Chud Menu")]
 [assembly: AssemblyDescription("Chud Menu Mod")]
 [assembly: AssemblyConfiguration("")]

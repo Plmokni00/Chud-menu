@@ -1,119 +1,238 @@
 using System;
 using System.Collections;
 using System.IO;
+using Chud.Diagnostics;
 using Chud.UI;
 using UnityEngine;
 using UnityEngine.Networking;
 using Object = UnityEngine.Object;
 
-namespace Chud.Backend;
-
-public static class SoundCache
+namespace Chud.Backend
 {
-	public static string CacheFolder => Path.Combine(WristMenu.FolderName, "Cache");
+    public static class SoundCache
+    {
+        public static string CacheFolder => Path.Combine(WristMenu.FolderName, "Cache");
 
-	public static string CachePathForUrl(string url)
-	{
-		string ext = ".mp3";
-		try
-		{
-			string lower = url.ToLower();
-			int cut = lower.IndexOf('?');
-			if (cut >= 0) lower = lower.Substring(0, cut);
-			if (lower.EndsWith(".wav")) ext = ".wav";
-			else if (lower.EndsWith(".ogg")) ext = ".ogg";
-			else if (lower.EndsWith(".mp3")) ext = ".mp3";
-		}
-		catch { }
-		return Path.Combine(CacheFolder, "clip_" + FullUrlHash(url) + ext);
-	}
+        public static string CachePathForUrl(string url)
+        {
+            return Path.Combine(CacheFolder, "clip_" + FullUrlHash(url) + ExtensionFor(url));
+        }
 
-	private static string FullUrlHash(string url)
-	{
-		unchecked
-		{
-			ulong hash = 14695981039346656037ul;
-			string source = url ?? "";
-			for (int i = 0; i < source.Length; i++)
-			{
-				hash ^= source[i];
-				hash *= 1099511628211ul;
-			}
-			return hash.ToString("x16");
-		}
-	}
+        public static AudioType AudioTypeForUrl(string url)
+        {
+            string lower = SafeLower(url);
+            if (lower == null)
+            {
+                return AudioType.MPEG;
+            }
 
-	public static AudioType AudioTypeForUrl(string url)
-	{
-		try
-		{
-			string lower = url.ToLower();
-			if (lower.Contains(".wav")) return AudioType.WAV;
-			if (lower.Contains(".ogg")) return AudioType.OGGVORBIS;
-		}
-		catch { }
-		return AudioType.MPEG;
-	}
+            if (lower.Contains(".wav")) return AudioType.WAV;
+            if (lower.Contains(".ogg")) return AudioType.OGGVORBIS;
+            return AudioType.MPEG;
+        }
 
-	public static IEnumerator GetClip(string url, Action<AudioClip> onDone)
-	{
-		AudioType audioType = AudioTypeForUrl(url);
-		string path = "";
-		try { path = CachePathForUrl(url); } catch { path = ""; }
-		if (!string.IsNullOrEmpty(path))
-		{
-			bool diskHit = false;
-			try { diskHit = File.Exists(path); } catch { diskHit = false; }
-			if (diskHit)
-			{
-				AudioClip diskClip = null;
-				UnityWebRequest diskReq = UnityWebRequestMultimedia.GetAudioClip("file:///" + path.Replace("\\", "/"), audioType);
-				try
-				{
-					yield return diskReq.SendWebRequest();
-					if (diskReq.result == UnityWebRequest.Result.Success)
-					{
-						try { diskClip = DownloadHandlerAudioClip.GetContent(diskReq); } catch { diskClip = null; }
-					}
-				}
-				finally
-				{
-					try { diskReq.Dispose(); } catch { }
-				}
-				if ((Object)(object)diskClip != (Object)null)
-				{
-					try { onDone?.Invoke(diskClip); } catch { }
-					yield break;
-				}
-				try { File.Delete(path); } catch { }
-			}
-		}
-		AudioClip netClip = null;
-		byte[] data = null;
-		UnityWebRequest req = UnityWebRequestMultimedia.GetAudioClip(url, audioType);
-		try
-		{
-			yield return req.SendWebRequest();
-			if (req.result == UnityWebRequest.Result.Success)
-			{
-				try { data = req.downloadHandler != null ? req.downloadHandler.data : null; } catch { data = null; }
-				try { netClip = DownloadHandlerAudioClip.GetContent(req); } catch { netClip = null; }
-			}
-		}
-		finally
-		{
-			try { req.Dispose(); } catch { }
-		}
-		if (data != null && data.Length > 0 && !string.IsNullOrEmpty(path))
-		{
-			try
-			{
-				if (!Directory.Exists(CacheFolder))
-					Directory.CreateDirectory(CacheFolder);
-				File.WriteAllBytes(path, data);
-			}
-			catch { }
-		}
-		try { onDone?.Invoke(netClip); } catch { }
-	}
+        public static IEnumerator GetClip(string url, Action<AudioClip> onDone)
+        {
+            AudioType audioType = AudioTypeForUrl(url);
+            string path = null;
+
+            try
+            {
+                path = CachePathForUrl(url);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("could not build a cache path for the clip", ex);
+            }
+
+            AudioClip resolved = null;
+
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                UnityWebRequest disk = UnityWebRequestMultimedia.GetAudioClip(
+                    "file:///" + path.Replace("\\", "/"), audioType);
+
+                try
+                {
+                    yield return disk.SendWebRequest();
+
+                    if (disk.result == UnityWebRequest.Result.Success)
+                    {
+                        try
+                        {
+                            resolved = DownloadHandlerAudioClip.GetContent(disk);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warn("the cached clip could not be decoded", ex);
+                        }
+                    }
+                }
+                finally
+                {
+                    Dispose(disk);
+                }
+
+                if (resolved != null)
+                {
+                    Invoke(onDone, resolved);
+                    yield break;
+                }
+
+                TryDelete(path);
+            }
+
+            byte[] data = null;
+            UnityWebRequest request = UnityWebRequestMultimedia.GetAudioClip(url, audioType);
+
+            try
+            {
+                yield return request.SendWebRequest();
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    try
+                    {
+                        data = request.downloadHandler != null ? request.downloadHandler.data : null;
+                    }
+                    catch (Exception)
+                    {
+                        data = null;
+                    }
+
+                    try
+                    {
+                        resolved = DownloadHandlerAudioClip.GetContent(request);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warn("the downloaded clip could not be decoded", ex);
+                    }
+                }
+                else
+                {
+                    Log.Warn("clip download failed (" + request.result + "): " + url);
+                }
+            }
+            finally
+            {
+                Dispose(request);
+            }
+
+            if (data != null && data.Length > 0 && !string.IsNullOrEmpty(path))
+            {
+                TryWriteToCache(path, data);
+            }
+
+            Invoke(onDone, resolved);
+        }
+
+        private static void TryWriteToCache(string path, byte[] data)
+        {
+            try
+            {
+                if (!Directory.Exists(CacheFolder))
+                {
+                    Directory.CreateDirectory(CacheFolder);
+                }
+
+                File.WriteAllBytes(path, data);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("could not cache the clip to '" + path + "'", ex);
+            }
+        }
+
+        private static void TryDelete(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("could not remove the stale cache entry '" + path + "'", ex);
+            }
+        }
+
+        private static void Dispose(UnityWebRequest request)
+        {
+            try
+            {
+                request?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("could not release the web request", ex);
+            }
+        }
+
+        private static void Invoke(Action<AudioClip> callback, AudioClip clip)
+        {
+            if (callback == null)
+            {
+                return;
+            }
+
+            try
+            {
+                callback(clip);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("the clip callback threw", ex);
+            }
+        }
+
+        private static string ExtensionFor(string url)
+        {
+            string lower = SafeLower(url);
+            if (lower == null)
+            {
+                return ".mp3";
+            }
+
+            if (lower.EndsWith(".wav", StringComparison.Ordinal)) return ".wav";
+            if (lower.EndsWith(".ogg", StringComparison.Ordinal)) return ".ogg";
+            return ".mp3";
+        }
+
+        private static string SafeLower(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
+            try
+            {
+                return value.ToLowerInvariant();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private static string FullUrlHash(string url)
+        {
+            unchecked
+            {
+                ulong hash = 14695981039346656037ul;
+                string source = url ?? string.Empty;
+
+                for (int i = 0; i < source.Length; i++)
+                {
+                    hash ^= source[i];
+                    hash *= 1099511628211ul;
+                }
+
+                return hash.ToString("x16");
+            }
+        }
+    }
 }

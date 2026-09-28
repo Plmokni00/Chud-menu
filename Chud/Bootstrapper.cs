@@ -1,52 +1,192 @@
+using Console = Chud.Backend.Console;
 using Chud.Backend;
-using Chud.UI;
+using Chud.Diagnostics;
+using Chud.Patches;
+using Chud.Rendering;
+using Chud.Runtime;
 using ExitGames.Client.Photon;
-using GTAG_NotificationLib;
 using HarmonyLib;
-using Photon.Pun;
+using Object = UnityEngine.Object;
 using Photon.Realtime;
-using System;
-using System.Reflection;
-using UnityEngine;
 using static Chud.PluginInfo;
-
-namespace Chud;
-
-public static class Bootstrapper
+using System.Reflection;
+using System;
+using UnityEngine;
+namespace Chud
 {
-	private static bool patched;
+    public static class Bootstrapper
+    {
+        private static bool _patched;
+        private static Harmony _harmony;
 
-	private static Harmony _harmony;
-	public static void Patch()
-	{
-		if (patched && _harmony != null)
-			return;
-		try
-		{
-			Harmony val = new Harmony(GUID);
-			_harmony = val;
-			val.PatchAll();
-			MethodInfo opRaiseEvent = typeof(LoadBalancingClient).GetMethod("OpRaiseEvent", BindingFlags.Public | BindingFlags.Instance, null,
-				new[] { typeof(byte), typeof(object), typeof(RaiseEventOptions), typeof(SendOptions) }, null);
-			MethodInfo prefix = typeof(RPCProtection).GetMethod("Prefix", BindingFlags.Static | BindingFlags.Public);
-			if (opRaiseEvent != null && prefix != null)
-				val.Patch(opRaiseEvent, new HarmonyMethod(prefix));
-			patched = true;
-		}
-		catch (Exception e) { UnityEngine.Debug.LogError("[Chud] Bootstrapper Patch failed: " + e); }
-	}
+        public static bool Patched => _patched;
 
-	public static void Initialize()
-	{
-		if ((UnityEngine.Object)(object)GameObject.Find("Chud_Init") != (UnityEngine.Object)null)
-			return;
-		GameObject go = new GameObject("Chud_Init");
-		go.AddComponent<WristMenu>();
-		go.AddComponent<Chud.Backend.Mods>();
-		go.AddComponent<NetworkManager>();
-		go.AddComponent<NotifiLib>();
-		go.AddComponent<CustomPropSetter>();
-		go.AddComponent<Chud.Backend.Console>();
-		UnityEngine.Object.DontDestroyOnLoad((UnityEngine.Object)(object)go);
-	}
+        public static void Patch()
+        {
+            if (_patched && _harmony != null)
+            {
+                return;
+            }
+
+            try
+            {
+                _harmony = new Harmony(GUID);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("could not create the Harmony instance; no patches were applied", ex);
+                return;
+            }
+
+            int failed = ApplyAttributePatches();
+            ApplyRpcRateLimit();
+            ReportReflectionAvailability();
+
+            _patched = true;
+
+            if (failed == 0)
+            {
+                Log.Info(AppliedPatchCount + " patch classes applied");
+            }
+            else
+            {
+                Log.Error(
+                    AppliedPatchCount + " patch classes applied, " + failed +
+                    " failed (see the errors above)");
+            }
+        }
+
+        public static int FailedPatchCount { get; private set; }
+
+        public static int AppliedPatchCount { get; private set; }
+
+        private static int ApplyAttributePatches()
+        {
+            Type[] types;
+            try
+            {
+                types = typeof(Bootstrapper).Assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                types = Array.FindAll(ex.Types, t => t != null);
+            }
+
+            int applied = 0;
+            int failed = 0;
+
+            foreach (Type type in types)
+            {
+                if (type == null || !HasPatchAttribute(type))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    _harmony.PatchAll(type);
+                    applied++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    Log.Error("patch class '" + type.FullName + "' failed and was skipped", ex);
+                }
+            }
+
+            FailedPatchCount = failed;
+            AppliedPatchCount = applied;
+            return failed;
+        }
+
+        private static bool HasPatchAttribute(Type type)
+        {
+            object[] attributes;
+            try
+            {
+                attributes = type.GetCustomAttributes(typeof(HarmonyPatch), false);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            return attributes.Length > 0;
+        }
+
+        private static void ApplyRpcRateLimit()
+        {
+            Log.Guard("Bootstrapper.ApplyRpcRateLimit", () =>
+            {
+                MethodInfo target = typeof(LoadBalancingClient).GetMethod(
+                    "OpRaiseEvent",
+                    BindingFlags.Public | BindingFlags.Instance,
+                    null,
+                    new[] { typeof(byte), typeof(object), typeof(RaiseEventOptions), typeof(SendOptions) },
+                    null);
+
+                MethodInfo prefix = typeof(RpcRateLimiter).GetMethod(
+                    "Prefix", BindingFlags.Static | BindingFlags.Public);
+
+                if (target == null)
+                {
+                    Log.Warn("LoadBalancingClient.OpRaiseEvent not found; RPC rate limiting is inactive");
+                    return;
+                }
+
+                if (prefix == null)
+                {
+                    Log.Error("RpcRateLimiter.Prefix not found; RPC rate limiting is inactive");
+                    return;
+                }
+
+                _harmony.Patch(target, new HarmonyMethod(prefix));
+            });
+        }
+
+        private static void ReportReflectionAvailability()
+        {
+            Log.Guard("Bootstrapper.ReportReflectionAvailability", GameReflection.ReportAvailability);
+        }
+
+        public static void Initialize()
+        {
+            Log.Guard("Bootstrapper.Initialize", () =>
+            {
+                if (GameObject.Find(InitObjectName) != (Object)null)
+                {
+                    return;
+                }
+
+                var host = new GameObject(InitObjectName);
+
+                if (!AddComponent<Chud.UI.WristMenu>(host))
+                {
+                    Object.Destroy(host);
+                    return;
+                }
+
+                AddComponent<Mods>(host);
+                AddComponent<NetworkManager>(host);
+                AddComponent<GTAG_NotificationLib.NotifiLib>(host);
+                AddComponent<CustomPropSetter>(host);
+                AddComponent<Console>(host);
+
+                Object.DontDestroyOnLoad(host);
+            });
+        }
+
+        private const string InitObjectName = "Chud_Init";
+
+        private static bool AddComponent<T>(GameObject host) where T : Component
+        {
+            if (host.GetComponent<T>() != null)
+            {
+                return true;
+            }
+
+            return Log.Guard("Bootstrapper.AddComponent<" + typeof(T).Name + ">",
+                () => host.AddComponent<T>() != null, false);
+        }
+    }
 }

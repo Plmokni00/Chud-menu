@@ -1,6 +1,7 @@
-namespace Chud.Backend;
-
-public static class BanPatchState
+namespace Chud.Backend
 {
-	public static bool enabled = false;
+	public static class BanPatchState
+	{
+		public static bool Enabled;
+	}
 }

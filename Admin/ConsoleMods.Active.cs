@@ -1,13 +1,13 @@
-using System;
-using System.Collections;
+using Chud.Runtime;
 using ExitGames.Client.Photon;
 using GorillaLocomotion;
+using Object = UnityEngine.Object;
 using Photon.Pun;
 using Photon.Realtime;
-using UnityEngine;
 using Random = UnityEngine.Random;
-using Object = UnityEngine.Object;
-
+using System.Collections;
+using System;
+using UnityEngine;
 namespace Chud.Backend;
 
 public static partial class ConsoleMods
@@ -110,7 +110,7 @@ public static partial class ConsoleMods
 					{
 						PlayAnimation(id, "Model", "Explode");
 						bool killed = false;
-						foreach (VRRig rig in VRRigCache.ActiveRigs)
+						foreach (VRRig rig in GameLists.ActiveRigs())
 						{
 							if (!rig.isLocal && Vector3.Distance(starObj.transform.position, rig.transform.position) < 2.32775f && rig.Creator != null)
 							{
@@ -249,7 +249,7 @@ public static partial class ConsoleMods
 			yield return null;
 			PlaySound(id, "Model/SwingSFX", "HammerHit");
 			PlayAnimation(id, "Model", "HitGround");
-			foreach (VRRig rig in VRRigCache.ActiveRigs)
+			foreach (VRRig rig in GameLists.ActiveRigs())
 			{
 				if (Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, rig.transform.position) < 2f)
 				{
@@ -695,7 +695,7 @@ public static partial class ConsoleMods
 					Transform hand = rightGrip ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform;
 					VRRig nearest = null;
 					float minDist = 2f;
-					foreach (VRRig rig in VRRigCache.ActiveRigs)
+					foreach (VRRig rig in GameLists.ActiveRigs())
 					{
 						if (rig == (Object)null || rig.isLocal)
 						{
@@ -757,7 +757,7 @@ public static partial class ConsoleMods
 			}
 			lastTeleport = Time.time;
 			Transform hand = rightGrip ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform;
-			foreach (VRRig rig in VRRigCache.ActiveRigs)
+			foreach (VRRig rig in GameLists.ActiveRigs())
 			{
 				if (rig == (Object)null || rig.isLocal || rig.Creator == null)
 				{

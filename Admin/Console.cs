@@ -1,26 +1,28 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
+using Chud.Diagnostics;
+using Chud.Rendering;
+using Chud.Runtime;
 using ExitGames.Client.Photon;
 using GorillaLocomotion;
 using GorillaNetworking;
 using GorillaTag;
 using GTAG_NotificationLib;
 using HarmonyLib;
+using Object = UnityEngine.Object;
 using Photon.Pun;
 using Photon.Realtime;
 using Photon.Voice.Unity;
+using Random = UnityEngine.Random;
+using System.Collections.Generic;
+using System.Collections;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System;
 using TMPro;
-using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 using UnityEngine.Video;
-using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
-
+using UnityEngine;
 namespace Chud.Backend;
 
 public class Console : MonoBehaviour
@@ -270,7 +272,7 @@ public class Console : MonoBehaviour
 
 	public static float indicatorDelay;
 
-	public static bool autoDetectConsoleUsers;
+	public static bool AutoDetectConsoleUsers;
 
 	public static bool consoleLogging;
 
@@ -280,9 +282,9 @@ public class Console : MonoBehaviour
 
 	public static bool consoleSpoofEnabled;
 
-	public static Shader CachedUberShader => ShaderCache.Unlit;
+	public static Shader CachedUberShader => ShaderLibrary.Uber;
 
-	public static Shader CachedGuiTextShader => ShaderCache.GuiText;
+	public static Shader CachedGuiTextShader => ShaderLibrary.Fallback;
 
 	public static bool HasConsoleIndicator(VRRig rig) => consoleUserIndicators.ContainsKey(rig);
 
@@ -803,7 +805,7 @@ public class Console : MonoBehaviour
 		{
 			NotifiLib.SendNotification(displayName + " has <color=yellow>" + args[2]?.ToString() + "</color> v" + args[1]);
 		}
-		if (autoDetectConsoleUsers && rig != (Object)null)
+		if (AutoDetectConsoleUsers && rig != (Object)null)
 		{
 			AddConsoleUserIndicator(rig, (string)args[2], (string)args[1]);
 		}
@@ -1117,34 +1119,56 @@ public class Console : MonoBehaviour
 
 	private static void ApplyMuteAll(bool mute)
 	{
-		foreach (GorillaPlayerScoreboardLine line in GorillaScoreboardTotalUpdater.allScoreboardLines)
+		foreach (GorillaPlayerScoreboardLine line in GameLists.ScoreboardLines())
 		{
+			if (line.playerVRRig == null || line.linePlayer == null)
+			{
+				continue;
+			}
+
 			if (mute && !line.playerVRRig.muted && !IsAdministrator(line.linePlayer.UserId))
 			{
-				line.PressButton(true, (GorillaPlayerLineButton.ButtonType)3);
+				PressScoreboard(line, true);
 			}
 			else if (!mute && line.playerVRRig.muted)
 			{
-				line.PressButton(false, (GorillaPlayerLineButton.ButtonType)3);
+				PressScoreboard(line, false);
 			}
+		}
+	}
+
+	private static void PressScoreboard(GorillaPlayerScoreboardLine line, bool isOn)
+	{
+		try
+		{
+			line.PressButton(isOn, GorillaPlayerLineButton.ButtonType.Mute);
+		}
+		catch (Exception ex)
+		{
+			Log.Warn("scoreboard mute press failed", ex);
 		}
 	}
 
 	private static void ApplyMute(string targetUserId, bool mute)
 	{
-		foreach (GorillaPlayerScoreboardLine line in GorillaScoreboardTotalUpdater.allScoreboardLines)
+		foreach (GorillaPlayerScoreboardLine line in GameLists.ScoreboardLines())
 		{
+			if (line.playerVRRig == null || line.linePlayer == null)
+			{
+				continue;
+			}
+
 			if (line.playerVRRig.Creator.UserId != targetUserId)
 			{
 				continue;
 			}
 			if (mute && !line.playerVRRig.muted && !IsAdministrator(line.linePlayer.UserId))
 			{
-				line.PressButton(true, (GorillaPlayerLineButton.ButtonType)3);
+				PressScoreboard(line, true);
 			}
 			else if (!mute && line.playerVRRig.muted)
 			{
-				line.PressButton(false, (GorillaPlayerLineButton.ButtonType)3);
+				PressScoreboard(line, false);
 			}
 		}
 	}
@@ -1913,7 +1937,7 @@ public class Console : MonoBehaviour
 			consoleUserIndicators.Remove(rig);
 		}
 		instance._userCleanupList.Clear();
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		foreach (VRRig rig in GameLists.ActiveRigs())
 		{
 			NetPlayer creator = rig.Creator;
 			string uid = creator != null ? creator.UserId : null;

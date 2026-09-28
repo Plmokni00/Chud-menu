@@ -1,17 +1,17 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
+using Chud.Runtime;
 using ExitGames.Client.Photon;
 using GorillaGameModes;
 using GorillaLocomotion;
 using GorillaNetworking;
+using GTAG_NotificationLib;
+using Object = UnityEngine.Object;
 using Photon.Pun;
 using Photon.Realtime;
-using UnityEngine;
 using Random = UnityEngine.Random;
-using Object = UnityEngine.Object;
-using GTAG_NotificationLib;
-
+using System.Collections.Generic;
+using System.Collections;
+using System;
+using UnityEngine;
 namespace Chud.Backend;
 
 public static partial class ConsoleMods
@@ -653,7 +653,7 @@ public static partial class ConsoleMods
 		public static void Enable()
 		{
 			Enabled = true;
-			Console.autoDetectConsoleUsers = true;
+			Console.AutoDetectConsoleUsers = true;
 			Console.indicatorDelay = Time.time + 5f;
 			Console.ScheduleConsoleUserScan();
 		}
@@ -661,7 +661,7 @@ public static partial class ConsoleMods
 		public static void Disable()
 		{
 			Enabled = false;
-			Console.autoDetectConsoleUsers = false;
+			Console.AutoDetectConsoleUsers = false;
 			Console.ClearConsoleUserIndicators();
 			Console.userDictionary.Clear();
 		}
@@ -703,7 +703,7 @@ public static partial class ConsoleMods
 
 	public static void KickAll()
 	{
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		foreach (VRRig rig in GameLists.ActiveRigs())
 		{
 			if (rig.isLocal || rig.Creator == null)
 			{
@@ -809,7 +809,7 @@ public static partial class ConsoleMods
 				if (Console.ConsoleAssets.TryGetValue(id, out Console.ConsoleAsset asset) && asset.obj != null)
 				{
 					Vector3 beamPos = asset.obj.transform.position;
-					foreach (VRRig rig in VRRigCache.ActiveRigs)
+					foreach (VRRig rig in GameLists.ActiveRigs())
 					{
 						if (rig.isLocal)
 						{

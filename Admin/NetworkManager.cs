@@ -1,15 +1,14 @@
-using System;
-using System.Linq;
-using Chud.Classes;
+using Chud.Menu;
 using Chud.UI;
 using ExitGames.Client.Photon;
 using GorillaTag;
 using GTAG_NotificationLib;
+using Object = UnityEngine.Object;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Linq;
+using System;
 using UnityEngine;
-using Object = UnityEngine.Object;
-
 namespace Chud.Backend;
 
 public class NetworkManager : MonoBehaviour
@@ -31,7 +30,7 @@ public class NetworkManager : MonoBehaviour
 
 	private void OnEventReceived(EventData data)
 	{
-		if (data.Code == 8 && Mods.seeAntiCheatReports)
+		if (data.Code == 8 && Mods.SeeAntiCheatReports)
 		{
 			HandleAntiCheatReport(data);
 			return;
@@ -67,14 +66,14 @@ public class NetworkManager : MonoBehaviour
 			string reportedName = (array[4] as string) ?? "?";
 			string reason = (array[5] as string) ?? "?";
 			string key = reason + "_" + reportedName;
-			if (Mods.antiCheatReportCounts.TryGetValue(key, out var count))
+			if (Mods.AntiCheatReportCounts.TryGetValue(key, out var count))
 			{
-				Mods.antiCheatReportCounts[key] = count + 1;
+				Mods.AntiCheatReportCounts[key] = count + 1;
 				NotifiLib.SendNotification(reason + " — " + reportedName + " <color=yellow>" + (count + 1) + "x</color>");
 			}
 			else
 			{
-				Mods.antiCheatReportCounts[key] = 1;
+				Mods.AntiCheatReportCounts[key] = 1;
 				NotifiLib.SendNotification(reason + " — " + reportedName);
 			}
 		}

@@ -1,21 +1,22 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
+using Chud.Diagnostics;
+using Chud.Runtime;
 using Chud.UI;
 using GorillaLocomotion;
 using GTAG_NotificationLib;
 using HarmonyLib;
-using Photon.Voice.Unity;
-using POpusCodec.Enums;
-using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
-using UnityEngine.XR;
 using Object = UnityEngine.Object;
+using Photon.Voice.Unity;
 using Pointer = UnityEngine.InputSystem.Pointer;
+using POpusCodec.Enums;
 using Random = UnityEngine.Random;
-
+using System.Collections.Generic;
+using System.Collections;
+using System.Reflection;
+using System;
+using UnityEngine.InputSystem.Controls;
+using UnityEngine.InputSystem;
+using UnityEngine.XR;
+using UnityEngine;
 namespace Chud.Backend;
 
 internal partial class Mods
@@ -30,7 +31,9 @@ internal partial class Mods
 
 	private bool wasdFlyNoMouseLock = false;
 
-	private float wasdPitch;
+	private float wasdLookStartYaw = -901f;
+
+	private float wasdLookStartPitch = -901f;
 
 	private bool flyActive = false;
 
@@ -159,7 +162,8 @@ internal partial class Mods
 			return;
 		}
 		instance.wasdFlyActive = true;
-		instance.wasdPitch = 0f;
+		instance.wasdLookStartYaw = -901f;
+		instance.wasdLookStartPitch = -901f;
 		instance.RegisterFlyGravityOverride();
 	}
 
@@ -195,7 +199,7 @@ internal partial class Mods
 	{
 		if (flyActive)
 		{
-			if (ControllerInputPoller.instance != (Object)null && GorillaTagger.Instance != (Object)null && !(GorillaTagger.Instance.rigidbody == (Object)null) && (isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton))
+			if (ControllerInputPoller.instance != (Object)null && GorillaTagger.Instance != (Object)null && !(GorillaTagger.Instance.rigidbody == (Object)null) && (IsRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton))
 			{
 				RegisterFlyGravityOverride();
 				Transform transform = GTPlayer.Instance.transform;
@@ -288,21 +292,44 @@ internal partial class Mods
 		Mouse current2 = Mouse.current;
 		if (current2 != null && current2.rightButton.isPressed)
 		{
+			Transform look = GTPlayer.Instance.GetControllerTransform(false)?.parent;
+			if (look != null)
+			{
+				if (wasdLookStartYaw < -900f)
+				{
+					Vector3 startEuler = look.rotation.eulerAngles;
+					wasdLookStartYaw = startEuler.y;
+					wasdLookStartPitch = startEuler.x > 180f ? startEuler.x - 360f : startEuler.x;
+				}
+
+				Vector2 val4 = ((InputControl<Vector2>)(object)((Pointer)current2).delta).ReadValue() * wasdFlyMouseSense * 0.15f;
+				wasdLookStartYaw += val4.x;
+				wasdLookStartPitch = Mathf.Clamp(wasdLookStartPitch - val4.y, -90f, 90f);
+
+				look.rotation = Quaternion.Euler(wasdLookStartPitch, wasdLookStartYaw, 0f);
+			}
+
 			if (!wasdFlyNoMouseLock)
 			{
 				Cursor.lockState = CursorLockMode.Locked;
 				Cursor.visible = false;
 			}
-			Vector2 val4 = ((InputControl<Vector2>)(object)((Pointer)current2).delta).ReadValue() * wasdFlyMouseSense * 0.15f;
-			transform2.Rotate(Vector3.up, val4.x, Space.World);
-			wasdPitch = Mathf.Clamp(wasdPitch - val4.y, -90f, 90f);
-			Quaternion targetRot = Quaternion.Euler(wasdPitch, 0f, 0f);
-			transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRot, Time.deltaTime * 12f);
 		}
-		else if (!wasdFlyNoMouseLock && (int)Cursor.lockState == 1)
+		else
 		{
-			Cursor.lockState = CursorLockMode.None;
-			Cursor.visible = true;
+			wasdLookStartYaw = -901f;
+			wasdLookStartPitch = -901f;
+
+			if (!wasdFlyNoMouseLock && (int)Cursor.lockState == 1)
+			{
+				Cursor.lockState = CursorLockMode.None;
+				Cursor.visible = true;
+			}
+		}
+
+		if (VRRig.LocalRig != null && VRRig.LocalRig.head != null && VRRig.LocalRig.head.rigTarget != null)
+		{
+			VRRig.LocalRig.head.rigTarget.transform.rotation = GTPlayer.Instance.headCollider.transform.rotation;
 		}
 	}
 
@@ -368,8 +395,8 @@ internal partial class Mods
 
 	private void PlatformsThing(bool invis, bool sticky)
 	{
-		RPlat = WristMenu.gripDownR;
-		LPlat = WristMenu.gripDownL;
+		RPlat = WristMenu.GripDownR;
+		LPlat = WristMenu.GripDownL;
 		if (platMaterial != null) platMaterial.color = WristMenu.ButtonColorEnabled;
 		ProcessPlatform(RPlat, ref jump_right_local, ref once_right, ref once_right_false, ref stickyRightActive, true, sticky);
 		ProcessPlatform(LPlat, ref jump_left_local, ref once_left, ref once_left_false, ref stickyLeftActive, false, sticky);
@@ -525,8 +552,13 @@ internal partial class Mods
 		if (!grabGreenBugActive && !grabDougBugActive && !grabAllBugsActive && !grabSpazBugActive)
 			return;
 
-		bool rightGrip = ControllerInputPoller.instance != (Object)null && ControllerInputPoller.instance.rightGrab;
-		bool leftGrip = ControllerInputPoller.instance != (Object)null && ControllerInputPoller.instance.leftGrab;
+		GorillaTagger tagger = GameContext.Tagger;
+		ControllerInputPoller poller = GameContext.Poller;
+		if (tagger == (Object)null || poller == (Object)null)
+			return;
+
+		bool rightGrip = poller.rightGrab;
+		bool leftGrip = poller.leftGrab;
 		bool anyGrip = rightGrip || leftGrip;
 
 		if (!anyGrip && !grabSpazBugActive)
@@ -539,8 +571,8 @@ internal partial class Mods
 			cachedGrabBugs.AddRange(Resources.FindObjectsOfTypeAll<ThrowableBug>());
 		}
 
-		Transform rightHand = GorillaTagger.Instance.rightHandTransform;
-		Transform leftHand = GorillaTagger.Instance.leftHandTransform;
+		Transform rightHand = tagger.rightHandTransform;
+		Transform leftHand = tagger.leftHandTransform;
 		Transform hand = rightGrip ? rightHand : leftHand;
 
 		for (int i = cachedGrabBugs.Count - 1; i >= 0; i--)
@@ -556,48 +588,59 @@ internal partial class Mods
 
 			try
 			{
-				if (grabSpazBugActive)
-				{
-					if (!bug.IsMyItem())
-						bug.WorldShareableRequestOwnership();
-					float phase = (float)(bug.GetInstanceID() % 97) * 0.010309f;
-					float t = (Mathf.Sin((Time.time + phase) * 12f) + 1f) * 0.5f;
-					bug.transform.position = Vector3.Lerp(leftHand.position, rightHand.position, t);
-					bug.transform.rotation = Random.rotation;
-					continue;
-				}
-
-				if (!anyGrip)
-					continue;
-
-				Transform model = bug.transform.Find("model/PlumpBeetle");
-				if (model == (Object)null) continue;
-				SkinnedMeshRenderer renderer = model.GetComponent<SkinnedMeshRenderer>();
-				if (renderer == (Object)null || renderer.material == (Object)null) continue;
-				string matName = renderer.material.name;
-				bool isGreen = matName.Contains("PlumpBeetle2");
-				bool isDoug = !isGreen && matName.Contains("PlumpBeetle");
-				bool shouldGrab = grabAllBugsActive || (grabGreenBugActive && isGreen) || (grabDougBugActive && isDoug);
-
-				if (!shouldGrab)
-					continue;
-
-				if (!bug.IsMyItem())
-					bug.WorldShareableRequestOwnership();
-
-				Rigidbody rb = bug.GetComponent<Rigidbody>();
-				if (rb != (Object)null)
-					rb.position = hand.position;
-				else
-					bug.transform.position = hand.position;
-
-				if (!float.IsPositiveInfinity(bug.maxDistanceFromOriginBeforeRespawn))
-					bug.maxDistanceFromOriginBeforeRespawn = float.MaxValue;
-				if (!float.IsPositiveInfinity(bug.maxDistanceFromTargetPlayerBeforeRespawn))
-					bug.maxDistanceFromTargetPlayerBeforeRespawn = float.MaxValue;
+				ApplyBugGrab(bug, hand, leftHand, rightHand, tagger, anyGrip);
 			}
-			catch { }
+			catch (Exception ex)
+			{
+				Log.Warn("bug grab failed for " + bug.name, ex);
+			}
 		}
+	}
+
+	private void ApplyBugGrab(ThrowableBug bug, Transform hand, Transform leftHand, Transform rightHand, GorillaTagger tagger, bool anyGrip)
+	{
+		if (grabSpazBugActive)
+		{
+			if (!bug.IsMyItem())
+				bug.WorldShareableRequestOwnership();
+
+			float phase = (float)(bug.GetInstanceID() % 97) * 0.010309f;
+			float t = (Mathf.Sin((Time.time + phase) * 12f) + 1f) * 0.5f;
+			bug.transform.position = Vector3.Lerp(leftHand.position, rightHand.position, t);
+			bug.transform.rotation = Random.rotation;
+			return;
+		}
+
+		if (!anyGrip)
+			return;
+
+		Transform model = bug.transform.Find("model/PlumpBeetle");
+		if (model == (Object)null) return;
+
+		SkinnedMeshRenderer renderer = model.GetComponent<SkinnedMeshRenderer>();
+		if (renderer == (Object)null || renderer.material == (Object)null) return;
+
+		string matName = renderer.material.name;
+		bool isGreen = matName.Contains("PlumpBeetle2");
+		bool isDoug = !isGreen && matName.Contains("PlumpBeetle");
+		bool shouldGrab = grabAllBugsActive || (grabGreenBugActive && isGreen) || (grabDougBugActive && isDoug);
+
+		if (!shouldGrab)
+			return;
+
+		if (!bug.IsMyItem())
+			bug.WorldShareableRequestOwnership();
+
+		Rigidbody rb = bug.GetComponent<Rigidbody>();
+		if (rb != (Object)null)
+			rb.position = hand.position;
+		else
+			bug.transform.position = hand.position;
+
+		if (!float.IsPositiveInfinity(bug.maxDistanceFromOriginBeforeRespawn))
+			bug.maxDistanceFromOriginBeforeRespawn = float.MaxValue;
+		if (!float.IsPositiveInfinity(bug.maxDistanceFromTargetPlayerBeforeRespawn))
+			bug.maxDistanceFromTargetPlayerBeforeRespawn = float.MaxValue;
 	}
 
 	public static void Noclip()
@@ -620,7 +663,7 @@ internal partial class Mods
 		{
 			noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
 		}
-		bool noclipBtn = isRightHanded ? WristMenu.ybuttonDown : WristMenu.bbuttonDown;
+		bool noclipBtn = IsRightHanded ? WristMenu.YButtonDown : WristMenu.BButtonDown;
 		foreach (MeshCollider val in noclipCache)
 		{
 			if (val == (Object)null)
@@ -753,19 +796,19 @@ internal partial class Mods
 
 	public static void EnableFPSSpoof()
 	{
-		fpsSpoofActive = true;
+		FpsSpoofActive = true;
 	}
 
 	public static void DisableFPSSpoof()
 	{
-		fpsSpoofActive = false;
+		FpsSpoofActive = false;
 	}
 
 	public static void SetFPSSpoof(int index)
 	{
 		index %= FPSSpoofValues.Length;
-		fpsSpoofValue = FPSSpoofValues[((index < 0) ? (FPSSpoofValues.Length - 1) : index)];
-		NotifiLib.SendNotification("Set to " + fpsSpoofValue + " fps");
+		FpsSpoofValue = FPSSpoofValues[((index < 0) ? (FPSSpoofValues.Length - 1) : index)];
+		NotifiLib.SendNotification("Set to " + FpsSpoofValue + " fps");
 	}
 
 	public static void SetPullModPower(int index)
@@ -812,8 +855,8 @@ internal partial class Mods
 	private void UpdateJoystickFly()
 	{
 		if (GTPlayer.Instance == (Object)null || GorillaTagger.Instance == (Object)null || GorillaTagger.Instance.rigidbody == (Object)null) return;
-		Vector2 joyL = WristMenu.joyL;
-		Vector2 joy = WristMenu.joy;
+		Vector2 joyL = WristMenu.JoyL;
+		Vector2 joy = WristMenu.Joy;
 		if (joyL.magnitude < 0.12f) joyL = Vector2.zero;
 		if (joy.magnitude < 0.12f) joy = Vector2.zero;
 		if (joyL.sqrMagnitude < 0.001f && joy.sqrMagnitude < 0.001f) return;
@@ -838,8 +881,8 @@ internal partial class Mods
 	private void MinosPrimeCore()
 	{
 		PreloadMinosSounds();
-		bool minosSecondaryBtn = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
-		bool minosPrimaryBtn = isRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
+		bool minosSecondaryBtn = IsRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
+		bool minosPrimaryBtn = IsRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
 		if (minosSecondaryBtn && !minosSecondaryWasDown)
 		{
 			GorillaTagger.Instance.rigidbody.linearVelocity = new Vector3(GorillaTagger.Instance.rigidbody.linearVelocity.x, 20f, GorillaTagger.Instance.rigidbody.linearVelocity.z);

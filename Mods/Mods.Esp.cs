@@ -1,23 +1,24 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Reflection;
-using System.Threading.Tasks;
+using Chud.Diagnostics;
+using Chud.Runtime;
 using GorillaGameModes;
 using GorillaLocomotion;
 using GorillaNetworking;
 using GTAG_NotificationLib;
 using HarmonyLib;
+using Object = UnityEngine.Object;
 using Photon.Pun;
 using Photon.Realtime;
-using UnityEngine;
+using Random = UnityEngine.Random;
+using System.Collections.Generic;
+using System.Collections;
+using System.Linq;
+using System.Net.Http;
+using System.Reflection;
+using System.Threading.Tasks;
+using System;
 using UnityEngine.UI;
 using UnityEngine.XR;
-using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
-
+using UnityEngine;
 namespace Chud.Backend;
 
 internal partial class Mods
@@ -182,20 +183,22 @@ internal partial class Mods
 
 	internal static Vector3 GetHeadAnchor(VRRig rig)
 	{
-		try
+		if (rig == (Object)null)
 		{
-			if (rig != null)
-			{
-				if (rig.headMesh != (Object)null)
-					return rig.headMesh.transform.position;
-				if (rig.head != null && rig.head.rigTarget != null)
-					return rig.head.rigTarget.position;
-			}
+			return Vector3.zero;
 		}
-		catch { }
-		if (rig != null)
-			return rig.transform.position + GetRigUp(rig) * (1.6f * EspScale(rig));
-		return Vector3.zero;
+
+		if (rig.headMesh != (Object)null)
+		{
+			return rig.headMesh.transform.position;
+		}
+
+		if (rig.head != null && rig.head.rigTarget != null)
+		{
+			return rig.head.rigTarget.position;
+		}
+
+		return rig.transform.position + GetRigUp(rig) * (1.6f * EspScale(rig));
 	}
 
 	internal static Vector3 GetRigUp(VRRig rig)
@@ -309,7 +312,7 @@ internal partial class Mods
 		{
 			boxEspObjects.Remove(item2);
 		}
-		foreach (VRRig item3 in VRRigCache.ActiveRigs)
+		foreach (VRRig item3 in GameLists.ActiveRigs())
 		{
 			if (item3.isLocal)
 			{
@@ -448,22 +451,14 @@ internal partial class Mods
 			}
 			value.SetPosition(0, GetTracerStart());
 			value.SetPosition(1, vRRigFromPlayer.transform.position);
+
 			Color val3 = vRRigFromPlayer.playerColor;
-			try
+			GorillaTagManager val5 = GameContext.Infection;
+			if (val5 != null && vRRigFromPlayer.Creator != null && val5.IsInfected(vRRigFromPlayer.Creator))
 			{
-				GorillaGameManager val4 = GorillaGameManager.instance;
-				if (val4 != (Object)null)
-				{
-					GorillaTagManager val5 = (GorillaTagManager)(object)((val4 is GorillaTagManager) ? val4 : null);
-					if (val5 != null && vRRigFromPlayer.Creator != null && val5.IsInfected(vRRigFromPlayer.Creator))
-					{
-						val3 = new Color(1f, 0.5f, 0f);
-					}
-				}
+				val3 = InfectedSkeletonColor;
 			}
-			catch
-			{
-			}
+
 			val3.a = 0.3f;
 			value.startColor = val3;
 			value.endColor = val3;
@@ -472,11 +467,10 @@ internal partial class Mods
 
 	private Vector3 GetTracerStart()
 	{
-		if (!XRSettings.isDeviceActive && (object)ghostRig != (Object)null && GhostWanted())
+		if (!XRSettings.isDeviceActive && ghostRig != (Object)null && GhostWanted())
 		{
-			Transform ghostHand = null;
-			try { ghostHand = ghostRig.rightHand?.rigTarget?.transform; } catch { }
-			if ((object)ghostHand != (Object)null) return ghostHand.position;
+			Transform ghostHand = GhostHandTransform(true);
+			if (ghostHand != (Object)null) return ghostHand.position;
 			return ghostRig.transform.position + Vector3.up * 0.2f;
 		}
 		return GTPlayer.Instance.RightHand.controllerTransform.position;
@@ -559,18 +553,23 @@ internal partial class Mods
 		line.SetPosition(1, to);
 	}
 
+	private static readonly Color InfectedSkeletonColor = new Color(1f, 0.5f, 0f);
+
 	private Color SkeletonLineColor(VRRig rig)
 	{
 		Color color = rig.playerColor;
-		try
+
+		GorillaTagManager tagManager = GameContext.Infection;
+		if (tagManager != null && rig.Creator != null && tagManager.IsInfected(rig.Creator))
 		{
-			GorillaGameManager gm = GorillaGameManager.instance;
-			if (gm != null && gm is GorillaTagManager tgm && rig.Creator != null && tgm.IsInfected(rig.Creator))
-				color = new Color(1f, 0.5f, 0f);
+			color = InfectedSkeletonColor;
 		}
-		catch { }
+
 		if (color.r == 0f && color.g == 0f && color.b == 0f)
+		{
 			color = Color.white;
+		}
+
 		return color;
 	}
 
@@ -843,7 +842,7 @@ internal partial class Mods
 	private void UpdateLiveTag(TagProvider provider)
 	{
 		CleanTagDict(provider.Objects);
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		foreach (VRRig rig in GameLists.ActiveRigs())
 		{
 			if (rig.isLocal)
 			{
@@ -878,7 +877,7 @@ internal partial class Mods
 	private void UpdateStickyTag(TagProvider provider)
 	{
 		CleanTagDict(provider.Objects);
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		foreach (VRRig rig in GameLists.ActiveRigs())
 		{
 			if (rig.isLocal || provider.Objects.ContainsKey(rig))
 			{
@@ -1164,13 +1163,23 @@ internal partial class Mods
 		}
 		string text = photonPlayer.NickName ?? userId;
 		NotifiLib.SendNotification(text + " is on ARS", 3);
-		foreach (GorillaPlayerScoreboardLine allScoreboardLine in GorillaScoreboardTotalUpdater.allScoreboardLines)
+		foreach (GorillaPlayerScoreboardLine allScoreboardLine in GameLists.ScoreboardLines())
 		{
-			if (allScoreboardLine.linePlayer == NetworkSystem.Instance.GetNetPlayerByID(photonPlayer.ActorNumber))
+			if (allScoreboardLine.linePlayer != NetworkSystem.Instance.GetNetPlayerByID(photonPlayer.ActorNumber))
+			{
+				continue;
+			}
+
+			try
 			{
 				allScoreboardLine.PressButton(true, GorillaPlayerLineButton.ButtonType.Toxicity);
-				break;
 			}
+			catch (Exception ex)
+			{
+				Log.Warn("ARS report press failed", ex);
+			}
+
+			break;
 		}
 	}
 
@@ -1219,7 +1228,7 @@ internal partial class Mods
 		{
 			return;
 		}
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
+		foreach (VRRig activeRig in GameLists.ActiveRigs())
 		{
 			if (activeRig.isLocal || activeRig.Creator == null)
 			{

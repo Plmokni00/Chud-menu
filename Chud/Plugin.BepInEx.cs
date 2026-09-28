@@ -1,7 +1,6 @@
 using BepInEx;
-using UnityEngine;
 using static Chud.PluginInfo;
-
+using UnityEngine;
 namespace Chud;
 
 [BepInPlugin(GUID, Name, Version)]

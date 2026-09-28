@@ -1,11 +1,10 @@
-using System.Collections.Generic;
 using Chud.UI;
 using GorillaLocomotion;
 using GorillaNetworking;
-using UnityEngine;
-using UnityEngine.XR;
 using Object = UnityEngine.Object;
-
+using System.Collections.Generic;
+using UnityEngine.XR;
+using UnityEngine;
 namespace Chud.Backend;
 
 internal partial class Mods
@@ -187,7 +186,7 @@ internal partial class Mods
 
 	private void GhostMonkeCore()
 	{
-		bool ghostMonkeButton = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
+		bool ghostMonkeButton = IsRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
 		if (ghostMonkeButton && !ghostMonkeLastPress)
 		{
 			ghostMonkeOn = !ghostMonkeOn;
@@ -257,7 +256,7 @@ internal partial class Mods
 
 	private void InvisMonkeCore()
 	{
-		bool invisMonkeButton = isRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
+		bool invisMonkeButton = IsRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
 		if (invisMonkeButton && !invisMonkeLastPress)
 		{
 			if (!invisMonkeOn)
@@ -324,7 +323,7 @@ internal partial class Mods
 		{
 			return;
 		}
-		if (WristMenu.gripDownR)
+		if (WristMenu.GripDownR)
 		{
 			if (!instance.grabRigActive)
 			{
@@ -380,6 +379,7 @@ internal partial class Mods
 	{
 		VRRig localRig = VRRig.LocalRig;
 		if (localRig == (Object)null) return;
+		if (!tagParkWanted) return;
 
 		VRRig target = null;
 		if (tagGunLockedTarget != null && !tagGunLockedTarget.isLocal && tagGunLockedTarget != (Object)null)
@@ -524,14 +524,14 @@ internal partial class Mods
 		GameObject ghostRigHolder = new GameObject("Chud_GhostRigHolder");
 		ghostRigHolder.SetActive(false);
 
-		cloningGhostRig = true;
+		CloningGhostRig = true;
 		try
 		{
 			ghostRig = (VRRig)Object.Instantiate(local, local.transform.position, local.transform.rotation, ghostRigHolder.transform);
 		}
 		finally
 		{
-			cloningGhostRig = false;
+			CloningGhostRig = false;
 		}
 		if (ghostRig == (Object)null)
 		{
@@ -669,7 +669,7 @@ internal partial class Mods
 		{
 			return;
 		}
-		if (!(isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR))
+		if (!(IsRightHanded ? WristMenu.GripDownL : WristMenu.GripDownR))
 		{
 			StopCopyMovementGun();
 			return;
@@ -695,7 +695,7 @@ internal partial class Mods
 	private void OrbitTick()
 	{
 		if (!orbitActive || orbitTarget == (Object)null || VRRig.LocalRig == (Object)null) return;
-		if (!(isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR)) { StopOrbit(); return; }
+		if (!(IsRightHanded ? WristMenu.GripDownL : WristMenu.GripDownR)) { StopOrbit(); return; }
 		VRRig local = VRRig.LocalRig;
 		EnsureLocalRigEnabled();
 		orbitAngle += Time.deltaTime * 165f;
@@ -730,7 +730,7 @@ internal partial class Mods
 
 	private void FlipTick()
 	{
-		bool btn = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
+		bool btn = IsRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
 		if (backflipEnabled && btn && !lastFlipButton && !frontflipActive)
 		{
 			backflipActive = true;

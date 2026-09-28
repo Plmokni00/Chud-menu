@@ -1,10 +1,10 @@
-using System;
-using System.Collections;
+using Photon.Pun;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Collections;
+using System;
 using UnityEngine.Networking;
+using UnityEngine;
 using Valve.Newtonsoft.Json.Linq;
-
 namespace Chud.Backend;
 
 public static class ServerData
@@ -48,6 +48,45 @@ public static class ServerData
 			return major * 10000 + minor * 100 + patch;
 		}
 		return -1;
+	}
+
+	public static bool IsAdmin(string userId)
+	{
+		if (string.IsNullOrEmpty(userId)) return false;
+		lock (AdminLock)
+		{
+			return Administrators.ContainsKey(userId);
+		}
+	}
+
+	public static string GetAdminName(string userId)
+	{
+		if (string.IsNullOrEmpty(userId)) return null;
+		lock (AdminLock)
+		{
+			return Administrators.TryGetValue(userId, out string name) ? name : null;
+		}
+	}
+
+	public static bool IsSuperAdmin(string name)
+	{
+		if (string.IsNullOrEmpty(name)) return false;
+		lock (AdminLock)
+		{
+			return SuperAdministrators.Contains(name);
+		}
+	}
+
+	public static bool IsLocalPlayerAdmin()
+	{
+		Photon.Realtime.Player local = PhotonNetwork.LocalPlayer;
+		return local != null && IsAdmin(local.UserId);
+	}
+
+	public static string LocalAdminName()
+	{
+		Photon.Realtime.Player local = PhotonNetwork.LocalPlayer;
+		return local == null ? null : GetAdminName(local.UserId);
 	}
 	public static IEnumerator DownloadAdminTextures()
 	{
