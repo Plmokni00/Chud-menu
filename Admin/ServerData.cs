@@ -1,4 +1,5 @@
 using Photon.Pun;
+using Chud.Diagnostics;
 using System.Collections.Generic;
 using System.Collections;
 using System;
@@ -90,44 +91,29 @@ public static class ServerData
 	}
 	public static IEnumerator DownloadAdminTextures()
 	{
-		UnityWebRequest iconReq = UnityWebRequestTexture.GetTexture(ConsoleSuperAdminIcon);
+		yield return DownloadTextureInto(ConsoleSuperAdminIcon, t => adminConeTexture = t, "superAdminCone");
+		yield return DownloadTextureInto(ConsoleAdminIcon, t => adminCrownTexture = t, "adminCrown");
+		yield return DownloadTextureInto(LexiCrownURL, t => lexiCrownTexture = t, "lexiCrown");
+	}
+
+	private static IEnumerator DownloadTextureInto(string url, Action<Texture2D> assign, string label)
+	{
+		UnityWebRequest req = UnityWebRequestTexture.GetTexture(url);
 		try
 		{
-			yield return iconReq.SendWebRequest();
-			if ((int)iconReq.result == 1)
+			yield return req.SendWebRequest();
+			if (req.result == UnityWebRequest.Result.Success)
 			{
-				adminConeTexture = DownloadHandlerTexture.GetContent(iconReq);
+				assign(DownloadHandlerTexture.GetContent(req));
+			}
+			else
+			{
+				Log.Warn("crown texture '" + label + "' failed: " + req.error);
 			}
 		}
 		finally
 		{
-			((IDisposable)iconReq)?.Dispose();
-		}
-		UnityWebRequest crownReq = UnityWebRequestTexture.GetTexture(ConsoleAdminIcon);
-		try
-		{
-			yield return crownReq.SendWebRequest();
-			if ((int)crownReq.result == 1)
-			{
-				adminCrownTexture = DownloadHandlerTexture.GetContent(crownReq);
-			}
-		}
-		finally
-		{
-			((IDisposable)crownReq)?.Dispose();
-		}
-		UnityWebRequest lexiReq = UnityWebRequestTexture.GetTexture(LexiCrownURL);
-		try
-		{
-			yield return lexiReq.SendWebRequest();
-			if ((int)lexiReq.result == 1)
-			{
-				lexiCrownTexture = DownloadHandlerTexture.GetContent(lexiReq);
-			}
-		}
-		finally
-		{
-			((IDisposable)lexiReq)?.Dispose();
+			((IDisposable)req)?.Dispose();
 		}
 	}
 

@@ -459,7 +459,10 @@ namespace Chud.Menu
                 Button.Toggle("console_settings_no_indicator", "No Admin Indicator", "Hide your admin crown",
                     ConsoleMods.NoAdminIndicator.Enable, ConsoleMods.NoAdminIndicator.Disable),
                 Button.Toggle("console_settings_fullauto", "Full Auto Pistol", "Toggle full auto mode for pistol",
-                    ConsoleMods.FullAutoPistol.Enable, ConsoleMods.FullAutoPistol.Disable)
+                    ConsoleMods.FullAutoPistol.Enable, ConsoleMods.FullAutoPistol.Disable),
+                Button.Toggle("console_settings_see_crown", "See Crown", "Show your own crown above your head",
+                    () => Chud.Backend.Console.SeeOwnCrown = true,
+                    () => Chud.Backend.Console.SeeOwnCrown = false)
             });
         }
 

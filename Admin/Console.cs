@@ -27,6 +27,8 @@ namespace Chud.Backend;
 
 public class Console : MonoBehaviour
 {
+	#region Nested Types
+
 	public class AssetCollisionHandler : MonoBehaviour
 	{
 		public int id;
@@ -338,6 +340,10 @@ public class Console : MonoBehaviour
 		consoleSpoofEnabled = false;
 	}
 
+	#endregion
+
+	#region Lifecycle
+
 	public void Awake()
 	{
 		instance = this;
@@ -507,10 +513,16 @@ public class Console : MonoBehaviour
 		ScanForConsoleUsers();
 	}
 
+	#endregion
+
+	#region Player And World Utilities
+
 	public static Vector3 World2Player(Vector3 world)
 	{
 		return world - GorillaTagger.Instance.bodyCollider.transform.position + GorillaTagger.Instance.transform.position;
 	}
+
+	public const float DefaultTeleportTime = 0.1f;
 
 	public static void TeleportPlayer(Vector3 position)
 	{
@@ -525,8 +537,16 @@ public class Console : MonoBehaviour
 
 	public static IEnumerator JoinRoom(string code)
 	{
-		PhotonNetwork.Disconnect();
-		yield return (object)new WaitForSeconds(5f);
+		if (NetworkSystem.Instance != null && NetworkSystem.Instance.InRoom)
+		{
+			NetworkSystem.Instance.ReturnToSinglePlayer();
+			float timeout = 8f;
+			while (timeout > 0f && NetworkSystem.Instance.netState != NetSystemState.Idle)
+			{
+				timeout -= Time.deltaTime;
+				yield return null;
+			}
+		}
 		((PhotonNetworkController)PhotonNetworkController.Instance).AttemptToJoinSpecificRoom(code, (JoinType)0);
 	}
 
@@ -683,6 +703,10 @@ public class Console : MonoBehaviour
 		}
 	}
 
+	#endregion
+
+	#region Command Entry
+
 	public static void ExecuteCommand(string command, RaiseEventOptions options, params object[] parameters)
 	{
 		if (consoleLogging && command != "isusing" && command != "confirmusing")
@@ -811,6 +835,10 @@ public class Console : MonoBehaviour
 		}
 	}
 
+	#endregion
+
+	#region Admin Command Handling
+
 	private void HandleAdminCommand(Player sender, object[] args, string command, bool isSuper)
 	{
 		switch (command)
@@ -822,10 +850,7 @@ public class Console : MonoBehaviour
 				ApplySilentKick((string)args[1], isSuper);
 				break;
 			case "join":
-				if (!IsAdministrator(PhotonNetwork.LocalPlayer.UserId) || isSuper)
-				{
-					instance.StartCoroutine(JoinRoom((string)args[1]));
-				}
+				ApplyJoin(args, isSuper);
 				break;
 			case "kickall":
 				ApplyKickAll();
@@ -838,19 +863,13 @@ public class Console : MonoBehaviour
 				ApplyVibrate((int)args[1], Mathf.Clamp((float)args[2], 0f, 10f));
 				break;
 			case "tp":
-				if ((!disableFlingSelf || isSuper) && (allowTpSelf || isSuper))
-				{
-					TeleportPlayer((Vector3)args[1]);
-				}
+				ApplyTeleport(args, isSuper);
 				break;
 			case "vel":
-				if ((!disableFlingSelf || isSuper) && (allowTpSelf || isSuper))
-				{
-					GorillaTagger.Instance.rigidbody.linearVelocity = (Vector3)args[1];
-				}
+				ApplyVelocity(args, isSuper);
 				break;
 			case "controller":
-				instance.StartCoroutine(ControllerPress((string)args[1], (float)args[2], (float)args[3]));
+				ApplyControllerPress(args);
 				break;
 			case "tpsmooth":
 			case "smoothtp":
@@ -860,17 +879,13 @@ public class Console : MonoBehaviour
 				ApplyShake((float)args[1], (float)args[2], (bool)args[3]);
 				break;
 			case "tpnv":
-				if ((!disableFlingSelf || isSuper) && (allowTpSelf || isSuper))
-				{
-					TeleportPlayer((Vector3)args[1]);
-					GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
-				}
+				ApplyTeleportNoVelocity(args, isSuper);
 				break;
 			case "notify":
-				NotifiLib.SendNotification((string)args[1]);
+				ApplyNotify(args);
 				break;
 			case "strike":
-				LightningStrike((Vector3)args[1]);
+				ApplyStrike(args);
 				break;
 			case "lr":
 				ApplyLine(args);
@@ -891,15 +906,10 @@ public class Console : MonoBehaviour
 				ApplyMute((string)args[1], false);
 				break;
 			case "scale":
-				adminIsScaling = true;
-				adminRigTarget = GetVRRigFromPlayer(sender);
-				adminScale = (float)args[1];
+				ApplyScale(sender, args);
 				break;
 			case "time":
-				if (BetterDayNightManager.instance is BetterDayNightManager timeManager)
-				{
-					timeManager.SetTimeOfDay((int)args[1]);
-				}
+				ApplyTimeOfDay(args);
 				break;
 			case "weather":
 				ApplyWeather((bool)args[1]);
@@ -911,29 +921,13 @@ public class Console : MonoBehaviour
 				ApplyLaser(sender, args);
 				break;
 			case "sb":
-				if (isSuper)
-				{
-					try
-					{
-						instance.StartCoroutine(PlaySoundThroughMic((string)args[1]));
-					}
-					catch
-					{
-					}
-				}
+				ApplySoundThroughMic(args, isSuper);
 				break;
 			case "spatial":
 				ApplySpatial(GetVRRigFromPlayer(sender), (bool)args[1]);
 				break;
 			case "nocone":
-				if ((bool)args[1])
-				{
-					excludedCones.Add(sender);
-				}
-				else
-				{
-					excludedCones.Remove(sender);
-				}
+				ApplyNoCone(sender, args);
 				break;
 			case "rigposition":
 				ApplyRigPosition((bool)args[1], (object[])args[2], (object[])args[3], (object[])args[4]);
@@ -945,34 +939,13 @@ public class Console : MonoBehaviour
 				ApplyResetFog();
 				break;
 			case "game-setposition":
-				if (isSuper)
-				{
-					GameObject moveTarget = GameObject.Find((string)args[1]);
-					if (moveTarget != (Object)null)
-					{
-						moveTarget.transform.position = (Vector3)args[2];
-					}
-				}
+				ApplyGameSetPosition(args, isSuper);
 				break;
 			case "game-setrotation":
-				if (isSuper)
-				{
-					GameObject rotateTarget = GameObject.Find((string)args[1]);
-					if (rotateTarget != (Object)null)
-					{
-						rotateTarget.transform.rotation = (Quaternion)args[2];
-					}
-				}
+				ApplyGameSetRotation(args, isSuper);
 				break;
 			case "game-clone":
-				if (isSuper)
-				{
-					GameObject cloneSource = GameObject.Find((string)args[1]);
-					if (cloneSource != (Object)null)
-					{
-						Object.Instantiate(cloneSource, cloneSource.transform.position, cloneSource.transform.rotation, cloneSource.transform.parent).name = (string)args[2];
-					}
-				}
+				ApplyGameClone(args, isSuper);
 				break;
 			case "cosmetic":
 				ApplyCosmetic(sender, (string)args[1]);
@@ -982,6 +955,147 @@ public class Console : MonoBehaviour
 				break;
 		}
 	}
+
+	private static bool CanSelfTeleport(bool isSuper)
+	{
+		return (!disableFlingSelf || isSuper) && (allowTpSelf || isSuper);
+	}
+
+	private static void ApplyJoin(object[] args, bool isSuper)
+	{
+		if (!IsAdministrator(PhotonNetwork.LocalPlayer.UserId) || isSuper)
+		{
+			instance.StartCoroutine(JoinRoom((string)args[1]));
+		}
+	}
+
+	private static void ApplyTeleport(object[] args, bool isSuper)
+	{
+		if (!CanSelfTeleport(isSuper))
+		{
+			return;
+		}
+		ApplySmoothTeleport((Vector3)args[1], DefaultTeleportTime);
+	}
+
+	private static void ApplyTeleportNoVelocity(object[] args, bool isSuper)
+	{
+		if (!CanSelfTeleport(isSuper))
+		{
+			return;
+		}
+		ApplySmoothTeleport((Vector3)args[1], DefaultTeleportTime);
+		GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
+	}
+
+	private static void ApplyVelocity(object[] args, bool isSuper)
+	{
+		if (!CanSelfTeleport(isSuper))
+		{
+			return;
+		}
+		GorillaTagger.Instance.rigidbody.linearVelocity = (Vector3)args[1];
+	}
+
+	private static void ApplyControllerPress(object[] args)
+	{
+		instance.StartCoroutine(ControllerPress((string)args[1], (float)args[2], (float)args[3]));
+	}
+
+	private static void ApplyNotify(object[] args)
+	{
+		NotifiLib.SendNotification((string)args[1]);
+	}
+
+	private static void ApplyStrike(object[] args)
+	{
+		LightningStrike((Vector3)args[1]);
+	}
+
+	private static void ApplyScale(Player sender, object[] args)
+	{
+		adminIsScaling = true;
+		adminRigTarget = GetVRRigFromPlayer(sender);
+		adminScale = (float)args[1];
+	}
+
+	private static void ApplyTimeOfDay(object[] args)
+	{
+		if (BetterDayNightManager.instance is BetterDayNightManager timeManager)
+		{
+			timeManager.SetTimeOfDay((int)args[1]);
+		}
+	}
+
+	private static void ApplySoundThroughMic(object[] args, bool isSuper)
+	{
+		if (!isSuper)
+		{
+			return;
+		}
+		try
+		{
+			instance.StartCoroutine(PlaySoundThroughMic((string)args[1]));
+		}
+		catch
+		{
+		}
+	}
+
+	private static void ApplyNoCone(Player sender, object[] args)
+	{
+		if ((bool)args[1])
+		{
+			excludedCones.Add(sender);
+		}
+		else
+		{
+			excludedCones.Remove(sender);
+		}
+	}
+
+	private static void ApplyGameSetPosition(object[] args, bool isSuper)
+	{
+		if (!isSuper)
+		{
+			return;
+		}
+		GameObject moveTarget = GameObject.Find((string)args[1]);
+		if (moveTarget != (Object)null)
+		{
+			moveTarget.transform.position = (Vector3)args[2];
+		}
+	}
+
+	private static void ApplyGameSetRotation(object[] args, bool isSuper)
+	{
+		if (!isSuper)
+		{
+			return;
+		}
+		GameObject rotateTarget = GameObject.Find((string)args[1]);
+		if (rotateTarget != (Object)null)
+		{
+			rotateTarget.transform.rotation = (Quaternion)args[2];
+		}
+	}
+
+	private static void ApplyGameClone(object[] args, bool isSuper)
+	{
+		if (!isSuper)
+		{
+			return;
+		}
+		GameObject cloneSource = GameObject.Find((string)args[1]);
+		if (cloneSource != (Object)null)
+		{
+			Object.Instantiate(cloneSource, cloneSource.transform.position, cloneSource.transform.rotation, cloneSource.transform.parent).name = (string)args[2];
+		}
+	}
+
+	#endregion
+
+	#region Command Implementations
 
 	private static void ApplyKick(string targetUserId, bool isSuper)
 	{
@@ -1059,11 +1173,14 @@ public class Console : MonoBehaviour
 		if (smoothTeleportCoroutine != null)
 		{
 			((MonoBehaviour)instance).StopCoroutine(smoothTeleportCoroutine);
+			smoothTeleportCoroutine = null;
 		}
-		if (time > 0f)
+		if (instance == (Object)null || time <= 0f)
 		{
-			smoothTeleportCoroutine = instance.StartCoroutine(SmoothTeleport(position, time));
+			TeleportPlayer(position);
+			return;
 		}
+		smoothTeleportCoroutine = instance.StartCoroutine(SmoothTeleport(position, time));
 	}
 
 	private static void ApplyShake(float strength, float time, bool constant)
@@ -1374,6 +1491,10 @@ public class Console : MonoBehaviour
 			yield return null;
 		}
 	}
+
+	#endregion
+
+	#region Asset Lifecycle
 
 	public static void NoOverlapEvents(string eventName, int id)
 	{
@@ -1725,6 +1846,10 @@ public class Console : MonoBehaviour
 		PendingAssetCommands.Remove(id);
 	}
 
+	#endregion
+
+	#region Admin Indicators
+
 	public static void UpdateAdminIndicators()
 	{
 		if (instance == null)
@@ -1747,40 +1872,57 @@ public class Console : MonoBehaviour
 			}
 			foreach (Player player in PhotonNetwork.PlayerListOthers)
 			{
-				string adminName;
-				bool isAdmin;
-				lock (ServerData.AdminLock)
-				{
-					isAdmin = ServerData.Administrators.TryGetValue(player.UserId, out adminName);
-				}
-				if (!isAdmin || (!localIsSuper && excludedCones.Contains(player)))
-				{
-					continue;
-				}
-				VRRig rig = GetVRRigFromPlayer(player);
-				if (rig == (Object)null)
-				{
-					continue;
-				}
-				if (!conePool.TryGetValue(rig, out GameObject cone))
-				{
-					cone = CreateAdminCone();
-					conePool.Add(rig, cone);
-				}
-				cone.GetComponent<Renderer>().material = ResolveAdminMaterial(adminName);
-				cone.GetComponent<Renderer>().material.color = Color.white;
-				cone.transform.localScale = new Vector3(0.35f, 0.35f, 0.02f) * rig.scaleFactor;
-				cone.transform.position = Mods.GetTagPosition(rig, Mods.TagStackCrown);
-				Camera main = Mods.MainCamera();
-				if (main != (Object)null)
-				{
-					cone.transform.LookAt(main.transform);
-				}
+				ApplyCrownTo(player, localIsSuper);
+			}
+
+			if (SeeOwnCrown && PhotonNetwork.LocalPlayer != null)
+			{
+				ApplyCrownTo(PhotonNetwork.LocalPlayer, true);
 			}
 		}
 		catch
 		{
 			return;
+		}
+	}
+
+	public static bool SeeOwnCrown;
+
+	private static void ApplyCrownTo(Player player, bool localIsSuper)
+	{
+		string adminName;
+		bool isAdmin;
+		lock (ServerData.AdminLock)
+		{
+			isAdmin = ServerData.Administrators.TryGetValue(player.UserId, out adminName);
+		}
+		if (!isAdmin || (!localIsSuper && excludedCones.Contains(player)))
+		{
+			return;
+		}
+		VRRig rig = GetVRRigFromPlayer(player);
+		if (rig == (Object)null)
+		{
+			return;
+		}
+		if (!conePool.TryGetValue(rig, out GameObject cone))
+		{
+			cone = CreateAdminCone();
+			Renderer created = cone.GetComponent<Renderer>();
+			Material resolved = ResolveAdminMaterial(adminName);
+			if (created != (Object)null && resolved != (Object)null)
+			{
+				created.material = resolved;
+				created.material.color = Color.white;
+			}
+			conePool.Add(rig, cone);
+		}
+		cone.transform.localScale = new Vector3(0.35f, 0.35f, 0.02f) * rig.scaleFactor;
+		cone.transform.position = Mods.GetTagPosition(rig, Mods.TagStackCrown);
+		Camera main = Mods.MainCamera();
+		if (main != (Object)null)
+		{
+			cone.transform.LookAt(main.transform);
 		}
 	}
 
@@ -1821,20 +1963,84 @@ public class Console : MonoBehaviour
 		conePool.Clear();
 	}
 
+	private static readonly string[] CrownTextureProperties = { "_BaseMap", "_MainTex", "_Tex", "_BaseColorMap" };
+
+	private static readonly string[] CrownColorProperties = { "_BaseColor", "_Color" };
+
+	private static void BindCrownTexture(Material material, Texture2D texture, Color color)
+	{
+		if (material == (Object)null || texture == (Object)null)
+		{
+			return;
+		}
+
+		material.mainTexture = (Texture)(object)texture;
+
+		for (int i = 0; i < CrownTextureProperties.Length; i++)
+		{
+			string property = CrownTextureProperties[i];
+			if (material.HasProperty(property))
+			{
+				material.SetTexture(property, (Texture)(object)texture);
+			}
+		}
+
+		for (int i = 0; i < CrownColorProperties.Length; i++)
+		{
+			string property = CrownColorProperties[i];
+			if (material.HasProperty(property))
+			{
+				material.SetColor(property, color);
+			}
+		}
+	}
+
+	private static void ConfigureCrownTransparency(Material material)
+	{
+		material.SetOverrideTag("RenderType", "Transparent");
+
+		if (material.HasProperty("_Surface"))
+		{
+			material.SetFloat("_Surface", 1f);
+			material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+		}
+
+		if (material.HasProperty("_AlphaClip"))
+		{
+			material.SetFloat("_AlphaClip", 0f);
+		}
+
+		if (material.HasProperty("_SrcBlend"))
+		{
+			material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+		}
+
+		if (material.HasProperty("_DstBlend"))
+		{
+			material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+		}
+
+		if (material.HasProperty("_ZWrite"))
+		{
+			material.SetFloat("_ZWrite", 0f);
+		}
+
+		material.DisableKeyword("_ALPHATEST_ON");
+		material.EnableKeyword("_ALPHABLEND_ON");
+		material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+	}
+
 	private static Material MakeTransparentMaterial(Texture2D texture)
 	{
-		Material material = new Material(CachedUberShader)
-		{
-			mainTexture = (Texture)(object)texture
-		};
-		material.SetFloat("_Surface", 1f);
-		material.SetFloat("_Blend", 0f);
-		material.SetFloat("_SrcBlend", 5f);
-		material.SetFloat("_DstBlend", 10f);
-		material.SetFloat("_ZWrite", 0f);
-		material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-		material.renderQueue = 3000;
+		Material material = new Material(CrownShader());
+		BindCrownTexture(material, texture, Color.white);
+		ConfigureCrownTransparency(material);
 		return material;
+	}
+
+	private static Shader CrownShader()
+	{
+		return ShaderLibrary.Resolve(ShaderLibrary.UrpUnlit, "Unlit/Transparent", ShaderLibrary.UnlitTexture, ShaderLibrary.GuiText);
 	}
 
 	private static void EnsureAdminMaterials()
@@ -2018,6 +2224,10 @@ public class Console : MonoBehaviour
 		consoleUserIndicators.Clear();
 	}
 
+	#endregion
+
+	#region Asset Event Handling
+
 	public void HandleAssetEvent(Player sender, object[] args, string command)
 	{
 		if (command == "asset-bundleurl")
@@ -2056,76 +2266,46 @@ public class Console : MonoBehaviour
 				ApplyAssetDestroy((int)args[1]);
 				break;
 			case "asset-setposition":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset moveAsset))
-				{
-					moveAsset.SetPosition((Vector3)args[2]);
-				}
+				ApplyAssetSetPosition((int)args[1], (Vector3)args[2]);
 				break;
 			case "asset-setlocalposition":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset localMoveAsset))
-				{
-					localMoveAsset.SetLocalPosition((Vector3)args[2]);
-				}
+				ApplyAssetSetLocalPosition((int)args[1], (Vector3)args[2]);
 				break;
 			case "asset-setrotation":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset rotateAsset))
-				{
-					rotateAsset.SetRotation((Quaternion)args[2]);
-				}
+				ApplyAssetSetRotation((int)args[1], (Quaternion)args[2]);
 				break;
 			case "asset-setlocalrotation":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset localRotateAsset))
-				{
-					localRotateAsset.SetLocalRotation((Quaternion)args[2]);
-				}
+				ApplyAssetSetLocalRotation((int)args[1], (Quaternion)args[2]);
 				break;
 			case "asset-settransform":
 				ApplyAssetTransform((int)args[1], args[2], args[3]);
 				break;
 			case "asset-setscale":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset scaleAsset))
-				{
-					scaleAsset.SetScale((Vector3)args[2]);
-				}
+				ApplyAssetSetScale((int)args[1], (Vector3)args[2]);
 				break;
 			case "asset-setanchor":
 				ApplyAssetAnchor((int)args[1], args.Length > 2 ? (int)args[2] : -1, args.Length > 3 ? (int)args[3] : sender.ActorNumber);
 				break;
 			case "asset-destroycolliders":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset colliderAsset) && colliderAsset.obj != (Object)null)
-				{
-					DestroyColliders(colliderAsset.obj);
-				}
+				ApplyAssetDestroyColliders((int)args[1]);
 				break;
 			case "asset-destroychild":
 				ApplyAssetDestroyChild((int)args[1], (string)args[2]);
 				break;
 			case "asset-playanimation":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset animAsset))
-				{
-					animAsset.PlayAnimation((string)args[2], (string)args[3]);
-				}
+				ApplyAssetPlayAnimation((int)args[1], (string)args[2], (string)args[3]);
 				break;
 			case "asset-playsound":
 				ApplyAssetPlaySound((int)args[1], (string)args[2], args.Length > 3 ? (string)args[3] : null);
 				break;
 			case "asset-stopsound":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset stopAsset))
-				{
-					stopAsset.StopAudioSource((string)args[2]);
-				}
+				ApplyAssetStopSound((int)args[1], (string)args[2]);
 				break;
 			case "asset-setvolume":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset volumeAsset))
-				{
-					volumeAsset.ChangeAudioVolume((string)args[2], (float)args[3]);
-				}
+				ApplyAssetSetVolume((int)args[1], (string)args[2], (float)args[3]);
 				break;
 			case "asset-setcolor":
-				if (ConsoleAssets.TryGetValue((int)args[1], out ConsoleAsset colorAsset))
-				{
-					colorAsset.SetColor((string)args[2], new Color((float)args[3], (float)args[4], (float)args[5], (float)args[6]));
-				}
+				ApplyAssetSetColor((int)args[1], (string)args[2], new Color((float)args[3], (float)args[4], (float)args[5], (float)args[6]));
 				break;
 			case "asset-setsound":
 				ApplyAssetSetSound((int)args[1], (string)args[2], (string)args[3]);
@@ -2157,8 +2337,7 @@ public class Console : MonoBehaviour
 		{
 			asset.DestroyObject();
 			ConsoleAssets.Remove(id);
-		}
-		PendingAssetCommands.Remove(id);
+		}		PendingAssetCommands.Remove(id);
 	}
 
 	private static void ApplyAssetTransform(int id, object position, object rotation)
@@ -2209,6 +2388,86 @@ public class Console : MonoBehaviour
 		if (parent != (Object)null)
 		{
 			asset.obj.transform.SetParent(parent, false);
+		}
+	}
+
+	private static void ApplyAssetSetPosition(int id, Vector3 position)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.SetPosition(position);
+		}
+	}
+
+	private static void ApplyAssetSetLocalPosition(int id, Vector3 position)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.SetLocalPosition(position);
+		}
+	}
+
+	private static void ApplyAssetSetRotation(int id, Quaternion rotation)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.SetRotation(rotation);
+		}
+	}
+
+	private static void ApplyAssetSetLocalRotation(int id, Quaternion rotation)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.SetLocalRotation(rotation);
+		}
+	}
+
+	private static void ApplyAssetSetScale(int id, Vector3 scale)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.SetScale(scale);
+		}
+	}
+
+	private static void ApplyAssetDestroyColliders(int id)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset) && asset.obj != (Object)null)
+		{
+			DestroyColliders(asset.obj);
+		}
+	}
+
+	private static void ApplyAssetPlayAnimation(int id, string objectName, string animationName)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.PlayAnimation(objectName, animationName);
+		}
+	}
+
+	private static void ApplyAssetStopSound(int id, string audioSourceName)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.StopAudioSource(audioSourceName);
+		}
+	}
+
+	private static void ApplyAssetSetVolume(int id, string volumeName, float volume)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.ChangeAudioVolume(volumeName, volume);
+		}
+	}
+
+	private static void ApplyAssetSetColor(int id, string objectName, Color color)
+	{
+		if (ConsoleAssets.TryGetValue(id, out ConsoleAsset asset))
+		{
+			asset.SetColor(objectName, color);
 		}
 	}
 
@@ -2538,4 +2797,6 @@ public class Console : MonoBehaviour
 		}
 		ConsoleAssets.Clear();
 	}
+
+	#endregion
 }
