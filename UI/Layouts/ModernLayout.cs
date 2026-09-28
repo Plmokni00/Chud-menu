@@ -285,6 +285,11 @@ namespace Chud.UI
             button.transform.rotation = Quaternion.identity;
             button.transform.localScale = new Vector3(ButtonDepth, ButtonWidth, ButtonHeight);
             button.transform.localPosition = new Vector3(PanelFrontX, 0f, DisconnectZ);
+            var dcHitbox = button.GetComponent<BoxCollider>();
+            if (dcHitbox != null)
+            {
+                dcHitbox.size = new Vector3(1f, 0.8f, 0.7f);
+            }
             button.GetComponent<Renderer>().material = WristMenu.Materials.Gradient(top, bottom);
 
             var collider = button.AddComponent<MenuButton>();
@@ -334,6 +339,11 @@ namespace Chud.UI
                 go.transform.rotation = Quaternion.identity;
                 go.transform.localScale = new Vector3(ButtonDepth, ButtonWidth, ButtonHeight);
                 go.transform.localPosition = new Vector3(PanelFrontX, 0f, z);
+                var hitbox = go.GetComponent<BoxCollider>();
+                if (hitbox != null)
+                {
+                    hitbox.size = new Vector3(1f, 0.8f, 0.7f);
+                }
                 go.GetComponent<Renderer>().material = WristMenu.Materials.Gradient(baseColor * 0.35f, baseColor);
 
                 var collider = go.AddComponent<MenuButton>();
