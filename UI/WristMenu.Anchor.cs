@@ -18,7 +18,7 @@ namespace Chud.UI
 
         public static void ReanchorToCurrentHand()
         {
-            if (!ToggleMenu || MenuCameraAnchored)
+            if (MenuCameraAnchored)
             {
                 return;
             }
@@ -35,7 +35,7 @@ namespace Chud.UI
                 return;
             }
 
-            EnsureAnchor(rightHanded, hand);
+            SetMenuAnchor(MenuAnchor != (Object)null ? MenuAnchor : new GameObject("menuAnchor"), rightHanded, hand);
             RefreshMenu();
         }
 
@@ -154,6 +154,12 @@ namespace Chud.UI
             if (MenuAnchor == (Object)null)
             {
                 SetMenuAnchor(new GameObject("menuAnchor"), rightHanded, follow);
+                return;
+            }
+
+            if (MenuAnchorIsRightHand != rightHanded || MenuFollowHand != follow)
+            {
+                SetMenuAnchor(MenuAnchor, rightHanded, follow);
             }
         }
 
