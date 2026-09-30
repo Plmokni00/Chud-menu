@@ -27,7 +27,7 @@ public class NotifiLib : MonoBehaviour
 
 	public static bool IsEnabled
 	{
-		get { return _isEnabled; }
+		get => _isEnabled;
 		set
 		{
 			if (_isEnabled == value)
@@ -86,7 +86,7 @@ public class NotifiLib : MonoBehaviour
 
 	private static Texture2D GetNotiBgTex()
 	{
-		if ((Object)(object)_notiBgTex == (Object)null)
+		if (_notiBgTex == (Object)null)
 		{
 			_notiBgTex = new Texture2D(1, 1);
 			_notiBgTex.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.75f));
@@ -111,7 +111,7 @@ public class NotifiLib : MonoBehaviour
 				alignment = TextAnchor.MiddleLeft,
 				padding = new RectOffset(8, 8, 0, 0)
 			};
-			if ((Object)(object)WristMenu.MenuFont != (Object)null)
+			if (WristMenu.MenuFont != (Object)null)
 			{
 				_notiStyle.font = WristMenu.MenuFont;
 			}
@@ -167,44 +167,44 @@ public class NotifiLib : MonoBehaviour
 	private void Init()
 	{
 		mainCamera = GameObject.Find("Main Camera");
-		if ((Object)(object)mainCamera == (Object)null && (Object)(object)Camera.main != (Object)null)
+		if (mainCamera == (Object)null && Camera.main != (Object)null)
 		{
-			mainCamera = ((Component)Camera.main).gameObject;
+			mainCamera = Camera.main.gameObject;
 		}
-		if (!((Object)(object)mainCamera == (Object)null))
+		if (mainCamera != (Object)null)
 		{
 			hudObj = new GameObject("NOTIFICATIONLIB_HUD_OBJ");
 			hudObjParent = new GameObject("NOTIFICATIONLIB_HUD_OBJ2");
-			Canvas val = hudObj.AddComponent<Canvas>();
+			Canvas canvas = hudObj.AddComponent<Canvas>();
 			hudObj.AddComponent<CanvasScaler>();
 			hudObj.AddComponent<GraphicRaycaster>();
-			((Behaviour)val).enabled = true;
-			val.renderMode = (RenderMode)2;
+			canvas.enabled = true;
+			canvas.renderMode = RenderMode.WorldSpace;
 			Camera cam = mainCamera.GetComponent<Camera>();
-			val.worldCamera = cam;
+			canvas.worldCamera = cam;
 			hudObj.GetComponent<RectTransform>().sizeDelta = new Vector2(5f, 5f);
-			((Transform)hudObj.GetComponent<RectTransform>()).position = new Vector3(mainCamera.transform.position.x, mainCamera.transform.position.y, mainCamera.transform.position.z);
+			hudObj.GetComponent<RectTransform>().position = new Vector3(mainCamera.transform.position.x, mainCamera.transform.position.y, mainCamera.transform.position.z);
 			hudObjParent.transform.position = new Vector3(mainCamera.transform.position.x, mainCamera.transform.position.y, mainCamera.transform.position.z - 4.6f);
 			hudObj.transform.SetParent(hudObjParent.transform);
-			((Transform)hudObj.GetComponent<RectTransform>()).localPosition = new Vector3(0f, 0f, 1.6f);
-			Quaternion rotation = ((Transform)hudObj.GetComponent<RectTransform>()).rotation;
+			hudObj.GetComponent<RectTransform>().localPosition = new Vector3(0f, 0f, 1.6f);
+			Quaternion rotation = hudObj.GetComponent<RectTransform>().rotation;
 			Vector3 eulerAngles = rotation.eulerAngles;
 			eulerAngles.y = -270f;
 			hudObj.transform.localScale = Vector3.one;
-			((Transform)hudObj.GetComponent<RectTransform>()).rotation = Quaternion.Euler(eulerAngles);
-			GameObject val2 = new GameObject();
-			val2.transform.parent = hudObj.transform;
-			notificationText = val2.AddComponent<Text>();
+			hudObj.GetComponent<RectTransform>().rotation = Quaternion.Euler(eulerAngles);
+			GameObject textObject = new GameObject();
+			textObject.transform.parent = hudObj.transform;
+			notificationText = textObject.AddComponent<Text>();
 			notificationText.text = "";
 			notificationText.fontSize = 30;
 			notificationText.font = WristMenu.MenuFont;
-			((Graphic)notificationText).rectTransform.sizeDelta = new Vector2(800f, 200f);
+			notificationText.rectTransform.sizeDelta = new Vector2(800f, 200f);
 			notificationText.alignment = (TextAnchor)6;
-			((Transform)((Graphic)notificationText).rectTransform).localScale = new Vector3(0.002f, 0.002f, 1f);
-			((Transform)((Graphic)notificationText).rectTransform).localPosition = new Vector3(-0.3f, -0.35f, -0.15f);
-			if ((Object)(object)textMaterial != (Object)null)
+			notificationText.rectTransform.localScale = new Vector3(0.002f, 0.002f, 1f);
+			notificationText.rectTransform.localPosition = new Vector3(-0.3f, -0.35f, -0.15f);
+			if (textMaterial != (Object)null)
 			{
-				((Graphic)notificationText).material = textMaterial;
+				notificationText.material = textMaterial;
 			}
 			hudObjParent.SetActive(IsVrMode() && _isEnabled);
 		}
@@ -212,12 +212,12 @@ public class NotifiLib : MonoBehaviour
 
 	private void EnsureInit()
 	{
-		if ((Object)(object)mainCamera == (Object)null)
+		if (mainCamera == (Object)null)
 		{
 			GameObject found = GameObject.Find("Main Camera");
-			if ((Object)(object)found == (Object)null && (Object)(object)Camera.main != (Object)null)
+			if (found == (Object)null && Camera.main != (Object)null)
 			{
-				found = ((Component)Camera.main).gameObject;
+				found = Camera.main.gameObject;
 			}
 			mainCamera = found;
 		}
@@ -226,7 +226,7 @@ public class NotifiLib : MonoBehaviour
 			Init();
 			hasInit = (Object)(object)hudObjParent != (Object)null;
 		}
-		if (hasInit && ((Object)(object)hudObjParent == (Object)null || (Object)(object)notificationText == (Object)null))
+		if (hasInit && (hudObjParent == (Object)null || notificationText == (Object)null))
 		{
 			hasInit = false;
 		}
@@ -251,7 +251,7 @@ public class NotifiLib : MonoBehaviour
 
 	private void FollowCamera()
 	{
-		if ((Object)(object)mainCamera == (Object)null || (Object)(object)hudObjParent == (Object)null)
+		if (mainCamera == (Object)null || hudObjParent == (Object)null)
 		{
 			return;
 		}
@@ -265,7 +265,7 @@ public class NotifiLib : MonoBehaviour
 
 	private void RefreshVrFont()
 	{
-		if ((Object)(object)notificationText != (Object)null && (Object)(object)notificationText.font == (Object)null && (Object)(object)WristMenu.MenuFont != (Object)null)
+		if (notificationText != (Object)null && notificationText.font == (Object)null && WristMenu.MenuFont != (Object)null)
 		{
 			notificationText.font = WristMenu.MenuFont;
 		}
@@ -273,7 +273,7 @@ public class NotifiLib : MonoBehaviour
 
 	private void UpdateVrVisibility()
 	{
-		if ((Object)(object)hudObjParent == (Object)null)
+		if (hudObjParent == (Object)null)
 		{
 			return;
 		}
@@ -286,7 +286,7 @@ public class NotifiLib : MonoBehaviour
 
 	private void TickVrExpiry()
 	{
-		if ((Object)(object)notificationText == (Object)null)
+		if (notificationText == (Object)null)
 		{
 			return;
 		}
@@ -331,7 +331,7 @@ public class NotifiLib : MonoBehaviour
 
 	private static void RebuildVrText()
 	{
-		if ((Object)(object)notificationText == (Object)null)
+		if (notificationText == (Object)null)
 		{
 			return;
 		}
@@ -351,7 +351,7 @@ public class NotifiLib : MonoBehaviour
 	private static void ClearVrLines()
 	{
 		_vrLines.Clear();
-		if ((Object)(object)notificationText != (Object)null)
+		if (notificationText != (Object)null)
 		{
 			notificationText.text = "";
 		}
@@ -444,7 +444,7 @@ public class NotifiLib : MonoBehaviour
 			if (split > 18 && split < vrPlain.Length - 8) { vrPlain = vrPlain.Substring(0, split) + "\n" + vrPlain.Substring(split + 1); }
 		}
 		string vrRich = "<color=green>[Noti]</color> - " + vrPlain;
-		if ((Object)(object)notificationText == (Object)null)
+		if (notificationText == (Object)null)
 		{
 			CleanExpiredVrLines();
 			for (int i = 0; i < _vrLines.Count; i++)
