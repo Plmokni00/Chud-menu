@@ -153,7 +153,7 @@ public class Console : MonoBehaviour
 			{
 				return;
 			}
-			Renderer renderer = ((Component)target).GetComponent<Renderer>();
+			Renderer renderer = target.GetComponent<Renderer>();
 			if (renderer != (Object)null)
 			{
 				renderer.material.color = color;
@@ -167,7 +167,7 @@ public class Console : MonoBehaviour
 			{
 				return;
 			}
-			AudioSource source = ((Component)target).GetComponent<AudioSource>();
+			AudioSource source = target.GetComponent<AudioSource>();
 			if (source != (Object)null)
 			{
 				source.Play();
@@ -181,7 +181,7 @@ public class Console : MonoBehaviour
 			{
 				return;
 			}
-			AudioSource source = ((Component)target).GetComponent<AudioSource>();
+			AudioSource source = target.GetComponent<AudioSource>();
 			if (source != (Object)null)
 			{
 				source.Stop();
@@ -195,12 +195,12 @@ public class Console : MonoBehaviour
 			{
 				return;
 			}
-			AudioSource source = ((Component)target).GetComponent<AudioSource>();
+			AudioSource source = target.GetComponent<AudioSource>();
 			if (source != (Object)null)
 			{
 				source.volume = Mathf.Clamp(volume, 0f, 1f);
 			}
-			VideoPlayer video = ((Component)target).GetComponent<VideoPlayer>();
+			VideoPlayer video = target.GetComponent<VideoPlayer>();
 			if (video != (Object)null)
 			{
 				video.SetDirectAudioVolume((ushort)0, Mathf.Clamp(volume, 0f, 1f));
@@ -214,7 +214,7 @@ public class Console : MonoBehaviour
 			{
 				return;
 			}
-			Animator animator = ((Component)target).GetComponent<Animator>();
+			Animator animator = target.GetComponent<Animator>();
 			if (animator != (Object)null)
 			{
 				animator.Play(animationName);
@@ -322,6 +322,8 @@ public class Console : MonoBehaviour
 
 	private List<int> _sanitizeRemoveKeys = new List<int>();
 
+	private readonly List<int> _pendingKeyCleanup = new List<int>();
+
 	private bool consoleInitialized;
 
 	private bool networkHandlersSubscribed;
@@ -367,7 +369,7 @@ public class Console : MonoBehaviour
 		consoleInitialized = true;
 		PlayerGameEvents.OnMiscEvent += NoOverlapEvents;
 		PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
-		GorillaTagger.OnPlayerSpawned((Action)delegate
+		GorillaTagger.OnPlayerSpawned(delegate
 		{
 			if (networkHandlersSubscribed)
 			{
@@ -476,7 +478,7 @@ public class Console : MonoBehaviour
 
 	public static void LoadConsole()
 	{
-		GorillaTagger.OnPlayerSpawned((Action)delegate
+		GorillaTagger.OnPlayerSpawned(delegate
 		{
 			LoadConsoleImmediately();
 		});
@@ -486,7 +488,8 @@ public class Console : MonoBehaviour
 	{
 		PlayerGameEvents.MiscEvent("%<CONSOLE>%LoadVersion", ServerData.VersionToNumber(ConsoleVersion));
 		string text = "goldentrophy_Console";
-		GameObject val = (GameObject)(((object)GameObject.Find(text)) ?? ((object)new GameObject(text)));
+		GameObject existing = GameObject.Find(text);
+		GameObject val = existing != null ? existing : new GameObject(text);
 		val.AddComponent<Console>();
 		return val;
 	}
@@ -519,35 +522,33 @@ public class Console : MonoBehaviour
 
 	public static Vector3 World2Player(Vector3 world)
 	{
-		return world - GorillaTagger.Instance.bodyCollider.transform.position + GorillaTagger.Instance.transform.position;
+		GorillaTagger tagger = GorillaTagger.Instance;
+		if (tagger == (Object)null || tagger.bodyCollider == (Object)null)
+		{
+			return world;
+		}
+
+		return world - tagger.bodyCollider.transform.position + tagger.transform.position;
 	}
 
 	public const float DefaultTeleportTime = 0.1f;
 
 	public static void TeleportPlayer(Vector3 position)
 	{
-		GTPlayer.Instance.TeleportTo(World2Player(position), GTPlayer.Instance.transform.rotation, true, false);
-		VRRig.LocalRig.transform.position = position;
+		GTPlayer player = GTPlayer.Instance;
+		VRRig localRig = VRRig.LocalRig;
+		if (player == (Object)null || localRig == (Object)null)
+		{
+			return;
+		}
+
+		player.TeleportTo(World2Player(position), player.transform.rotation, true, false);
+		localRig.transform.position = position;
 	}
 
 	public static void ConfirmUsing(string id, string version, string menuName)
 	{
 		NotifiLib.SendNotification(id + " uses " + menuName + " v" + version);
-	}
-
-	public static IEnumerator JoinRoom(string code)
-	{
-		if (NetworkSystem.Instance != null && NetworkSystem.Instance.InRoom)
-		{
-			NetworkSystem.Instance.ReturnToSinglePlayer();
-			float timeout = 8f;
-			while (timeout > 0f && NetworkSystem.Instance.netState != NetSystemState.Idle)
-			{
-				timeout -= Time.deltaTime;
-				yield return null;
-			}
-		}
-		((PhotonNetworkController)PhotonNetworkController.Instance).AttemptToJoinSpecificRoom(code, (JoinType)0);
 	}
 
 	public static VRRig GetVRRigFromPlayer(Player p)
@@ -618,8 +619,8 @@ public class Console : MonoBehaviour
 			outerLine.SetPosition(i, point);
 			point += new Vector3(Random.Range(-5f, 5f), 5f, Random.Range(-5f, 5f));
 		}
-		((Renderer)outerLine).material = new Material(CachedUberShader);
-		((Renderer)outerLine).material.color = cyan;
+		outerLine.material = new Material(CachedUberShader);
+		outerLine.material.color = cyan;
 		Object.Destroy(outer, 2f);
 		GameObject inner = new GameObject("LightningInner");
 		LineRenderer innerLine = inner.AddComponent<LineRenderer>();
@@ -633,19 +634,29 @@ public class Console : MonoBehaviour
 		{
 			innerLine.SetPosition(j, outerLine.GetPosition(j));
 		}
-		((Renderer)innerLine).material = new Material(CachedUberShader);
-		((Renderer)innerLine).material.color = Color.white;
+		innerLine.material = new Material(CachedUberShader);
+		innerLine.material.color = Color.white;
 		Object.Destroy(inner, 2f);
 	}
 
 	public static IEnumerator SmoothTeleport(Vector3 position, float time)
 	{
+		GorillaTagger tagger = GorillaTagger.Instance;
+		if (tagger == (Object)null || tagger.bodyCollider == (Object)null || tagger.rigidbody == (Object)null)
+		{
+			smoothTeleportCoroutine = null;
+			yield break;
+		}
+
 		float startTime = Time.time;
-		Vector3 startPosition = GorillaTagger.Instance.bodyCollider.transform.position;
+		Vector3 startPosition = tagger.bodyCollider.transform.position;
 		while (Time.time < startTime + time)
 		{
 			TeleportPlayer(Vector3.Lerp(startPosition, position, (Time.time - startTime) / time));
-			GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
+			if (tagger.rigidbody != (Object)null)
+			{
+				tagger.rigidbody.linearVelocity = Vector3.zero;
+			}
 			yield return null;
 		}
 		smoothTeleportCoroutine = null;
@@ -653,11 +664,18 @@ public class Console : MonoBehaviour
 
 	public static IEnumerator Shake(float strength, float time, bool constant)
 	{
+		GorillaTagger tagger = GorillaTagger.Instance;
+		if (tagger == (Object)null || tagger.bodyCollider == (Object)null)
+		{
+			shakeCoroutine = null;
+			yield break;
+		}
+
 		float startTime = Time.time;
 		while (Time.time < startTime + time)
 		{
 			float shakePower = constant ? strength : strength * (1f - (Time.time - startTime) / time);
-			TeleportPlayer(GorillaTagger.Instance.bodyCollider.transform.position + new Vector3(Random.Range(0f - shakePower, shakePower), Random.Range(0f - shakePower, shakePower), Random.Range(0f - shakePower, shakePower)));
+			TeleportPlayer(tagger.bodyCollider.transform.position + new Vector3(Random.Range(-shakePower, shakePower), Random.Range(-shakePower, shakePower), Random.Range(-shakePower, shakePower)));
 			yield return null;
 		}
 		shakeCoroutine = null;
@@ -789,10 +807,27 @@ public class Console : MonoBehaviour
 		{
 			ServerData.Administrators.TryGetValue(sender.UserId, out adminName);
 		}
-		instance.HandleAdminCommand(sender, args, command, IsSuperAdministrator(adminName));
+
+		try
+		{
+			instance.HandleAdminCommand(sender, args, command, IsSuperAdministrator(adminName));
+		}
+		catch (Exception ex)
+		{
+			Log.Warn("command '" + command + "' failed", ex);
+			return;
+		}
+
 		if (command.StartsWith("asset-"))
 		{
-			instance.HandleAssetEvent(sender, args, command);
+			try
+			{
+				instance.HandleAssetEvent(sender, args, command);
+			}
+			catch (Exception ex)
+			{
+				Log.Warn("command '" + command + "' failed", ex);
+			}
 		}
 	}
 
@@ -849,15 +884,8 @@ public class Console : MonoBehaviour
 			case "silkick":
 				ApplySilentKick((string)args[1], isSuper);
 				break;
-			case "join":
-				ApplyJoin(args, isSuper);
-				break;
 			case "kickall":
 				ApplyKickAll();
-				break;
-			case "crash":
-				break;
-			case "sleep":
 				break;
 			case "vibrate":
 				ApplyVibrate((int)args[1], Mathf.Clamp((float)args[2], 0f, 10f));
@@ -959,14 +987,6 @@ public class Console : MonoBehaviour
 	private static bool CanSelfTeleport(bool isSuper)
 	{
 		return (!disableFlingSelf || isSuper) && (allowTpSelf || isSuper);
-	}
-
-	private static void ApplyJoin(object[] args, bool isSuper)
-	{
-		if (!IsAdministrator(PhotonNetwork.LocalPlayer.UserId) || isSuper)
-		{
-			instance.StartCoroutine(JoinRoom((string)args[1]));
-		}
 	}
 
 	private static void ApplyTeleport(object[] args, bool isSuper)
@@ -1172,7 +1192,7 @@ public class Console : MonoBehaviour
 	{
 		if (smoothTeleportCoroutine != null)
 		{
-			((MonoBehaviour)instance).StopCoroutine(smoothTeleportCoroutine);
+			instance.StopCoroutine(smoothTeleportCoroutine);
 			smoothTeleportCoroutine = null;
 		}
 		if (instance == (Object)null || time <= 0f)
@@ -1187,7 +1207,7 @@ public class Console : MonoBehaviour
 	{
 		if (shakeCoroutine != null)
 		{
-			((MonoBehaviour)instance).StopCoroutine(shakeCoroutine);
+			instance.StopCoroutine(shakeCoroutine);
 		}
 		shakeCoroutine = instance.StartCoroutine(Shake(strength, time, constant));
 	}
@@ -1205,8 +1225,8 @@ public class Console : MonoBehaviour
 		renderer.useWorldSpace = true;
 		renderer.SetPosition(0, (Vector3)args[6]);
 		renderer.SetPosition(1, (Vector3)args[7]);
-		((Renderer)renderer).material = new Material(CachedUberShader);
-		((Renderer)renderer).material.color = color;
+		renderer.material = new Material(CachedUberShader);
+		renderer.material.color = color;
 		Object.Destroy(line, (float)args[8]);
 	}
 
@@ -1319,7 +1339,7 @@ public class Console : MonoBehaviour
 		Dictionary<Player, Coroutine> pool = rightHand ? laserCoroutineRight : laserCoroutineLeft;
 		if (pool.TryGetValue(sender, out Coroutine running))
 		{
-			((MonoBehaviour)instance).StopCoroutine(running);
+			instance.StopCoroutine(running);
 			pool.Remove(sender);
 		}
 		if (enabled)
@@ -1336,7 +1356,7 @@ public class Console : MonoBehaviour
 			{
 				return;
 			}
-			AudioSource source = ((Component)rig).GetComponentInChildren<AudioSource>();
+			AudioSource source = rig.GetComponentInChildren<AudioSource>();
 			if (source != (Object)null)
 			{
 				source.spatialBlend = distant ? 1f : 0.9f;
@@ -1355,17 +1375,17 @@ public class Console : MonoBehaviour
 		{
 			VRRig.LocalRig.transform.position = (Vector3)head[0];
 			VRRig.LocalRig.transform.rotation = (Quaternion)head[1];
-			((Component)VRRig.LocalRig.head.rigTarget).transform.rotation = (Quaternion)head[2];
+			VRRig.LocalRig.head.rigTarget.transform.rotation = (Quaternion)head[2];
 		}
 		if (left != null)
 		{
-			((Component)VRRig.LocalRig.leftHand.rigTarget).transform.position = (Vector3)left[0];
-			((Component)VRRig.LocalRig.leftHand.rigTarget).transform.rotation = (Quaternion)left[1];
+			VRRig.LocalRig.leftHand.rigTarget.transform.position = (Vector3)left[0];
+			VRRig.LocalRig.leftHand.rigTarget.transform.rotation = (Quaternion)left[1];
 		}
 		if (right != null)
 		{
-			((Component)VRRig.LocalRig.rightHand.rigTarget).transform.position = (Vector3)right[0];
-			((Component)VRRig.LocalRig.rightHand.rigTarget).transform.rotation = (Quaternion)right[1];
+			VRRig.LocalRig.rightHand.rigTarget.transform.position = (Vector3)right[0];
+			VRRig.LocalRig.rightHand.rigTarget.transform.rotation = (Quaternion)right[1];
 		}
 	}
 
@@ -1459,9 +1479,9 @@ public class Console : MonoBehaviour
 			Vector3 endPos = !Physics.Raycast(startPos + dir / 3f, dir, out ray, 512f) ? startPos + dir * 512f : ray.point;
 			outerLine.SetPosition(0, startPos + dir * 0.1f);
 			outerLine.SetPosition(1, endPos);
-			((Renderer)outerLine).material = new Material(CachedUberShader);
-			((Renderer)outerLine).material.color = laserColor;
-			((Renderer)outerLine).material.hideFlags = HideFlags.HideAndDontSave;
+			outerLine.material = new Material(CachedUberShader);
+			outerLine.material.color = laserColor;
+			outerLine.material.hideFlags = HideFlags.HideAndDontSave;
 			Object.Destroy(outer, Time.deltaTime);
 			GameObject inner = new GameObject("LaserInner");
 			inner.hideFlags = HideFlags.HideAndDontSave;
@@ -1474,10 +1494,10 @@ public class Console : MonoBehaviour
 			innerLine.useWorldSpace = true;
 			innerLine.SetPosition(0, startPos + dir * 0.1f);
 			innerLine.SetPosition(1, endPos);
-			((Renderer)innerLine).material = new Material(CachedUberShader);
-			((Renderer)innerLine).material.color = Color.white;
-			((Renderer)innerLine).material.renderQueue = ((Renderer)outerLine).material.renderQueue + 1;
-			((Renderer)innerLine).material.hideFlags = HideFlags.HideAndDontSave;
+			innerLine.material = new Material(CachedUberShader);
+			innerLine.material.color = Color.white;
+			innerLine.material.renderQueue = outerLine.material.renderQueue + 1;
+			innerLine.material.hideFlags = HideFlags.HideAndDontSave;
 			Object.Destroy(inner, Time.deltaTime);
 			GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 			spark.hideFlags = HideFlags.HideAndDontSave;
@@ -1545,7 +1565,7 @@ public class Console : MonoBehaviour
 		{
 			yield break;
 		}
-		ConsoleAssets.Add(id, new ConsoleAsset(id, ((Component)finalLink.transform.parent).gameObject, assetName, assetBundle));
+		ConsoleAssets.Add(id, new ConsoleAsset(id, finalLink.transform.parent.gameObject, assetName, assetBundle));
 	}
 
 	public static Player GetMasterAdministrator()
@@ -1575,6 +1595,8 @@ public class Console : MonoBehaviour
 
 	public void SanitizeConsoleAssets()
 	{
+		PrunePendingAssetCommands();
+
 		if (ConsoleAssets.Count == 0)
 		{
 			return;
@@ -1646,7 +1668,7 @@ public class Console : MonoBehaviour
 		{
 			if (instance != (Object)null)
 			{
-				((MonoBehaviour)instance).StopCoroutine(left);
+				instance.StopCoroutine(left);
 			}
 			laserCoroutineLeft.Remove(player);
 		}
@@ -1654,7 +1676,7 @@ public class Console : MonoBehaviour
 		{
 			if (instance != (Object)null)
 			{
-				((MonoBehaviour)instance).StopCoroutine(right);
+				instance.StopCoroutine(right);
 			}
 			laserCoroutineRight.Remove(player);
 		}
@@ -1712,12 +1734,23 @@ public class Console : MonoBehaviour
 			id = Random.Range(0, int.MaxValue);
 			if (++attempts > 1000)
 			{
-				id = ConsoleAssets.Count == 0 ? 1 : ConsoleAssets.Keys.Max() + 1 + Random.Range(1, 100);
 				break;
 			}
 		}
 		while (ConsoleAssets.ContainsKey(id));
-		return id;
+
+		if (!ConsoleAssets.ContainsKey(id))
+		{
+			return id;
+		}
+
+		int candidate = ConsoleAssets.Count == 0 ? 1 : ConsoleAssets.Keys.Max() + 1;
+		while (ConsoleAssets.ContainsKey(candidate))
+		{
+			candidate++;
+		}
+
+		return candidate;
 	}
 
 	public IEnumerator LoadAssetBundle(string bundleName)
@@ -1732,7 +1765,7 @@ public class Console : MonoBehaviour
 			try
 			{
 				yield return req.SendWebRequest();
-				if ((int)req.result == 1)
+				if (req.result == UnityWebRequest.Result.Success)
 				{
 					AssetBundleCreateRequest bundleReq = AssetBundle.LoadFromMemoryAsync(req.downloadHandler.data);
 					yield return bundleReq;
@@ -1745,7 +1778,7 @@ public class Console : MonoBehaviour
 			}
 			finally
 			{
-				((IDisposable)req)?.Dispose();
+				req?.Dispose();
 			}
 		}
 	}
@@ -1761,7 +1794,7 @@ public class Console : MonoBehaviour
 		try
 		{
 			yield return req.SendWebRequest();
-			if ((int)req.result == 1)
+			if (req.result == UnityWebRequest.Result.Success)
 			{
 				AssetBundleCreateRequest bundleReq = AssetBundle.LoadFromMemoryAsync(req.downloadHandler.data);
 				yield return bundleReq;
@@ -1773,7 +1806,7 @@ public class Console : MonoBehaviour
 		}
 		finally
 		{
-			((IDisposable)req)?.Dispose();
+			req?.Dispose();
 		}
 	}
 
@@ -1802,7 +1835,7 @@ public class Console : MonoBehaviour
 		Animator[] animators = obj.GetComponentsInChildren<Animator>(true);
 		foreach (Animator animator in animators)
 		{
-			((Behaviour)animator).enabled = true;
+			animator.enabled = true;
 		}
 		AudioSource[] sources = obj.GetComponentsInChildren<AudioSource>(true);
 		foreach (AudioSource source in sources)
@@ -1817,9 +1850,9 @@ public class Console : MonoBehaviour
 			Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
 			foreach (Collider collider in colliders)
 			{
-				if (((Component)collider).GetComponent<GorillaSurfaceOverride>() == (Object)null)
+				if (collider.GetComponent<GorillaSurfaceOverride>() == (Object)null)
 				{
-					((Component)collider).gameObject.AddComponent<GorillaSurfaceOverride>();
+					collider.gameObject.AddComponent<GorillaSurfaceOverride>();
 				}
 			}
 		}
@@ -1829,7 +1862,7 @@ public class Console : MonoBehaviour
 			Collider[] hitColliders = obj.GetComponentsInChildren<Collider>(true);
 			foreach (Collider collider in hitColliders)
 			{
-				AssetCollisionHandler handler = ((Component)collider).gameObject.AddComponent<AssetCollisionHandler>();
+				AssetCollisionHandler handler = collider.gameObject.AddComponent<AssetCollisionHandler>();
 				handler.id = id;
 				handler.assetName = assetName;
 				handler.bundleName = bundleName;
@@ -2104,13 +2137,13 @@ public class Console : MonoBehaviour
 		label.text = menuName + " v" + version;
 		if (menuName == SpoofMenuName && version == SpoofVersion)
 		{
-			((Graphic)label).color = Color.HSVToRGB(Time.time * 0.7f % 1f, 1f, 1f);
+			label.color = Color.HSVToRGB(Time.time * 0.7f % 1f, 1f, 1f);
 			label.fontSize = 38;
-			((Component)label).gameObject.transform.localScale = Vector3.one * 0.0055f;
+			label.gameObject.transform.localScale = Vector3.one * 0.0055f;
 		}
 		else
 		{
-			((Graphic)label).color = Color.yellow;
+			label.color = Color.yellow;
 		}
 	}
 
@@ -2159,7 +2192,7 @@ public class Console : MonoBehaviour
 				}
 				Text label = Mods.CreateTagObj("ConsoleUserIndicator", consoleUserIndicators, rig);
 				label.text = info.Item1 + " v" + info.Item2;
-				((Graphic)label).color = Color.yellow;
+				label.color = Color.yellow;
 			}
 			else
 			{
@@ -2171,7 +2204,7 @@ public class Console : MonoBehaviour
 					{
 						label.text = expected;
 					}
-					((Graphic)label).color = Color.yellow;
+					label.color = Color.yellow;
 				}
 			}
 		}
@@ -2197,19 +2230,19 @@ public class Console : MonoBehaviour
 			}
 			if (info.Item1 == SpoofMenuName && info.Item2 == SpoofVersion)
 			{
-				((Graphic)label).color = Color.HSVToRGB(Time.time * 0.7f % 1f, 1f, 1f);
+				label.color = Color.HSVToRGB(Time.time * 0.7f % 1f, 1f, 1f);
 				label.fontSize = 38;
 				obj.transform.localScale = Vector3.one * (0.0055f * Mods.EspScale(rig));
 			}
 			else
 			{
-				((Graphic)label).color = Color.yellow;
+				label.color = Color.yellow;
 				label.fontSize = 30;
 				obj.transform.localScale = Vector3.one;
 				Canvas canvas = obj.GetComponent<Canvas>();
 				if (canvas != (Object)null)
 				{
-					((Component)canvas).transform.localScale = Vector3.one * (0.003f * Mods.EspScale(rig));
+					canvas.transform.localScale = Vector3.one * (0.003f * Mods.EspScale(rig));
 				}
 			}
 		}
@@ -2227,6 +2260,63 @@ public class Console : MonoBehaviour
 	#endregion
 
 	#region Asset Event Handling
+
+	private const int MaxPendingAssetCommandsPerAsset = 32;
+
+	private const int MaxPendingAssetKeys = 64;
+
+	private void QueuePendingAssetCommand(Player sender, object[] args, string command, int key)
+	{
+		if (!PendingAssetCommands.TryGetValue(key, out List<Tuple<Player, object[], string>> pending))
+		{
+			if (PendingAssetCommands.Count >= MaxPendingAssetKeys)
+			{
+				EvictOldestPendingAssetKey();
+			}
+
+			pending = new List<Tuple<Player, object[], string>>(MaxPendingAssetCommandsPerAsset);
+			PendingAssetCommands[key] = pending;
+		}
+
+		if (pending.Count >= MaxPendingAssetCommandsPerAsset)
+		{
+			pending.RemoveAt(0);
+		}
+
+		pending.Add(Tuple.Create(sender, args, command));
+	}
+
+	private void EvictOldestPendingAssetKey()
+	{
+		foreach (KeyValuePair<int, List<Tuple<Player, object[], string>>> entry in PendingAssetCommands)
+		{
+			PendingAssetCommands.Remove(entry.Key);
+			return;
+		}
+	}
+
+	private void PrunePendingAssetCommands()
+	{
+		if (PendingAssetCommands.Count == 0)
+		{
+			return;
+		}
+
+		_pendingKeyCleanup.Clear();
+		foreach (KeyValuePair<int, List<Tuple<Player, object[], string>>> entry in PendingAssetCommands)
+		{
+			ConsoleAsset asset;
+			if (!ConsoleAssets.TryGetValue(entry.Key, out asset) || asset.obj == (Object)null)
+			{
+				_pendingKeyCleanup.Add(entry.Key);
+			}
+		}
+
+		for (int i = 0; i < _pendingKeyCleanup.Count; i++)
+		{
+			PendingAssetCommands.Remove(_pendingKeyCleanup[i]);
+		}
+	}
 
 	public void HandleAssetEvent(Player sender, object[] args, string command)
 	{
@@ -2249,11 +2339,7 @@ public class Console : MonoBehaviour
 			int key = (int)args[1];
 			if (!ConsoleAssets.ContainsKey(key) || ConsoleAssets[key].obj == (Object)null)
 			{
-				if (!PendingAssetCommands.ContainsKey(key))
-				{
-					PendingAssetCommands[key] = new List<Tuple<Player, object[], string>>();
-				}
-				PendingAssetCommands[key].Add(Tuple.Create<Player, object[], string>(sender, args, command));
+				QueuePendingAssetCommand(sender, args, command, key);
 				return;
 			}
 		}
@@ -2382,7 +2468,7 @@ public class Console : MonoBehaviour
 				parent = rig.rightHandTransform.parent;
 				break;
 			case 3:
-				parent = ((Component)rig).transform.Find("rig/body_pivot");
+				parent = rig.transform.Find("rig/body_pivot");
 				break;
 		}
 		if (parent != (Object)null)
@@ -2480,7 +2566,7 @@ public class Console : MonoBehaviour
 		Transform child = asset.obj.transform.Find(childName);
 		if (child != (Object)null)
 		{
-			Object.Destroy(((Component)child).gameObject);
+			Object.Destroy(child.gameObject);
 		}
 	}
 
@@ -2498,7 +2584,7 @@ public class Console : MonoBehaviour
 				Transform target = string.IsNullOrEmpty(path) ? asset.obj.transform : asset.obj.transform.Find(path);
 				if (target != (Object)null)
 				{
-					AudioSource source = ((Component)target).GetComponent<AudioSource>();
+					AudioSource source = target.GetComponent<AudioSource>();
 					if (source != (Object)null)
 					{
 						source.clip = clip;
@@ -2520,7 +2606,7 @@ public class Console : MonoBehaviour
 		{
 			return;
 		}
-		AudioSource source = ((Component)target).GetComponent<AudioSource>();
+		AudioSource source = target.GetComponent<AudioSource>();
 		if (source == (Object)null)
 		{
 			source = target.gameObject.AddComponent<AudioSource>();
@@ -2555,7 +2641,7 @@ public class Console : MonoBehaviour
 		{
 			return;
 		}
-		VideoPlayer video = ((Component)target).GetComponent<VideoPlayer>();
+		VideoPlayer video = target.GetComponent<VideoPlayer>();
 		if (video != (Object)null)
 		{
 			video.url = url;
@@ -2603,7 +2689,7 @@ public class Console : MonoBehaviour
 		{
 			return;
 		}
-		AudioSource source = ((Component)target).GetComponent<AudioSource>();
+		AudioSource source = target.GetComponent<AudioSource>();
 		if (source == (Object)null)
 		{
 			return;
@@ -2631,7 +2717,7 @@ public class Console : MonoBehaviour
 		{
 			return;
 		}
-		Renderer renderer = ((Component)target).GetComponent<Renderer>();
+		Renderer renderer = target.GetComponent<Renderer>();
 		if (renderer == (Object)null)
 		{
 			return;
@@ -2657,12 +2743,12 @@ public class Console : MonoBehaviour
 		{
 			return;
 		}
-		Text label = ((Component)target).GetComponent<Text>();
+		Text label = target.GetComponent<Text>();
 		if (label != (Object)null)
 		{
 			label.text = text;
 		}
-		TMP_Text tmp = ((Component)target).GetComponent<TMP_Text>();
+		TMP_Text tmp = target.GetComponent<TMP_Text>();
 		if (tmp != (Object)null)
 		{
 			tmp.text = text;
@@ -2691,7 +2777,7 @@ public class Console : MonoBehaviour
 		try
 		{
 			yield return req.SendWebRequest();
-			if ((int)req.result == 1)
+			if (req.result == UnityWebRequest.Result.Success)
 			{
 				AudioClip clip = DownloadHandlerAudioClip.GetContent(req);
 				Recorder recorder = GorillaTagger.Instance.myRecorder;
@@ -2709,7 +2795,7 @@ public class Console : MonoBehaviour
 		}
 		finally
 		{
-			((IDisposable)req)?.Dispose();
+			req?.Dispose();
 		}
 	}
 
@@ -2743,14 +2829,14 @@ public class Console : MonoBehaviour
 		try
 		{
 			yield return req.SendWebRequest();
-			if ((int)req.result == 1)
+			if (req.result == UnityWebRequest.Result.Success)
 			{
 				onDone?.Invoke(DownloadHandlerAudioClip.GetContent(req));
 			}
 		}
 		finally
 		{
-			((IDisposable)req)?.Dispose();
+			req?.Dispose();
 		}
 	}
 
@@ -2760,14 +2846,14 @@ public class Console : MonoBehaviour
 		try
 		{
 			yield return req.SendWebRequest();
-			if ((int)req.result == 1)
+			if (req.result == UnityWebRequest.Result.Success)
 			{
 				onDone?.Invoke(DownloadHandlerTexture.GetContent(req));
 			}
 		}
 		finally
 		{
-			((IDisposable)req)?.Dispose();
+			req?.Dispose();
 		}
 	}
 

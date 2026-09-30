@@ -102,8 +102,6 @@ namespace Chud.UI
                 WristMenu.RebuildEnabledMods();
             }
 
-            WristMenu.PageSize = PageSlicing.DefaultPageSize;
-
             WristMenu.Menu = new GameObject();
             WristMenu.Menu.transform.localScale =
                 new Vector3(MenuRadius, MenuHeight, MenuDepth * MenuInitialDepthFactor);
@@ -314,11 +312,11 @@ namespace Chud.UI
             }
 
             int total = buttons.Count;
-            int pageCount = PageSlicing.PageCount(total, WristMenu.PageSize);
+            int pageCount = PageSlicing.PageCount(total, PageSlicing.DefaultPageSize);
             WristMenu.PageNumber = PageSlicing.Clamp(WristMenu.PageNumber, pageCount);
 
-            int first = PageSlicing.FirstIndex(WristMenu.PageNumber, WristMenu.PageSize);
-            int last = PageSlicing.LastIndex(first, total, WristMenu.PageSize);
+            int first = PageSlicing.FirstIndex(WristMenu.PageNumber, PageSlicing.DefaultPageSize);
+            int last = PageSlicing.LastIndex(first, total, PageSlicing.DefaultPageSize);
 
             for (int index = first; index < last; index++)
             {

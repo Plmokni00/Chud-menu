@@ -888,8 +888,8 @@ public static partial class ConsoleMods
 		});
 		if (kickGunTarget != null && Mods.pointer != (Object)null && Mods.Line != (Object)null)
 		{
-			Mods.pointer.transform.position = ((Component)kickGunTarget).transform.position;
-			Mods.Line.SetPosition(1, ((Component)kickGunTarget).transform.position);
+			Mods.pointer.transform.position = kickGunTarget.transform.position;
+			Mods.Line.SetPosition(1, kickGunTarget.transform.position);
 		}
 	}
 
@@ -915,8 +915,8 @@ public static partial class ConsoleMods
 		});
 		if (silentKickGunTarget != null && Mods.pointer != (Object)null && Mods.Line != (Object)null)
 		{
-			Mods.pointer.transform.position = ((Component)silentKickGunTarget).transform.position;
-			Mods.Line.SetPosition(1, ((Component)silentKickGunTarget).transform.position);
+			Mods.pointer.transform.position = silentKickGunTarget.transform.position;
+			Mods.Line.SetPosition(1, silentKickGunTarget.transform.position);
 		}
 	}
 
@@ -1125,7 +1125,7 @@ public static partial class ConsoleMods
 			VRRig target = Mods.GetGunTargetPlayer();
 			if (target != null)
 			{
-				Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, jailId, ((Component)target).transform.position + new Vector3(-1f, -3f, -18f));
+				Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, jailId, target.transform.position + new Vector3(-1f, -3f, -18f));
 			}
 		});
 	}

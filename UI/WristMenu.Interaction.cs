@@ -36,7 +36,7 @@ namespace Chud.UI
                 return;
             }
 
-            int pageCount = PageSlicing.PageCount(buttons.Count, PageSize);
+            int pageCount = PageSlicing.PageCount(buttons.Count, PageSlicing.DefaultPageSize);
 
             if (buttonId == ReservedButtonIds.NextPage)
             {

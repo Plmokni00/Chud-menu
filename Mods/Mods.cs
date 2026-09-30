@@ -186,8 +186,6 @@ internal partial class Mods : MonoBehaviour
 
 	public static int ActiveMenuStyle = 3;
 
-	public static bool BreakGuardianActive = false;
-
 	
 
 	private bool notificationsEnabled = true;
@@ -272,14 +270,6 @@ internal partial class Mods : MonoBehaviour
 
 	private float lastUntagSelfTime;
 
-	private VRRig guardianSpazTarget;
-
-	private float guardianSpazTimer;
-
-	private float lastGuardianGunTime;
-
-	private float lastUnguardianGunTime;
-
 	private bool spazAllActive = false;
 
 	private int spazAllFrameCounter = 0;
@@ -331,8 +321,6 @@ internal partial class Mods : MonoBehaviour
 		{
 			case "Infection":
 				return gm is GorillaTagManager;
-			case "Guardian":
-				return gm is GorillaGuardianManager;
 			case "Paintbrawl":
 				return gm is GorillaPaintbrawlManager;
 			default:
@@ -591,7 +579,6 @@ internal partial class Mods : MonoBehaviour
 			root["AntiReportEnabled"] = antiReportEnabled;
 			root["AntiReportRangeIndex"] = antiReportRangeIndex;
 			root["WaterSplashSpeedIndex"] = waterSplashSpeedIndex;
-			root["BreakGuardianActive"] = BreakGuardianActive;
 			root["ButtonClickIndex"] = Audio.Index;
 			root["MenuLayout"] = WristMenu.MenuLayout;
 
@@ -813,7 +800,6 @@ internal partial class Mods : MonoBehaviour
 			antiReportRangeIndex = (int)(root["AntiReportRangeIndex"] ?? 1);
 			antiReportRange = antiReportRanges[antiReportRangeIndex % antiReportRanges.Length];
 			waterSplashSpeedIndex = (int)(root["WaterSplashSpeedIndex"] ?? 1);
-			BreakGuardianActive = (bool)(root["BreakGuardianActive"] ?? false);
 			Audio.Index = (int)(root["ButtonClickIndex"] ?? 0);
 			WristMenu.MenuLayout = Mathf.Clamp((int)(root["MenuLayout"] ?? 0), 0, 1);
 			Console.allowKickSelf = (bool)(root["ConsoleAllowKickSelf"] ?? false);
@@ -1495,7 +1481,7 @@ internal partial class Mods : MonoBehaviour
 	{
 		try
 		{
-			((PhotonNetworkController)PhotonNetworkController.Instance).disableAFKKick = true;
+			PhotonNetworkController.Instance.disableAFKKick = true;
 		}
 		catch
 		{
@@ -1506,7 +1492,7 @@ internal partial class Mods : MonoBehaviour
 	{
 		try
 		{
-			((PhotonNetworkController)PhotonNetworkController.Instance).disableAFKKick = false;
+			PhotonNetworkController.Instance.disableAFKKick = false;
 		}
 		catch
 		{
@@ -1559,7 +1545,7 @@ internal partial class Mods : MonoBehaviour
 			TransformFollow component = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
 			if (component != (Object)null)
 			{
-				((Behaviour)component).enabled = true;
+				component.enabled = true;
 			}
 		}
 	}
@@ -1574,37 +1560,37 @@ internal partial class Mods : MonoBehaviour
 		{
 			if (pcButtonCachedCamera == (Object)null)
 			{
-				Camera[] array = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
-				foreach (Camera val2 in array)
+				Camera[] cameras = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+				foreach (Camera candidate in cameras)
 				{
-					if (((Object)val2).name == "Shoulder Camera" || (((Component)val2).gameObject.transform.parent != (Object)null && ((Object)((Component)val2).gameObject.transform.parent).name == "Third Person Camera"))
+					Transform parent = candidate.transform.parent;
+					if (candidate.name == "Shoulder Camera" || (parent != null && parent.name == "Third Person Camera"))
 					{
-						pcButtonCachedCamera = val2;
+						pcButtonCachedCamera = candidate;
 						break;
 					}
 				}
 			}
-			Camera val = pcButtonCachedCamera;
-			if (!(val != (Object)null))
+			Camera aimCamera = pcButtonCachedCamera;
+			if (aimCamera == (Object)null)
 			{
 				return;
 			}
-			Ray val3 = val.ScreenPointToRay(((Pointer)Mouse.current).position.ReadValue());
-			RaycastHit val4 = default(RaycastHit);
-			if (!Physics.Raycast(val3, out val4, 512f, GetNoInvisLayerMask()))
+			Ray aimRay = aimCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
+			if (!Physics.Raycast(aimRay, out RaycastHit aimHit, 512f, GetNoInvisLayerMask()))
 			{
 				return;
 			}
 			if (!pcButtonOldLocalPosition.HasValue)
 			{
 				pcButtonOldLocalPosition = GorillaTagger.Instance.rightHandTriggerCollider.transform.localPosition;
-				TransformFollow component = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
-				if (component != (Object)null)
+				TransformFollow follow = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
+				if (follow != (Object)null)
 				{
-					((Behaviour)component).enabled = false;
+					follow.enabled = false;
 				}
 			}
-			GorillaTagger.Instance.rightHandTriggerCollider.transform.position = val4.point;
+			GorillaTagger.Instance.rightHandTriggerCollider.transform.position = aimHit.point;
 		}
 		else
 		{
@@ -1616,7 +1602,7 @@ internal partial class Mods : MonoBehaviour
 			TransformFollow component2 = GorillaTagger.Instance.rightHandTriggerCollider.GetComponent<TransformFollow>();
 			if (component2 != (Object)null)
 			{
-				((Behaviour)component2).enabled = true;
+				component2.enabled = true;
 			}
 		}
 	}
@@ -1970,7 +1956,7 @@ internal partial class Mods : MonoBehaviour
 
 		if (Line != (Object)null)
 		{
-			Object.Destroy(((Component)Line).gameObject);
+			Object.Destroy(Line.gameObject);
 			Line = null;
 		}
 
@@ -2106,32 +2092,31 @@ internal partial class Mods : MonoBehaviour
 		{
 			MakeRightHandGun(delegate
 			{
-				VRRig val3 = GetGunTargetPlayer();
-				if (val3 != null && !val3.isLocal)
+				VRRig targetRig = GetGunTargetPlayer();
+				if (targetRig != null && !targetRig.isLocal)
 				{
-				GorillaTagManager val5 = GorillaGameManager.instance as GorillaTagManager;
-			if (val5 != null && !val5.IsInfected(val3.Creator))
-			{
-				if (tagGunLockedTarget == null)
-					SaveTagRigSpot();
-				tagGunLockedTarget = val3;
-				tagParkWanted = true;
-				tagGunFramesUntilTag = 12;
-					SubscribeTagRigVisual();
-					SubscribeGhostRig();
-				}
+					GorillaTagManager infection = GorillaGameManager.instance as GorillaTagManager;
+					if (infection != null && !infection.IsInfected(targetRig.Creator))
+					{
+						if (tagGunLockedTarget == null)
+							SaveTagRigSpot();
+						tagGunLockedTarget = targetRig;
+						tagParkWanted = true;
+						tagGunFramesUntilTag = 12;
+						SubscribeTagRigVisual();
+						SubscribeGhostRig();
+					}
 				}
 			}, delegate { });
 			if (tagGunLockedTarget != null && pointer != null && Line != null)
 			{
-				pointer.transform.position = ((Component)tagGunLockedTarget).transform.position;
-				Line.SetPosition(1, ((Component)tagGunLockedTarget).transform.position);
+				pointer.transform.position = tagGunLockedTarget.transform.position;
+				Line.SetPosition(1, tagGunLockedTarget.transform.position);
 			}
 		}
-		GorillaGameManager val = GorillaGameManager.instance;
-		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
-		if (val2 == null || tagGunLockedTarget == null) return;
-		if (tagGunLockedTarget.Creator == null || val2.IsInfected(tagGunLockedTarget.Creator))
+		GorillaTagManager infection2 = GorillaGameManager.instance as GorillaTagManager;
+		if (infection2 == null || tagGunLockedTarget == null) return;
+		if (tagGunLockedTarget.Creator == null || infection2.IsInfected(tagGunLockedTarget.Creator))
 		{
 			tagGunLockedTarget = null;
 			tagParkWanted = false;
@@ -2157,15 +2142,10 @@ internal partial class Mods : MonoBehaviour
 
 	public static void UntagSelf()
 	{
-		GorillaGameManager val = GorillaGameManager.instance;
-		if (!(val != (Object)null))
+		GorillaTagManager infection = GorillaGameManager.instance as GorillaTagManager;
+		if (instance != null && infection != null && infection.IsInfected(NetworkSystem.Instance.LocalPlayer) && Time.time > instance.lastUntagSelfTime)
 		{
-			return;
-		}
-		GorillaTagManager val2 = (GorillaTagManager)(object)((val is GorillaTagManager) ? val : null);
-		if (instance != null && val2 != null && val2.IsInfected(NetworkSystem.Instance.LocalPlayer) && Time.time > instance.lastUntagSelfTime)
-		{
-			val2.currentInfected.RemoveAll((NetPlayer p) => p.UserId == NetworkSystem.Instance.LocalPlayer.UserId);
+			infection.currentInfected.RemoveAll((NetPlayer p) => p.UserId == NetworkSystem.Instance.LocalPlayer.UserId);
 			instance.lastUntagSelfTime = Time.time + 0.3f;
 			NotifiLib.SendNotification("Untagged self");
 		}
@@ -2182,18 +2162,17 @@ internal partial class Mods : MonoBehaviour
 
 	private void TagAllCore()
 	{
-		GorillaGameManager val = GorillaGameManager.instance;
-		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
-		if (val2 == null) return;
+		GorillaTagManager infection = GorillaGameManager.instance as GorillaTagManager;
+		if (infection == null) return;
 
-		if (tagAllTarget == null || tagAllTarget.Creator == null || val2.IsInfected(tagAllTarget.Creator))
+		if (tagAllTarget == null || tagAllTarget.Creator == null || infection.IsInfected(tagAllTarget.Creator))
 		{
 			RestoreTagRigSpot();
 			if (tagAllTargets == null || tagAllIndex >= tagAllTargets.Count)
 			{
 				tagAllTargets = new List<VRRig>();
 				foreach (VRRig r in GameLists.ActiveRigs())
-					if (!r.isLocal && r.Creator != null && !val2.IsInfected(r.Creator))
+					if (!r.isLocal && r.Creator != null && !infection.IsInfected(r.Creator))
 						tagAllTargets.Add(r);
 				tagAllIndex = 0;
 			}
@@ -2210,7 +2189,7 @@ internal partial class Mods : MonoBehaviour
 
 			tagAllTarget = tagAllTargets[tagAllIndex];
 			tagAllIndex++;
-			if (tagAllTarget == null || tagAllTarget.Creator == null || val2.IsInfected(tagAllTarget.Creator))
+			if (tagAllTarget == null || tagAllTarget.Creator == null || infection.IsInfected(tagAllTarget.Creator))
 			{
 				tagAllTarget = null;
 				tagParkWanted = false;
@@ -2272,15 +2251,15 @@ internal partial class Mods : MonoBehaviour
 		bodyT.position = stump;
 		if (VRRig.LocalRig != null)
 			VRRig.LocalRig.transform.position = stump;
-		((Collider)gt.bodyCollider).enabled = false;
-		((MonoBehaviour)gt).StartCoroutine(ReenableBodyCollider());
+		gt.bodyCollider.enabled = false;
+		gt.StartCoroutine(ReenableBodyCollider());
 	}
 
 	private static IEnumerator ReenableBodyCollider()
 	{
 		yield return (object)new WaitForSeconds(1.5f);
 		if (GorillaTagger.Instance != null)
-			((Collider)GorillaTagger.Instance.bodyCollider).enabled = true;
+			GorillaTagger.Instance.bodyCollider.enabled = true;
 	}
 
 	public static void SpazAll()
@@ -2317,13 +2296,8 @@ internal partial class Mods : MonoBehaviour
 
 	private void RunSpaz()
 	{
-		GorillaGameManager val = GorillaGameManager.instance;
-		if (val == (Object)null)
-		{
-			return;
-		}
-		GorillaTagManager val2 = (GorillaTagManager)(object)((val is GorillaTagManager) ? val : null);
-		if (val2 == null || !PhotonNetwork.IsMasterClient)
+		GorillaTagManager infection = GorillaGameManager.instance as GorillaTagManager;
+		if (infection == null || !PhotonNetwork.IsMasterClient)
 		{
 			return;
 		}
@@ -2333,24 +2307,24 @@ internal partial class Mods : MonoBehaviour
 			for (int i = 0; i < playerList.Length; i++)
 			{
 				NetPlayer p = playerList[i];
-				if (val2.isCurrentlyTag)
+				if (infection.isCurrentlyTag)
 				{
-					if (val2.currentIt == p)
+					if (infection.currentIt == p)
 					{
-						val2.currentIt = null;
+						infection.currentIt = null;
 					}
-					else if (val2.currentIt == null)
+					else if (infection.currentIt == null)
 					{
-						val2.currentIt = p;
+						infection.currentIt = p;
 					}
 				}
-				else if (val2.IsInfected(p))
+				else if (infection.IsInfected(p))
 				{
-					val2.currentInfected.RemoveAll((NetPlayer x) => x.UserId == p.UserId);
+					infection.currentInfected.RemoveAll((NetPlayer x) => x.UserId == p.UserId);
 				}
 				else
 				{
-					val2.AddInfectedPlayer(p, true);
+					infection.AddInfectedPlayer(p, true);
 				}
 			}
 		}
@@ -2359,24 +2333,24 @@ internal partial class Mods : MonoBehaviour
 			return;
 		}
 		NetPlayer self = NetworkSystem.Instance.LocalPlayer;
-		if (val2.isCurrentlyTag)
+		if (infection.isCurrentlyTag)
 		{
-			if (val2.currentIt == self)
+			if (infection.currentIt == self)
 			{
-				val2.currentIt = null;
+				infection.currentIt = null;
 			}
 			else
 			{
-				val2.currentIt = self;
+				infection.currentIt = self;
 			}
 		}
-		else if (val2.IsInfected(self))
+		else if (infection.IsInfected(self))
 		{
-			val2.currentInfected.RemoveAll((NetPlayer x) => x.UserId == self.UserId);
+			infection.currentInfected.RemoveAll((NetPlayer x) => x.UserId == self.UserId);
 		}
 		else
 		{
-			val2.AddInfectedPlayer(self, true);
+			infection.AddInfectedPlayer(self, true);
 		}
 	}
 
@@ -2483,156 +2457,6 @@ internal partial class Mods : MonoBehaviour
 		tagAuraRangeIndex = index % TagAuraRanges.Length;
 		tagAuraRange = TagAuraRanges[tagAuraRangeIndex];
 		NotifiLib.SendNotification("Range: " + tagAuraRange.ToString("0.0") + "m");
-	}
-
-	public static void BreakGuardian()
-	{
-		BreakGuardianActive = true;
-		Chud.Patches.GuardianBreakPatcher.Apply();
-
-		if (!PhotonNetwork.IsMasterClient)
-		{
-			return;
-		}
-
-		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-		if (guardian == null)
-		{
-			return;
-		}
-
-		NetPlayer local = Chud.Runtime.GameContext.LocalNetPlayer;
-		foreach (GorillaGuardianZoneManager zone in Chud.Runtime.GameLists.GuardianZones())
-		{
-			NetPlayer current = zone.CurrentGuardian;
-			if (current != null && !current.IsLocal && !zone.IsPlayerGuardian(local))
-			{
-				guardian.EjectGuardian(current);
-			}
-		}
-	}
-
-	public static void DisableBreakGuardian()
-	{
-		BreakGuardianActive = false;
-		Chud.Patches.GuardianBreakPatcher.Remove();
-	}
-
-	public static void GuardianSelf()
-	{
-		if (!PhotonNetwork.IsMasterClient)
-		{
-			NotifiLib.SendNotification("You are not master client!");
-			return;
-		}
-		NetPlayer local = PhotonNetwork.LocalPlayer;
-		foreach (GorillaGuardianZoneManager zm in GameLists.GuardianZones())
-		{
-			zm.SetGuardian(local);
-		}
-
-	}
-
-	public static void UnguardianSelf()
-	{
-		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-		if (guardian == null) return;
-		NetPlayer local = PhotonNetwork.LocalPlayer;
-		if (!guardian.IsPlayerGuardian(local)) return;
-		if (PhotonNetwork.IsMasterClient)
-		{
-			guardian.EjectGuardian(local);
-		}
-		else
-		{
-			guardian.RequestEjectGuardian(local);
-		}
-	}
-
-	public static void GuardianGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			if (instance == null || Time.time < instance.lastGuardianGunTime) return;
-			VRRig rig = GetGunTargetPlayer();
-			if (rig == null || rig.isLocal || rig.Creator == null) return;
-			foreach (GorillaGuardianZoneManager zm in GameLists.GuardianZones())
-			{
-				zm.SetGuardian(rig.Creator);
-			}
-			instance.lastGuardianGunTime = Time.time + 0.3f;
-		});
-	}
-
-	public static void UnguardianGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			if (instance == null || Time.time < instance.lastUnguardianGunTime) return;
-			VRRig rig = GetGunTargetPlayer();
-			if (rig == null || rig.Creator == null) return;
-			GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-			if (guardian == null) return;
-			if (!guardian.IsPlayerGuardian(rig.Creator)) return;
-			if (PhotonNetwork.IsMasterClient)
-			{
-				guardian.EjectGuardian(rig.Creator);
-			}
-			else
-			{
-				guardian.RequestEjectGuardian(rig.Creator);
-			}
-			instance.lastUnguardianGunTime = Time.time + 0.3f;
-		});
-	}
-
-	public static void GuardianSpazGun()
-	{
-		if (instance == null)
-		{
-			return;
-		}
-		instance.GuardianSpazGunCore();
-	}
-
-	private void GuardianSpazGunCore()
-	{
-		bool gripDown = IsRightHanded ? WristMenu.GripDownL : WristMenu.GripDownR;
-		if (!gripDown)
-		{
-			guardianSpazTarget = null;
-			CleanupGun();
-			return;
-		}
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null && !rig.isLocal && rig.Creator != null)
-			{
-				guardianSpazTarget = rig;
-			}
-		}, delegate { });
-		if (guardianSpazTarget == null || guardianSpazTarget.Creator == null) return;
-		if (pointer != null && Line != null)
-		{
-			pointer.transform.position = ((Component)guardianSpazTarget).transform.position;
-			Line.SetPosition(1, ((Component)guardianSpazTarget).transform.position);
-		}
-		if (Time.time < guardianSpazTimer) return;
-		guardianSpazTimer = Time.time + 0.15f;
-		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-		if (guardian == null) return;
-		if (guardian.IsPlayerGuardian(guardianSpazTarget.Creator))
-		{
-			guardian.EjectGuardian(guardianSpazTarget.Creator);
-		}
-		else
-		{
-			foreach (GorillaGuardianZoneManager zm in GameLists.GuardianZones())
-			{
-				zm.SetGuardian(guardianSpazTarget.Creator);
-			}
-		}
 	}
 
 	public static void PaintBrawlKillAll()
@@ -2850,12 +2674,12 @@ internal partial class Mods : MonoBehaviour
 		instance.randomColorSpazTick++;
 		if (instance.randomColorSpazTick % 15 == 0)
 		{
-			float num = Random.Range(0.15f, 0.95f);
-			float num2 = Random.Range(0.15f, 0.95f);
-			float num3 = Random.Range(0.15f, 0.95f);
-			if (VRRig.LocalRig != null) VRRig.LocalRig.InitializeNoobMaterialLocal(num, num2, num3);
+			float red = Random.Range(0.15f, 0.95f);
+			float green = Random.Range(0.15f, 0.95f);
+			float blue = Random.Range(0.15f, 0.95f);
+			if (VRRig.LocalRig != null) VRRig.LocalRig.InitializeNoobMaterialLocal(red, green, blue);
 			if (GorillaTagger.Instance != null && GorillaTagger.Instance.myVRRig != null)
-				GorillaTagger.Instance.myVRRig.SendRPC("RPC_InitializeNoobMaterial", RpcTarget.All, new object[3] { num, num2, num3 });
+				GorillaTagger.Instance.myVRRig.SendRPC("RPC_InitializeNoobMaterial", RpcTarget.All, new object[3] { red, green, blue });
 		}
 	}
 
@@ -3258,20 +3082,18 @@ internal partial class Mods : MonoBehaviour
 		if (Directory.Exists(soundboardBasePath))
 		{
 			string[] files = Directory.GetFiles(soundboardBasePath);
-			foreach (string text in files)
+			foreach (string filePath in files)
 			{
-				string text2 = text;
-				string text3 = Path.GetFileNameWithoutExtension(text2);
-				string fileName = text3;
+				string displayName = Path.GetFileNameWithoutExtension(filePath);
 				buttons.Add(new ButtonInfo
 				{
-					id = "soundboard_file_" + SanitizeSoundboardId(fileName),
-					buttonText = fileName,
+					id = "soundboard_file_" + SanitizeSoundboardId(displayName),
+					buttonText = displayName,
 					enableMethod = delegate
 					{
 						SoundboardStop();
-						SoundboardPlay(text2);
-						NotifiLib.SendNotification(fileName);
+						SoundboardPlay(filePath);
+						NotifiLib.SendNotification(displayName);
 					},
 					disableMethod = SoundboardStop,
 					enabled = false,
@@ -3693,8 +3515,8 @@ internal partial class Mods : MonoBehaviour
 		});
 		if (instance != null && instance.lagGunLockedTarget != null && pointer != null && Line != null)
 		{
-			pointer.transform.position = ((Component)instance.lagGunLockedTarget).transform.position;
-			Line.SetPosition(1, ((Component)instance.lagGunLockedTarget).transform.position);
+			pointer.transform.position = instance.lagGunLockedTarget.transform.position;
+			Line.SetPosition(1, instance.lagGunLockedTarget.transform.position);
 		}
 	}
 
@@ -3756,8 +3578,8 @@ internal partial class Mods : MonoBehaviour
 		}, delegate { StopOrbit(); });
 		if (instance != null && instance.orbitTarget != null && pointer != null && Line != null)
 		{
-			pointer.transform.position = ((Component)instance.orbitTarget).transform.position;
-			Line.SetPosition(1, ((Component)instance.orbitTarget).transform.position);
+			pointer.transform.position = instance.orbitTarget.transform.position;
+			Line.SetPosition(1, instance.orbitTarget.transform.position);
 		}
 	}
 

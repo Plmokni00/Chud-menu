@@ -11,9 +11,6 @@ namespace Chud.Runtime
         [System.ThreadStatic]
         private static List<GorillaPlayerScoreboardLine> _scoreboardBuffer;
 
-        [System.ThreadStatic]
-        private static List<GorillaGuardianZoneManager> _zoneBuffer;
-
         public static List<VRRig> ActiveRigs()
         {
             List<VRRig> buffer = _rigBuffer ?? (_rigBuffer = new List<VRRig>(16));
@@ -60,30 +57,5 @@ namespace Chud.Runtime
 
             return buffer;
         }
-
-        public static List<GorillaGuardianZoneManager> GuardianZones()
-        {
-            List<GorillaGuardianZoneManager> buffer =
-                _zoneBuffer ?? (_zoneBuffer = new List<GorillaGuardianZoneManager>(8));
-            buffer.Clear();
-
-            List<GorillaGuardianZoneManager> source = GorillaGuardianZoneManager.zoneManagers;
-            if (source == null)
-            {
-                return buffer;
-            }
-
-            for (int i = 0; i < source.Count; i++)
-            {
-                GorillaGuardianZoneManager zone = source[i];
-                if (zone != (Object)null)
-                {
-                    buffer.Add(zone);
-                }
-            }
-
-            return buffer;
-        }
-
     }
 }

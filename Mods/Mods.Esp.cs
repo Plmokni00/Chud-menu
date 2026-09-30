@@ -249,21 +249,21 @@ internal partial class Mods
 		{
 			comicSansFont = Font.CreateDynamicFontFromOSFont("Comic Sans MS", 36);
 		}
-		GameObject val = new GameObject(name);
-		Canvas val2 = val.AddComponent<Canvas>();
-		val2.renderMode = RenderMode.WorldSpace;
-		((Component)val2).transform.localScale = Vector3.one * (0.003f * EspScale(rig));
-		Text val3 = val.AddComponent<Text>();
+		GameObject tagObject = new GameObject(name);
+		Canvas tagCanvas = tagObject.AddComponent<Canvas>();
+		tagCanvas.renderMode = RenderMode.WorldSpace;
+		tagCanvas.transform.localScale = Vector3.one * (0.003f * EspScale(rig));
+		Text tagLabel = tagObject.AddComponent<Text>();
 		if (comicSansFont != (Object)null)
 		{
-			val3.font = comicSansFont;
+			tagLabel.font = comicSansFont;
 		}
-		val3.fontSize = 30;
-		val3.horizontalOverflow = HorizontalWrapMode.Overflow;
-		val3.alignment = TextAnchor.MiddleCenter;
-		((Graphic)val3).color = rig.playerColor;
-		dict[rig] = val;
-		return val3;
+		tagLabel.fontSize = 30;
+		tagLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+		tagLabel.alignment = TextAnchor.MiddleCenter;
+		tagLabel.color = rig.playerColor;
+		dict[rig] = tagObject;
+		return tagLabel;
 	}
 
 	internal static void PlaceTag(GameObject obj, VRRig rig, int slot)
@@ -308,82 +308,77 @@ internal partial class Mods
 			reusableBoxEspRemovals.Add(item.Key);
 			Object.Destroy(item.Value);
 		}
-		foreach (VRRig item2 in reusableBoxEspRemovals)
+		foreach (VRRig staleRig in reusableBoxEspRemovals)
 		{
-			boxEspObjects.Remove(item2);
+			boxEspObjects.Remove(staleRig);
 		}
-		foreach (VRRig item3 in GameLists.ActiveRigs())
+		foreach (VRRig otherRig in GameLists.ActiveRigs())
 		{
-			if (item3.isLocal)
+			if (otherRig.isLocal)
 			{
 				continue;
 			}
-			if (!boxEspObjects.TryGetValue(item3, out var value))
+			if (!boxEspObjects.TryGetValue(otherRig, out GameObject box))
 			{
-				value = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy(value.GetComponent<BoxCollider>());
-				value.GetComponent<Renderer>().enabled = false;
-				value.transform.localScale = new Vector3(0.8f, 0.85f, 0f);
+				box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				Object.Destroy(box.GetComponent<BoxCollider>());
+				box.GetComponent<Renderer>().enabled = false;
+				box.transform.localScale = new Vector3(0.8f, 0.85f, 0f);
 				Shader shader = CachedGuiTextShader;
-				float num = 0.08f;
-				GameObject val = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy(val.GetComponent<BoxCollider>());
-				val.transform.SetParent(value.transform);
-				val.transform.localPosition = new Vector3(0f, 0.425f, 0f);
-				val.transform.localScale = new Vector3(0.8f, num, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
-				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy(val.GetComponent<BoxCollider>());
-				val.transform.SetParent(value.transform);
-				val.transform.localPosition = new Vector3(0f, -0.425f, 0f);
-				val.transform.localScale = new Vector3(0.8f, num, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
-				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy(val.GetComponent<BoxCollider>());
-				val.transform.SetParent(value.transform);
-				val.transform.localPosition = new Vector3(0.4f, 0f, 0f);
-				val.transform.localScale = new Vector3(num, 0.85f, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
-				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
-				Object.Destroy(val.GetComponent<BoxCollider>());
-				val.transform.SetParent(value.transform);
-				val.transform.localPosition = new Vector3(-0.4f, 0f, 0f);
-				val.transform.localScale = new Vector3(num, 0.85f, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
-				boxEspObjects.Add(item3, value);
+				float edgeThickness = 0.08f;
+				GameObject edge = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				Object.Destroy(edge.GetComponent<BoxCollider>());
+				edge.transform.SetParent(box.transform);
+				edge.transform.localPosition = new Vector3(0f, 0.425f, 0f);
+				edge.transform.localScale = new Vector3(0.8f, edgeThickness, 1f);
+				edge.GetComponent<Renderer>().material.shader = shader;
+				edge = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				Object.Destroy(edge.GetComponent<BoxCollider>());
+				edge.transform.SetParent(box.transform);
+				edge.transform.localPosition = new Vector3(0f, -0.425f, 0f);
+				edge.transform.localScale = new Vector3(0.8f, edgeThickness, 1f);
+				edge.GetComponent<Renderer>().material.shader = shader;
+				edge = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				Object.Destroy(edge.GetComponent<BoxCollider>());
+				edge.transform.SetParent(box.transform);
+				edge.transform.localPosition = new Vector3(0.4f, 0f, 0f);
+				edge.transform.localScale = new Vector3(edgeThickness, 0.85f, 1f);
+				edge.GetComponent<Renderer>().material.shader = shader;
+				edge = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				Object.Destroy(edge.GetComponent<BoxCollider>());
+				edge.transform.SetParent(box.transform);
+				edge.transform.localPosition = new Vector3(-0.4f, 0f, 0f);
+				edge.transform.localScale = new Vector3(edgeThickness, 0.85f, 1f);
+				edge.GetComponent<Renderer>().material.shader = shader;
+				boxEspObjects.Add(otherRig, box);
 			}
-			Color color = item3.playerColor;
+			Color color = otherRig.playerColor;
 			try
 			{
-				GorillaGameManager val2 = GorillaGameManager.instance;
-				if (val2 != (Object)null)
+				GorillaGameManager manager = GorillaGameManager.instance;
+				if (manager is GorillaTagManager tagManager && otherRig.Creator != null && tagManager.IsInfected(otherRig.Creator))
 				{
-					GorillaTagManager val3 = (GorillaTagManager)(object)((val2 is GorillaTagManager) ? val2 : null);
-					if (val3 != null && item3.Creator != null && val3.IsInfected(item3.Creator))
-					{
-						color = new Color(1f, 0.5f, 0f);
-					}
+					color = new Color(1f, 0.5f, 0f);
 				}
 			}
 			catch
 			{
 			}
-			float espScale = EspScale(item3);
-			Vector3 espRoot = ((Component)item3).transform.position;
-			Vector3 espHead = GetHeadAnchor(item3);
+			float espScale = EspScale(otherRig);
+			Vector3 espRoot = otherRig.transform.position;
+			Vector3 espHead = GetHeadAnchor(otherRig);
 			float espHeight = Mathf.Abs(espHead.y - espRoot.y);
 			if (espHeight < 0.4f * espScale || espHeight > 50f)
 				espHeight = 0.85f * espScale;
-			value.transform.position = (espRoot + espHead) * 0.5f;
-			value.transform.LookAt(GorillaTagger.Instance.headCollider.transform.position);
-			value.transform.localScale = new Vector3(0.8f * espScale, espHeight, 0f);
-			foreach (Transform item4 in value.transform)
+			box.transform.position = (espRoot + espHead) * 0.5f;
+			box.transform.LookAt(GorillaTagger.Instance.headCollider.transform.position);
+			box.transform.localScale = new Vector3(0.8f * espScale, espHeight, 0f);
+			foreach (Transform child in box.transform)
 			{
-				Transform val4 = item4;
-				Renderer component = ((Component)val4).GetComponent<Renderer>();
-				if (component != (Object)null)
+				Renderer childRenderer = child.GetComponent<Renderer>();
+				if (childRenderer != (Object)null)
 				{
-					component.material.color = color;
+					childRenderer.material.color = color;
 				}
 			}
 		}
@@ -423,45 +418,45 @@ internal partial class Mods
 		}
 		if (reusableTracerRemovals.Count > 0)
 		{
-			foreach (Player item in reusableTracerRemovals)
+			foreach (Player stalePlayer in reusableTracerRemovals)
 			{
-				Object.Destroy(((Component)tracerLines[item]).gameObject);
-				tracerLines.Remove(item);
+				Object.Destroy(tracerLines[stalePlayer].gameObject);
+				tracerLines.Remove(stalePlayer);
 			}
 		}
 		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
-		foreach (Player val in playerListOthers)
+		foreach (Player player in playerListOthers)
 		{
-			VRRig vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(val);
-			if (vRRigFromPlayer == (Object)null)
+			VRRig targetRig = GorillaGameManager.StaticFindRigForPlayer(player);
+			if (targetRig == (Object)null)
 			{
 				continue;
 			}
-			if (!tracerLines.TryGetValue(val, out var value))
+			if (!tracerLines.TryGetValue(player, out LineRenderer line))
 			{
-				GameObject val2 = new GameObject("TracerLine");
-				((Object)val2).hideFlags = HideFlags.HideAndDontSave;
-				value = val2.AddComponent<LineRenderer>();
-				value.startWidth = 0.01f;
-				value.endWidth = 0.01f;
-				value.positionCount = 2;
-				value.useWorldSpace = true;
-				((Renderer)value).material.shader = CachedGuiTextShader;
-				tracerLines[val] = value;
+				GameObject lineObject = new GameObject("TracerLine");
+				lineObject.hideFlags = HideFlags.HideAndDontSave;
+				line = lineObject.AddComponent<LineRenderer>();
+				line.startWidth = 0.01f;
+				line.endWidth = 0.01f;
+				line.positionCount = 2;
+				line.useWorldSpace = true;
+				line.material.shader = CachedGuiTextShader;
+				tracerLines[player] = line;
 			}
-			value.SetPosition(0, GetTracerStart());
-			value.SetPosition(1, vRRigFromPlayer.transform.position);
+			line.SetPosition(0, GetTracerStart());
+			line.SetPosition(1, targetRig.transform.position);
 
-			Color val3 = vRRigFromPlayer.playerColor;
-			GorillaTagManager val5 = GameContext.Infection;
-			if (val5 != null && vRRigFromPlayer.Creator != null && val5.IsInfected(vRRigFromPlayer.Creator))
+			Color lineColor = targetRig.playerColor;
+			GorillaTagManager infection = GameContext.Infection;
+			if (infection != null && targetRig.Creator != null && infection.IsInfected(targetRig.Creator))
 			{
-				val3 = InfectedSkeletonColor;
+				lineColor = InfectedSkeletonColor;
 			}
 
-			val3.a = 0.3f;
-			value.startColor = val3;
-			value.endColor = val3;
+			lineColor.a = 0.3f;
+			line.startColor = lineColor;
+			line.endColor = lineColor;
 		}
 	}
 
@@ -482,9 +477,9 @@ internal partial class Mods
 		{
 			return;
 		}
-		foreach (LineRenderer value in instance.tracerLines.Values)
+		foreach (LineRenderer line in instance.tracerLines.Values)
 		{
-			Object.Destroy(((Component)value).gameObject);
+			Object.Destroy(line.gameObject);
 		}
 		instance.tracerLines.Clear();
 	}
@@ -615,10 +610,10 @@ internal partial class Mods
 		{
 			if (skeletonLines.TryGetValue(p, out LineRenderer[] dead) && dead != null)
 			{
-				foreach (LineRenderer lr in dead)
+				foreach (LineRenderer line in dead)
 				{
-					if (lr != null)
-						Object.Destroy(((Component)lr).gameObject);
+					if (line != null)
+						Object.Destroy(line.gameObject);
 				}
 			}
 			skeletonLines.Remove(p);
@@ -702,10 +697,10 @@ internal partial class Mods
 		foreach (LineRenderer[] arr in instance.skeletonLines.Values)
 		{
 			if (arr == null) continue;
-			foreach (LineRenderer lr in arr)
+			foreach (LineRenderer line in arr)
 			{
-				if (lr != null)
-					Object.Destroy(((Component)lr).gameObject);
+				if (line != null)
+					Object.Destroy(line.gameObject);
 			}
 		}
 		instance.skeletonLines.Clear();
@@ -744,21 +739,21 @@ internal partial class Mods
 	private void CleanTagDict(Dictionary<VRRig, GameObject> dict)
 	{
 		reusableTagRemovals.Clear();
-		foreach (KeyValuePair<VRRig, GameObject> item in dict)
+		foreach (KeyValuePair<VRRig, GameObject> entry in dict)
 		{
-			if (!VRRigCache.ActiveRigs.Contains(item.Key))
+			if (!VRRigCache.ActiveRigs.Contains(entry.Key))
 			{
-				reusableTagRemovals.Add(item.Key);
+				reusableTagRemovals.Add(entry.Key);
 			}
 		}
 		if (reusableTagRemovals.Count == 0)
 		{
 			return;
 		}
-		foreach (VRRig item2 in reusableTagRemovals)
+		foreach (VRRig staleRig in reusableTagRemovals)
 		{
-			Object.Destroy(dict[item2]);
-			dict.Remove(item2);
+			Object.Destroy(dict[staleRig]);
+			dict.Remove(staleRig);
 		}
 	}
 
@@ -862,13 +857,13 @@ internal partial class Mods
 			if (!provider.Objects.TryGetValue(rig, out go))
 			{
 				Text created = CreateTagObj(provider.ObjectName, provider.Objects, rig);
-				go = ((Component)created).gameObject;
+				go = created.gameObject;
 			}
 			Text label = go.GetComponent<Text>();
 			if (label != (Object)null)
 			{
 				label.text = text;
-				((Graphic)label).color = provider.GetColor(rig);
+				label.color = provider.GetColor(rig);
 			}
 			PlaceTag(go, rig, provider.Slot);
 		}
@@ -890,7 +885,7 @@ internal partial class Mods
 			}
 			Text created = CreateTagObj(provider.ObjectName, provider.Objects, rig);
 			created.text = text;
-			((Graphic)created).color = provider.GetColor(rig);
+			created.color = provider.GetColor(rig);
 		}
 		foreach (KeyValuePair<VRRig, GameObject> entry in provider.Objects)
 		{

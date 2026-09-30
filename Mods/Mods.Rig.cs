@@ -138,12 +138,12 @@ internal partial class Mods
 			s.rightHandPos = localRig.rightHand.rigTarget.transform.position;
 			s.rightHandRot = localRig.rightHand.rigTarget.transform.rotation;
 		}
-		s.leftIndexT = ((VRMap)localRig.leftIndex).calcT;
-		s.leftMiddleT = ((VRMap)localRig.leftMiddle).calcT;
-		s.leftThumbT = ((VRMap)localRig.leftThumb).calcT;
-		s.rightIndexT = ((VRMap)localRig.rightIndex).calcT;
-		s.rightMiddleT = ((VRMap)localRig.rightMiddle).calcT;
-		s.rightThumbT = ((VRMap)localRig.rightThumb).calcT;
+		s.leftIndexT = localRig.leftIndex.calcT;
+		s.leftMiddleT = localRig.leftMiddle.calcT;
+		s.leftThumbT = localRig.leftThumb.calcT;
+		s.rightIndexT = localRig.rightIndex.calcT;
+		s.rightMiddleT = localRig.rightMiddle.calcT;
+		s.rightThumbT = localRig.rightThumb.calcT;
 	}
 
 	private void ApplyRigSnapshot(ref TransformSnapshot s)
@@ -161,18 +161,18 @@ internal partial class Mods
 		{
 			localRig.rightHand.rigTarget.transform.SetPositionAndRotation(s.rightHandPos, s.rightHandRot);
 		}
-		((VRMap)localRig.leftIndex).calcT = s.leftIndexT;
-		((VRMap)localRig.leftIndex).LerpFinger(1f, false);
-		((VRMap)localRig.leftMiddle).calcT = s.leftMiddleT;
-		((VRMap)localRig.leftMiddle).LerpFinger(1f, false);
-		((VRMap)localRig.leftThumb).calcT = s.leftThumbT;
-		((VRMap)localRig.leftThumb).LerpFinger(1f, false);
-		((VRMap)localRig.rightIndex).calcT = s.rightIndexT;
-		((VRMap)localRig.rightIndex).LerpFinger(1f, false);
-		((VRMap)localRig.rightMiddle).calcT = s.rightMiddleT;
-		((VRMap)localRig.rightMiddle).LerpFinger(1f, false);
-		((VRMap)localRig.rightThumb).calcT = s.rightThumbT;
-		((VRMap)localRig.rightThumb).LerpFinger(1f, false);
+		localRig.leftIndex.calcT = s.leftIndexT;
+		localRig.leftIndex.LerpFinger(1f, false);
+		localRig.leftMiddle.calcT = s.leftMiddleT;
+		localRig.leftMiddle.LerpFinger(1f, false);
+		localRig.leftThumb.calcT = s.leftThumbT;
+		localRig.leftThumb.LerpFinger(1f, false);
+		localRig.rightIndex.calcT = s.rightIndexT;
+		localRig.rightIndex.LerpFinger(1f, false);
+		localRig.rightMiddle.calcT = s.rightMiddleT;
+		localRig.rightMiddle.LerpFinger(1f, false);
+		localRig.rightThumb.calcT = s.rightThumbT;
+		localRig.rightThumb.LerpFinger(1f, false);
 	}
 
 	public static void GhostMonke()
@@ -239,7 +239,7 @@ internal partial class Mods
 			SkinnedMeshRenderer mainSkin = VRRig.LocalRig.mainSkin;
 			if (!(mainSkin == (Object)null))
 			{
-				((Renderer)mainSkin).enabled = !disable;
+				mainSkin.enabled = !disable;
 				invisMonkeSkinsDisabled = disable;
 			}
 		}
@@ -390,7 +390,7 @@ internal partial class Mods
 		if (target == null) return;
 
 		EnsureLocalRigEnabled();
-		Vector3 targetPos = ((Component)target).transform.position;
+		Vector3 targetPos = target.transform.position;
 		localRig.transform.position = targetPos;
 		if (localRig.head != null && localRig.head.rigTarget != (Object)null)
 			localRig.head.rigTarget.transform.position = targetPos;
@@ -541,7 +541,7 @@ internal partial class Mods
 		ghostRig.isOfflineVRRig = true;
 		ghostRig.gameObject.name = "Chud_GhostRig";
 		ghostRig.gameObject.SetActive(false);
-		Transform localParent = ((Component)local).transform.parent;
+		Transform localParent = local.transform.parent;
 		ghostRig.transform.SetParent(localParent);
 
 		Object.Destroy(ghostRigHolder);
@@ -701,7 +701,7 @@ internal partial class Mods
 		orbitAngle += Time.deltaTime * 165f;
 		if (orbitAngle > 360f) orbitAngle -= 360f;
 		float rad = orbitAngle * Mathf.Deg2Rad;
-		Vector3 center = ((Component)orbitTarget).transform.position;
+		Vector3 center = orbitTarget.transform.position;
 		float radius = 1.5f;
 		float height = 0.9f;
 		Vector3 offset = new Vector3(Mathf.Cos(rad) * radius, height, Mathf.Sin(rad) * radius);
@@ -831,8 +831,8 @@ internal partial class Mods
 		});
 		if (instance != null && instance.copyMovementTarget != null && pointer != null && Line != null)
 		{
-			pointer.transform.position = ((Component)instance.copyMovementTarget).transform.position;
-			Line.SetPosition(1, ((Component)instance.copyMovementTarget).transform.position);
+			pointer.transform.position = instance.copyMovementTarget.transform.position;
+			Line.SetPosition(1, instance.copyMovementTarget.transform.position);
 		}
 	}
 
@@ -912,8 +912,8 @@ internal partial class Mods
 		});
 		if (instance.lookAtTarget != null && pointer != null && Line != null)
 		{
-			pointer.transform.position = ((Component)instance.lookAtTarget).transform.position;
-			Line.SetPosition(1, ((Component)instance.lookAtTarget).transform.position);
+			pointer.transform.position = instance.lookAtTarget.transform.position;
+			Line.SetPosition(1, instance.lookAtTarget.transform.position);
 		}
 	}
 

@@ -371,19 +371,6 @@ namespace Chud.Menu
                 Button.Gun("master_untag_gun", "Untag Gun", "Shoot infected players to untag them", Mods.UntagGun, Mods.CleanupGun)
                     .RequiringMode("Infection"),
 
-                Button.Toggle("master_break_guardian", "Break Guardian", "No Guardian??", Mods.BreakGuardian, Mods.DisableBreakGuardian)
-                    .RequiringMode("Guardian"),
-                Button.Action("master_guardian_self", "Guardian Self", "Make yourself guardian", Mods.GuardianSelf)
-                    .RequiringMode("Guardian"),
-                Button.Action("master_unguardian_self", "UnGuardian Self", "Remove yourself from guardian", Mods.UnguardianSelf)
-                    .RequiringMode("Guardian"),
-                Button.Gun("master_guardian_gun", "Guardian Gun", "Shoot a player to make them guardian", Mods.GuardianGun, Mods.CleanupGun)
-                    .RequiringMode("Guardian"),
-                Button.Gun("master_guardian_spaz_gun", "Guardian Spaz Gun", "Lock onto a player to spaz their guardian state", Mods.GuardianSpazGun, Mods.CleanupGun)
-                    .RequiringMode("Guardian"),
-                Button.Gun("master_unguardian_gun", "Unguardian Gun", "Shoot a player to remove their guardian", Mods.UnguardianGun, Mods.CleanupGun)
-                    .RequiringMode("Guardian"),
-
                 Button.Action("master_paintbrawl_kill_all", "Paint Brawl Kill All", "Kill everyone in paintbrawl", Mods.PaintBrawlKillAll)
                     .RequiringMode("Paintbrawl"),
                 Button.Gun("master_paintbrawl_kill_gun", "Paint Brawl Kill Gun", "Shoot a player to kill them in paintbrawl", Mods.PaintBrawlKillGun, Mods.CleanupGun)

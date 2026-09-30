@@ -87,7 +87,6 @@ namespace Chud.UI
             }
 
             Text = new NormalTextLayer();
-            WristMenu.PageSize = PageSlicing.DefaultPageSize;
 
             if (MenuRegistry.Instance.CurrentCategoryName == MenuRegistry.EnabledModsCategory)
             {
@@ -310,7 +309,7 @@ namespace Chud.UI
                 return;
             }
 
-            int pageSize = WristMenu.PageSize;
+            int pageSize = PageSlicing.DefaultPageSize;
             int total = buttons.Count;
             int pageCount = PageSlicing.PageCount(total, pageSize);
             WristMenu.PageNumber = PageSlicing.Clamp(WristMenu.PageNumber, pageCount);

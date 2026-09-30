@@ -91,15 +91,6 @@ namespace Chud.Runtime
             }
         }
 
-        public static GorillaGuardianManager Guardian
-        {
-            get
-            {
-                GorillaGameManager manager = GorillaGameManager.instance;
-                return manager as GorillaGuardianManager;
-            }
-        }
-
         public static GorillaPaintbrawlManager Paintbrawl
         {
             get

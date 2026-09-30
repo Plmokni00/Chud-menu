@@ -249,44 +249,44 @@ internal partial class Mods
 		{
 			return;
 		}
-		Transform transform = ((Component)GTPlayer.Instance.headCollider).transform;
-		Transform transform2 = GTPlayer.Instance.transform;
-		Vector3 val = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
-		Vector3 normalized = val.normalized;
-		val = Vector3.ProjectOnPlane(transform.right, Vector3.up);
-		Vector3 normalized2 = val.normalized;
-		Vector3 val2 = Vector3.zero;
+		Transform headTransform = GTPlayer.Instance.headCollider.transform;
+		Transform playerTransform = GTPlayer.Instance.transform;
+		Vector3 forward = Vector3.ProjectOnPlane(headTransform.forward, Vector3.up);
+		Vector3 forwardDir = forward.normalized;
+		forward = Vector3.ProjectOnPlane(headTransform.right, Vector3.up);
+		Vector3 rightDir = forward.normalized;
+		Vector3 moveInput = Vector3.zero;
 		Keyboard current = Keyboard.current;
 		if (current != null)
 		{
-			if (((ButtonControl)current.wKey).isPressed)
+			if (current.wKey.isPressed)
 			{
-				val2 += normalized;
+				moveInput += forwardDir;
 			}
-			if (((ButtonControl)current.sKey).isPressed)
+			if (current.sKey.isPressed)
 			{
-				val2 -= normalized;
+				moveInput -= forwardDir;
 			}
-			if (((ButtonControl)current.aKey).isPressed)
+			if (current.aKey.isPressed)
 			{
-				val2 -= normalized2;
+				moveInput -= rightDir;
 			}
-			if (((ButtonControl)current.dKey).isPressed)
+			if (current.dKey.isPressed)
 			{
-				val2 += normalized2;
+				moveInput += rightDir;
 			}
-			if (((ButtonControl)current.spaceKey).isPressed)
+			if (current.spaceKey.isPressed)
 			{
-				val2 += Vector3.up;
+				moveInput += Vector3.up;
 			}
 			if (current.ctrlKey.isPressed)
 			{
-				val2 -= Vector3.up;
+				moveInput -= Vector3.up;
 			}
 		}
-		if (val2.sqrMagnitude > 0.01f)
+		if (moveInput.sqrMagnitude > 0.01f)
 		{
-			GTPlayer.Instance.transform.position += val2.normalized * flySpeed * Time.deltaTime;
+			playerTransform.position += moveInput.normalized * flySpeed * Time.deltaTime;
 			if (GorillaTagger.Instance != null && GorillaTagger.Instance.rigidbody != null) GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
 		}
 		Mouse current2 = Mouse.current;
@@ -302,9 +302,9 @@ internal partial class Mods
 					wasdLookStartPitch = startEuler.x > 180f ? startEuler.x - 360f : startEuler.x;
 				}
 
-				Vector2 val4 = ((InputControl<Vector2>)(object)((Pointer)current2).delta).ReadValue() * wasdFlyMouseSense * 0.15f;
-				wasdLookStartYaw += val4.x;
-				wasdLookStartPitch = Mathf.Clamp(wasdLookStartPitch - val4.y, -90f, 90f);
+				Vector2 lookDelta = current2.delta.ReadValue() * wasdFlyMouseSense * 0.15f;
+				wasdLookStartYaw += lookDelta.x;
+				wasdLookStartPitch = Mathf.Clamp(wasdLookStartPitch - lookDelta.y, -90f, 90f);
 
 				look.rotation = Quaternion.Euler(wasdLookStartPitch, wasdLookStartYaw, 0f);
 			}
@@ -677,13 +677,13 @@ internal partial class Mods
 			}
 			c.enabled = !noclipBtn;
 		}
-		foreach (BoxCollider val2 in noclipBoxCache)
+		foreach (BoxCollider box in noclipBoxCache)
 		{
-			if (val2 == (Object)null || val2.isTrigger)
+			if (box == (Object)null || box.isTrigger)
 			{
 				continue;
 			}
-			Collider c2 = (Collider)(object)val2;
+			Collider c2 = box;
 			if (!noclipOriginalStates.ContainsKey(c2))
 			{
 				noclipOriginalStates[c2] = c2.enabled;
@@ -726,7 +726,7 @@ internal partial class Mods
 		float jumpMultiplier = jmulti;
 		GTPlayer.Instance.maxJumpSpeed = maxJumpSpeed;
 		GTPlayer.Instance.jumpMultiplier = jumpMultiplier;
-		Rigidbody component = ((Component)GTPlayer.Instance).GetComponent<Rigidbody>();
+		Rigidbody component = GTPlayer.Instance.GetComponent<Rigidbody>();
 		if (GTPlayer.Instance.BodyOnGround && component.linearVelocity.y > 0f)
 		{
 			component.linearVelocity = new Vector3(component.linearVelocity.x, 0f, component.linearVelocity.z);
@@ -831,12 +831,12 @@ internal partial class Mods
 			if (!flag && value)
 			{
 				Vector3 up = Vector3.up;
-				Rigidbody component = ((Component)GTPlayer.Instance).GetComponent<Rigidbody>();
-				Vector3 val = GTVector3Extensions.X_Z(component.linearVelocity);
-				Transform transform = GTPlayer.Instance.transform;
-				Vector3 position = transform.position;
-				Vector3 val2 = val - up * Vector3.Dot(val, up);
-				transform.position = position + val2.normalized * (val.magnitude / GTPlayer.Instance.maxJumpSpeed * (pullPower * 5f)) * GTPlayer.Instance.scale;
+				Rigidbody body = GTPlayer.Instance.GetComponent<Rigidbody>();
+				Vector3 horizontal = GTVector3Extensions.X_Z(body.linearVelocity);
+				Transform player = GTPlayer.Instance.transform;
+				Vector3 start = player.position;
+				Vector3 pullDirection = horizontal - up * Vector3.Dot(horizontal, up);
+				player.position = start + pullDirection.normalized * (horizontal.magnitude / GTPlayer.Instance.maxJumpSpeed * (pullPower * 5f)) * GTPlayer.Instance.scale;
 			}
 			previousTouchingGround[left] = flag;
 		}
@@ -860,7 +860,7 @@ internal partial class Mods
 		if (joyL.magnitude < 0.12f) joyL = Vector2.zero;
 		if (joy.magnitude < 0.12f) joy = Vector2.zero;
 		if (joyL.sqrMagnitude < 0.001f && joy.sqrMagnitude < 0.001f) return;
-		Transform head = ((Component)GTPlayer.Instance.headCollider).transform;
+		Transform head = GTPlayer.Instance.headCollider.transform;
 		Vector3 fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized;
 		Vector3 right = Vector3.ProjectOnPlane(head.right, Vector3.up).normalized;
 		Vector3 dir = fwd * joyL.y + right * joyL.x + Vector3.up * joy.y;
@@ -963,7 +963,7 @@ internal partial class Mods
 	private static IEnumerator RestoreMicAfter(float delay)
 	{
 		yield return (object)new WaitForSeconds(delay + 0.4f);
-		if (instance && ((Behaviour)instance).isActiveAndEnabled)
+		if (instance && instance.isActiveAndEnabled)
 		{
 			RestoreRecorder();
 			instance.minosRestoreCoroutine = null;

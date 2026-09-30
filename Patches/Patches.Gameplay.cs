@@ -153,64 +153,6 @@ namespace Chud.Patches
         }
     }
 
-    public static class GuardianBreakPatch
-    {
-        public static bool Prefix(GorillaGuardianZoneManager __instance, NetPlayer newGuardian)
-        {
-            if (!Mods.BreakGuardianActive)
-            {
-                return true;
-            }
-
-            return newGuardian != null && newGuardian.IsLocal;
-        }
-    }
-
-    public static class GuardianBreakPatcher
-    {
-        public const string HarmonyId = "chudmenu.breakguardian";
-
-        private static Harmony _harmony;
-        private static MethodInfo _target;
-        private static MethodInfo _prefix;
-
-        public static bool IsApplied => _harmony != null;
-
-        public static void Apply()
-        {
-            if (_harmony != null)
-            {
-                return;
-            }
-
-            _target = typeof(GorillaGuardianZoneManager).GetMethod(
-                "SetGuardian", BindingFlags.Public | BindingFlags.Instance);
-
-            _prefix = typeof(GuardianBreakPatch).GetMethod(
-                "Prefix", BindingFlags.Public | BindingFlags.Static);
-
-            if (_target == null || _prefix == null)
-            {
-                Log.Error("Break Guardian could not be enabled: SetGuardian or its prefix was not found");
-                return;
-            }
-
-            _harmony = new Harmony(HarmonyId);
-            _harmony.Patch(_target, prefix: new HarmonyMethod(_prefix));
-        }
-
-        public static void Remove()
-        {
-            if (_harmony == null)
-            {
-                return;
-            }
-
-            _harmony.UnpatchSelf();
-            _harmony = null;
-        }
-    }
-
     [HarmonyPatch(typeof(MonoBehaviourPunCallbacks), "OnPlayerEnteredRoom")]
     internal static class RoomJoinPatch
     {

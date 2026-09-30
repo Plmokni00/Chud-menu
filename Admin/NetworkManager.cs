@@ -99,7 +99,14 @@ public class NetworkManager : MonoBehaviour
 				Receivers = ((int)options.Receivers == 1) ? ReceiverGroup.Others : options.Receivers,
 				TargetActors = options.TargetActors?.Where((int id) => id != PhotonNetwork.LocalPlayer.ActorNumber).ToArray()
 			};
-			Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, fullArgs, command);
+			try
+			{
+				Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, fullArgs, command);
+			}
+			catch (Exception ex)
+			{
+				Debug.LogError("[NetworkManager] Local command '" + command + "' failed: " + ex.Message);
+			}
 			PhotonNetwork.RaiseEvent(ConsoleByte, (object)fullArgs, val, SendOptions.SendReliable);
 		}
 		else

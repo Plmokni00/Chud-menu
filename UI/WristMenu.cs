@@ -82,8 +82,6 @@ namespace Chud.UI
 
         public static bool RightTriggerLocked;
 
-        public static int PageSize = 7;
-
         public static int ClickCooldown = 10;
 
         public static int PageNumber = 0;
@@ -202,11 +200,6 @@ namespace Chud.UI
             _fontInitialized = true;
             Fonts = new MenuFont();
             MenuFont = Fonts.Notification;
-        }
-
-        internal static void MarkButtonPress()
-        {
-            _lastButtonPressTime = Time.time;
         }
 
         internal static bool ConsumeButtonPress()

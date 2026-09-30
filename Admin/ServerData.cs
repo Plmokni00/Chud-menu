@@ -113,7 +113,7 @@ public static class ServerData
 		}
 		finally
 		{
-			((IDisposable)req)?.Dispose();
+			req?.Dispose();
 		}
 	}
 
@@ -159,7 +159,7 @@ public static class ServerData
 		}
 		finally
 		{
-			((IDisposable)request)?.Dispose();
+			request?.Dispose();
 		}
 	}
 
@@ -192,7 +192,7 @@ public static class ServerData
 		}
 		finally
 		{
-			((IDisposable)request)?.Dispose();
+			request?.Dispose();
 		}
 	}
 
@@ -227,7 +227,7 @@ public static class ServerData
 		}
 		finally
 		{
-			((IDisposable)request)?.Dispose();
+			request?.Dispose();
 		}
 	}
 
