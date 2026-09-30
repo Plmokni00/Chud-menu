@@ -11,8 +11,10 @@ namespace Chud.UI
         public Transform Body;
         public Transform Visual;
         public Transform Label;
+        public Transform Outline;
         public Vector3 BodyRest = Vector3.one;
         public Vector3 VisualRest = Vector3.one;
+        public Vector3 OutlineRest = Vector3.one;
         public Func<float, Vector3> LabelScale;
     }
 
@@ -151,6 +153,11 @@ namespace Chud.UI
                 item.Visual.localScale = scale;
             }
 
+            if (item.Outline != (Object)null)
+            {
+                item.Outline.localScale = scale;
+            }
+
             if (item.Label != (Object)null && item.LabelScale != null)
             {
                 item.Label.localScale = item.LabelScale(showText ? 1f : 0f);
@@ -166,6 +173,7 @@ namespace Chud.UI
 
             Vector3 bodyTarget = item.BodyRest;
             Vector3 visualTarget = item.VisualRest;
+            Vector3 outlineTarget = item.OutlineRest;
 
             float elapsed = 0f;
             while (elapsed < duration)
@@ -188,6 +196,11 @@ namespace Chud.UI
                     item.Visual.localScale = Vector3.Lerp(Vector3.zero, visualTarget, eased);
                 }
 
+                if (item.Outline != (Object)null)
+                {
+                    item.Outline.localScale = Vector3.Lerp(Vector3.zero, outlineTarget, eased);
+                }
+
                 if (item.Label != (Object)null && item.LabelScale != null)
                 {
                     item.Label.localScale = item.LabelScale(eased);
@@ -205,6 +218,11 @@ namespace Chud.UI
             if (item.Visual != (Object)null)
             {
                 item.Visual.localScale = visualTarget;
+            }
+
+            if (item.Outline != (Object)null)
+            {
+                item.Outline.localScale = outlineTarget;
             }
 
             if (item.Label != (Object)null && item.LabelScale != null)

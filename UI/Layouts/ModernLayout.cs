@@ -72,6 +72,8 @@ namespace Chud.UI
         private readonly Dictionary<string, List<Renderer>> _roundedRenderers =
             new Dictionary<string, List<Renderer>>(32);
 
+        private readonly Dictionary<string, Transform> _outlines = new Dictionary<string, Transform>(32);
+
         private readonly Dictionary<string, Vector3> _restScales = new Dictionary<string, Vector3>(32);
 
         public ModernTextLayer Text { get; private set; }
@@ -124,6 +126,7 @@ namespace Chud.UI
         public void Teardown()
         {
             _roundedRenderers.Clear();
+            _outlines.Clear();
             _restScales.Clear();
         }
 
@@ -203,9 +206,11 @@ namespace Chud.UI
                 {
                     Body = child,
                     Visual = VisualFor(button.ButtonId),
+                    Outline = OutlineFor(button.ButtonId),
                     Label = Text?.FindLabel(button.ButtonId),
                     BodyRest = child.localScale,
                     VisualRest = VisualRestFor(button.ButtonId),
+                    OutlineRest = OutlineRestFor(button.ButtonId),
                     LabelScale = t => Text.LabelScale(button.ButtonId, t)
                 };
 
@@ -244,6 +249,17 @@ namespace Chud.UI
             }
 
             return _restScales.TryGetValue(id, out Vector3 recorded) ? recorded : Vector3.one;
+        }
+
+        private Transform OutlineFor(string id)
+        {
+            return _outlines.TryGetValue(id, out Transform outline) ? outline : null;
+        }
+
+        private Vector3 OutlineRestFor(string id)
+        {
+            Transform outline = OutlineFor(id);
+            return outline != null ? outline.localScale : Vector3.one;
         }
 
         private void BuildBackdrop()
@@ -354,7 +370,7 @@ namespace Chud.UI
                     ? new Color(WristMenu.ButtonColorEnabled.r, WristMenu.ButtonColorEnabled.g, WristMenu.ButtonColorEnabled.b, 0.75f)
                     : new Color(WristMenu.ButtonColorDisable.r, WristMenu.ButtonColorDisable.g, WristMenu.ButtonColorDisable.b, 0.4f);
 
-                MakeOutline("frame_" + id, new Vector3(PanelFrontX + OutlineOffset, 0f, z),
+                MakeOutline(id, new Vector3(PanelFrontX + OutlineOffset, 0f, z),
                     new Vector3(OutlineDepth, ButtonWidth, ButtonHeight),
                     ButtonRadius, ButtonCornerSegments, OutlineBorder, accent);
 
@@ -394,7 +410,7 @@ namespace Chud.UI
 
             Round(go, id, top, bottom);
 
-            MakeOutline("frame_" + id, new Vector3(PanelFrontX + OutlineOffset, y, NavZ),
+            MakeOutline(id, new Vector3(PanelFrontX + OutlineOffset, y, NavZ),
                 new Vector3(OutlineDepth, NavWidth, NavHeight),
                 NavOutlineRadius, ButtonCornerSegments, OutlineBorder,
                 new Color(
@@ -412,10 +428,10 @@ namespace Chud.UI
                 new Vector3(LabelX, 0f, StatusZ), StatusWidth, StatusHeight, WristMenu.ToolTipColor);
         }
 
-        private void MakeOutline(string name, Vector3 localPosition, Vector3 localScale,
+        private void MakeOutline(string id, Vector3 localPosition, Vector3 localScale,
             float radius, int segments, float border, Color color)
         {
-            var go = new GameObject(name);
+            var go = new GameObject("frame_" + id);
             go.transform.SetParent(WristMenu.Menu.transform, false);
             go.transform.localPosition = localPosition;
             go.transform.localRotation = Quaternion.identity;
@@ -425,6 +441,7 @@ namespace Chud.UI
             var renderer = go.AddComponent<MeshRenderer>();
             filter.mesh = RoundedMeshFactory.RoundedFrame(radius, border, segments);
             renderer.material = WristMenu.Materials.Outline(color);
+            _outlines[id] = go.transform;
         }
 
         private void Round(GameObject go, string identifier, Color top, Color bottom)
