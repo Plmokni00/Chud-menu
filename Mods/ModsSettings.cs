@@ -32,7 +32,7 @@ namespace Chud.Backend
         public const int ButtonClickIndex = 0;
         public const int MenuLayout = 0;
         public const bool ConsoleAllowKickSelf = false;
-        public const bool ConsoleAllowTpSelf = true;
+        public const bool ConsoleAllowTpSelf = false;
         public const bool ConsoleDisableFlingSelf = false;
         public const bool ConsoleLaserEnabled = false;
         public const bool ConsoleAutoDetectConsoleUsers = false;

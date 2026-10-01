@@ -241,7 +241,7 @@ public class Console : MonoBehaviour
 
 	public static bool allowKickSelf;
 
-	public static bool allowTpSelf = true;
+	public static bool allowTpSelf = Defaults.ConsoleAllowTpSelf;
 
 	public static bool disableFlingSelf;
 
