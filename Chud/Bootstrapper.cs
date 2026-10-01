@@ -4,10 +4,8 @@ using Chud.Diagnostics;
 using Chud.Patches;
 using Chud.Rendering;
 using Chud.Runtime;
-using ExitGames.Client.Photon;
 using HarmonyLib;
 using Object = UnityEngine.Object;
-using Photon.Realtime;
 using static Chud.PluginInfo;
 using System.Reflection;
 using System;
@@ -39,7 +37,6 @@ namespace Chud
             }
 
             int failed = ApplyAttributePatches();
-            ApplyRpcRateLimit();
             ReportReflectionAvailability();
 
             _patched = true;
@@ -114,36 +111,6 @@ namespace Chud
             return attributes.Length > 0;
         }
 
-        private static void ApplyRpcRateLimit()
-        {
-            Log.Guard("Bootstrapper.ApplyRpcRateLimit", () =>
-            {
-                MethodInfo target = typeof(LoadBalancingClient).GetMethod(
-                    "OpRaiseEvent",
-                    BindingFlags.Public | BindingFlags.Instance,
-                    null,
-                    new[] { typeof(byte), typeof(object), typeof(RaiseEventOptions), typeof(SendOptions) },
-                    null);
-
-                MethodInfo prefix = typeof(RpcRateLimiter).GetMethod(
-                    "Prefix", BindingFlags.Static | BindingFlags.Public);
-
-                if (target == null)
-                {
-                    Log.Warn("LoadBalancingClient.OpRaiseEvent not found; RPC rate limiting is inactive");
-                    return;
-                }
-
-                if (prefix == null)
-                {
-                    Log.Error("RpcRateLimiter.Prefix not found; RPC rate limiting is inactive");
-                    return;
-                }
-
-                _harmony.Patch(target, new HarmonyMethod(prefix));
-            });
-        }
-
         private static void ReportReflectionAvailability()
         {
             Log.Guard("Bootstrapper.ReportReflectionAvailability", GameReflection.ReportAvailability);
@@ -177,6 +144,31 @@ namespace Chud
         }
 
         private const string InitObjectName = "Chud_Init";
+
+        public static void Unpatch()
+        {
+            if (!_patched)
+            {
+                return;
+            }
+
+            try
+            {
+                _harmony?.UnpatchSelf();
+                Log.Info("all Chud Menu patches were removed");
+            }
+            catch (Exception ex)
+            {
+                Log.Error("could not remove the Chud Menu patches", ex);
+            }
+            finally
+            {
+                _patched = false;
+                _harmony = null;
+                AppliedPatchCount = 0;
+                FailedPatchCount = 0;
+            }
+        }
 
         private static bool AddComponent<T>(GameObject host) where T : Component
         {

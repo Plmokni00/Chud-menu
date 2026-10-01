@@ -15,4 +15,9 @@ public class Plugin : BaseUnityPlugin
 	{
 		Bootstrapper.Initialize();
 	}
+
+	private void OnDestroy()
+	{
+		Bootstrapper.Unpatch();
+	}
 }

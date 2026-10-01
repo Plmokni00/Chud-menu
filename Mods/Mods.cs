@@ -43,13 +43,7 @@ internal partial class Mods : MonoBehaviour
 
 		public Color ButtonColorDisable;
 
-		public Color EnableTextColor;
-
-		public Color DisableTextColor;
-
 		public Color NextPrevButtonColor;
-
-		public Color MenuTitleColor;
 	}
 
 	public static Mods instance;
@@ -60,17 +54,7 @@ internal partial class Mods : MonoBehaviour
 
 	internal static bool CloningGhostRig;
 
-	public static bool LocalRigOverrideActive
-	{
-		get
-		{
-			if (instance == null)
-			{
-				return false;
-			}
-			return ghostMonkeOn || invisMonkeOn || instance.grabRigActive || instance.orbitActive || instance.copyMovementActive || instance.tagGunLockedTarget != null || instance.tagAllTarget != null;
-		}
-	}
+	public static bool LocalRigOverrideActive => instance != null && instance.LocalRigDriven();
 
 	private static Shader CachedGuiTextShader => ShaderLibrary.Fallback;
 
@@ -80,35 +64,156 @@ internal partial class Mods : MonoBehaviour
 
 	private bool _activeButtonsDirty = true;
 
-	public static float flySpeed = 8f;
+	public static ModsSettings Settings => _settings ?? (_settings = new ModsSettings());
 
-	public static readonly float[] FlySpeedValues = new float[] { 2f, 3f, 4f, 5f, 6f, 7f, 8f, 9f, 10f, 11f, 12f, 13f, 14f, 15f, 16f, 17f, 18f, 19f, 20f };
+		private static ModsSettings _settings;
+
+		public static float flySpeed { get => Settings.FlySpeed; set => Settings.FlySpeed = value; }
+
+		public static float jspeed { get => Settings.JSpeed; set => Settings.JSpeed = value; }
+
+		public static float jmulti { get => Settings.JMulti; set => Settings.JMulti = value; }
+
+		public static int speedboostCycle { get => Settings.SpeedBoostCycle; set => Settings.SpeedBoostCycle = value; }
+
+		public static int pullPowerInt { get => Settings.PullPowerInt; set => Settings.PullPowerInt = value; }
+
+		public static float wasdFlyMouseSense { get => Settings.WasdFlyMouseSense; set => Settings.WasdFlyMouseSense = value; }
+
+		public static bool IsRightHanded { get => Settings.IsRightHanded; set => Settings.IsRightHanded = value; }
+
+		public static int menuColorIndex { get => Settings.MenuColorIndex; set => Settings.MenuColorIndex = value; }
+
+		public static float tagAuraRange { get => Settings.TagAuraRange; set => Settings.TagAuraRange = value; }
+
+		public static int tagAuraRangeIndex { get => Settings.TagAuraRangeIndex; set => Settings.TagAuraRangeIndex = value; }
+
+		public static int waterSplashSpeedIndex { get => Settings.WaterSplashSpeedIndex; set => Settings.WaterSplashSpeedIndex = value; }
+
+		public static float controllerPred { get => Settings.ControllerPred; set => Settings.ControllerPred = value; }
+
+		public static int controllerPredIndex { get => Settings.ControllerPredIndex; set => Settings.ControllerPredIndex = value; }
+
+		public static bool FpsSpoofActive { get => Settings.FpsSpoofActive; set => Settings.FpsSpoofActive = value; }
+
+		public static int FpsSpoofValue { get => Settings.FpsSpoofValue; set => Settings.FpsSpoofValue = value; }
+
+		public static bool FpsSpoofRandomActive { get => Settings.FpsSpoofRandomActive; set => Settings.FpsSpoofRandomActive = value; }
+
+		public static int FpsSpoofDisplay { get => Settings.FpsSpoofDisplay; set => Settings.FpsSpoofDisplay = value; }
+
+		public static bool antiReportEnabled { get => Settings.AntiReportEnabled; set => Settings.AntiReportEnabled = value; }
+
+		public static float antiReportRange { get => Settings.AntiReportRange; set => Settings.AntiReportRange = value; }
+
+		public static int antiReportRangeIndex { get => Settings.AntiReportRangeIndex; set => Settings.AntiReportRangeIndex = value; }
+
+		public static bool SeeAntiCheatReports { get => Settings.SeeAntiCheatReports; set => Settings.SeeAntiCheatReports = value; }
+
+		public static Dictionary<string, int> AntiCheatReportCounts => Settings.AntiCheatReportCounts;
+
+		public static bool BlockJmanSoundsEnabled { get => Settings.BlockJmanSoundsEnabled; set => Settings.BlockJmanSoundsEnabled = value; }
+
+		public static bool antiGuardianGrab { get => Settings.AntiGuardianGrab; set => Settings.AntiGuardianGrab = value; }
+
+		public static bool antiBlockCrash { get => Settings.AntiBlockCrash; set => Settings.AntiBlockCrash = value; }
+
+		public static bool RPlat { get => Settings.RPlat; set => Settings.RPlat = value; }
+
+		public static bool LPlat { get => Settings.LPlat; set => Settings.LPlat = value; }
+
+		public static readonly float[] FlySpeedValues = new float[] { 2f, 3f, 4f, 5f, 6f, 7f, 8f, 9f, 10f, 11f, 12f, 13f, 14f, 15f, 16f, 17f, 18f, 19f, 20f };
 
 	public static readonly string[] FlySpeedNames = new string[] { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20" };
-
-	public static float controllerPred = 0.0125f;
 
 	public static readonly float[] ControllerPredValues = new float[] { 0.00625f, 0.0125f, 0.025f, 0.05f };
 
 	public static readonly string[] ControllerPredNames = new string[] { "Low", "Normal", "High", "Extreme" };
 
-	public static int controllerPredIndex = 1;
-
-	public static bool FpsSpoofActive = false;
-
-	public static int FpsSpoofValue = 60;
-
 	public static readonly int[] FPSSpoofValues = new int[] { 0, 20, 45, 60, 67, 72, 80, 85, 120, 200, 225 };
 
+	public const int FpsSpoofReactiveThreshold = 67;
+
+	public const int FpsSpoofRandomMax = 255;
+
+	public const float FpsSpoofRandomInterval = 3f;
+
+	private static void ResetFpsSpoofReactive()
+	{
+		Settings.FpsSpoofReference = 0;
+		Settings.FpsSpoofReferenceDecay = 0f;
+	}
+
+	private static void RollFpsSpoofRandom()
+	{
+		Settings.FpsSpoofRandomValue = UnityEngine.Random.Range(0, FpsSpoofRandomMax + 1);
+		Settings.FpsSpoofRandomTimer = 0f;
+	}
+
+	private static void TickFpsSpoof()
+	{
+		if (!FpsSpoofActive)
+		{
+			Settings.FpsSpoofReference = 0;
+			FpsSpoofDisplay = FpsSpoofValue;
+			return;
+		}
+
+		if (FpsSpoofRandomActive)
+		{
+			Settings.FpsSpoofRandomTimer += Time.unscaledDeltaTime;
+			if (Settings.FpsSpoofRandomTimer >= FpsSpoofRandomInterval)
+			{
+				RollFpsSpoofRandom();
+			}
+
+			FpsSpoofDisplay = Settings.FpsSpoofRandomValue;
+			return;
+		}
+
+		if (FpsSpoofValue <= FpsSpoofReactiveThreshold)
+		{
+			Settings.FpsSpoofReference = 0;
+			FpsSpoofDisplay = FpsSpoofValue;
+			return;
+		}
+
+		int real = WristMenu.RealFps;
+		if (real <= 1)
+		{
+			FpsSpoofDisplay = FpsSpoofValue;
+			return;
+		}
+
+		if (Settings.FpsSpoofReference <= 0 || real > Settings.FpsSpoofReference)
+		{
+			Settings.FpsSpoofReference = real;
+			Settings.FpsSpoofReferenceDecay = 0f;
+		}
+		else
+		{
+			Settings.FpsSpoofReferenceDecay += Time.unscaledDeltaTime;
+			while (Settings.FpsSpoofReferenceDecay >= 1f)
+			{
+				Settings.FpsSpoofReferenceDecay -= 1f;
+				if (Settings.FpsSpoofReference > real)
+				{
+					Settings.FpsSpoofReference--;
+				}
+			}
+		}
+
+		int drop = Settings.FpsSpoofReference - real;
+		if (drop < 0)
+		{
+			drop = 0;
+		}
+
+		int shown = FpsSpoofValue - drop;
+		FpsSpoofDisplay = Mathf.Clamp(shown, 0, FpsSpoofValue);
+	}
+
 	public static readonly float[] WasdSenseValues = new float[] { 0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.25f, 2.5f, 2.75f, 3f };
-
-	public static float wasdFlyMouseSense = 1f;
-
-	public static int speedboostCycle = 0;
-
-	public static float jspeed = 7.5f;
-
-	public static float jmulti = 1.1f;
 
 	public static readonly float[] SpeedBoostSpeeds = new float[] { 7.5f, 8f, 9f, 12f, 15f, 20f, 30f, 50f, 100f, 200f };
 
@@ -120,33 +225,11 @@ internal partial class Mods : MonoBehaviour
 
 	public static readonly string[] PullPowerNames = new string[] { "Slightly Weak", "Normal", "Slightly Strong", "Strong", "Stronger", "Much Stronger", "Very Strong", "Extremely Strong", "Maximum" };
 
-	public static int pullPowerInt;
-
-	public static bool BlockJmanSoundsEnabled = false;
-
-	public static bool antiGuardianGrab = false;
-
-	public static bool antiBlockCrash = false;
-
-	public static bool SeeAntiCheatReports = false;
-
-	public static readonly Dictionary<string, int> AntiCheatReportCounts = new Dictionary<string, int>();
-
-	public static bool antiReportEnabled;
-
-	public static int antiReportRangeIndex = 1;
-
-	public static float antiReportRange = 0.35f;
-
-	public static readonly float[] antiReportRanges = new float[] { 0.25f, 0.35f, 0.5f, 0.7f, 1f, 1.25f, 1.5f, 2f };
+	public static readonly float[] antiReportRanges = Ranges.AntiReportRanges;
 
 	public static Font comicSansFont;
 
-	public static readonly float[] TagAuraRanges = new float[] { 0f, 0.5f, 1f, 1.5f, 2f, 2.5f, 3f, 4f, 5f };
-
-	public static float tagAuraRange = 1.5f;
-
-	public static int tagAuraRangeIndex = 2;
+	public static readonly float[] TagAuraRanges = Ranges.TagAuraRanges;
 
 	private float tagAuraCooldown;
 
@@ -154,19 +237,13 @@ internal partial class Mods : MonoBehaviour
 
 	public static bool thirdPersonEnabled;
 
-	public static int waterSplashSpeedIndex = 1;
-
 	public static readonly float[] WaterSplashCooldowns = new float[] { 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.4f, 0.5f, 0.75f, 1f };
 
 	public static readonly string[] WaterSplashNames = new string[] { "0.05s", "0.1s", "0.15s", "0.2s", "0.25s", "0.3s", "0.4s", "0.5s", "0.75s", "1s" };
 
-	public static int menuColorIndex = 0;
-
 	private static readonly int[] notificationTimeValues = new int[10] { 50, 75, 100, 125, 150, 200, 250, 300, 400, 500 };
 
 	private static readonly string[] notificationTimeNames = new string[10] { "1s", "1.5s", "2s", "2.5s", "3s", "4s", "5s", "6s", "8s", "10s" };
-
-	public static int ButtonSound = 67;
 
 	public static GameObject pointer = null;
 
@@ -178,25 +255,15 @@ internal partial class Mods : MonoBehaviour
 
 	public static bool triggerHeld = false;
 
-	public static bool RPlat;
-
-	public static bool LPlat;
-
-	public static bool IsRightHanded = false;
-
-	public static int ActiveMenuStyle = 3;
-
-	
-
 	private bool notificationsEnabled = true;
 
 	private int notificationDecayTime = 150;
 
-	private int notificationTimeIndex = 5;
+	private int notificationTimeIndex { get => Settings.NotificationTimeIndex; set => Settings.NotificationTimeIndex = value; }
 
 	private static readonly int[] LegacyColorIndexMap = new int[] { 0, 7, 2, 3, 9, 8, 6, 5, 5, 1 };
 
-	private const int PaletteVersion = 1;
+	private const int PaletteVersion = Defaults.PaletteVersion;
 
 	private bool saveDirty = false;
 
@@ -281,14 +348,6 @@ internal partial class Mods : MonoBehaviour
 	private bool gunTriggerWasDown = false;
 
 	private Camera pcGunCamera;
-
-	private bool lagGunRunning;
-
-	private int lagGunTargetActor = -1;
-
-	private VRRig lagGunLockedTarget;
-
-	private static readonly byte[] lagPayload = new byte[128];
 
 	public static string ConfigPath => Path.Combine(WristMenu.FolderName, "Config.json");
 
@@ -416,7 +475,7 @@ internal partial class Mods : MonoBehaviour
 				VRRig.LocalRig.transform.position = new Vector3(9999f, 9999f, 9999f);
 			}
 		}
-		if (ghostRigSubscribed && GhostWanted())
+		if (ghostRigSubscribed && LocalRigDriven())
 			GhostRigTick();
 		if (VRRig.LocalRig.playerText1 != null)
 			VRRig.LocalRig.playerText1.color = RigColorUtil.PlayerColor(VRRig.LocalRig);
@@ -445,6 +504,7 @@ internal partial class Mods : MonoBehaviour
 
 	private void UpdateActiveModsCore()
 	{
+		TickFpsSpoof();
 		AntiBlockCrashTick();
 		UpdatePCButtonClick();
 		UpdatePCGuns();
@@ -533,6 +593,29 @@ internal partial class Mods : MonoBehaviour
 		instance.WriteSave();
 	}
 
+	private void OnApplicationQuit()
+	{
+		FlushSaveNow();
+	}
+
+	private void OnDestroy()
+	{
+		FlushSaveNow();
+	}
+
+	internal static void FlushSaveNow()
+	{
+		if (instance == null)
+		{
+			return;
+		}
+		if (!instance.saveDirty && Time.time - instance.lastSaveTime < SaveFlushInterval)
+		{
+			return;
+		}
+		instance.WriteSave();
+	}
+
 	private void WriteSave()
 	{
 		try
@@ -545,11 +628,11 @@ internal partial class Mods : MonoBehaviour
 			var enabledButtons = new JArray();
 			foreach (MenuCategory category in MenuRegistry.Instance.Categories)
 			{
-				if (category.Buttons == null || category.Name == "Enabled Mods") continue;
+				if (category.Buttons == null || category.Name == MenuRegistry.EnabledModsCategory) continue;
 				foreach (ButtonInfo button in category.Buttons)
 				{
 					if (button.enabled.HasValue && button.enabled.Value && !string.IsNullOrEmpty(button.buttonText))
-						enabledButtons.Add(button.id ?? button.buttonText);
+						enabledButtons.Add(button.buttonText);
 				}
 			}
 			root["EnabledButtons"] = enabledButtons;
@@ -564,7 +647,6 @@ internal partial class Mods : MonoBehaviour
 			root["NotificationTimeIndex"] = notificationTimeIndex;
 			root["Jspeed"] = jspeed;
 			root["Jmulti"] = jmulti;
-			root["TagAuraRange"] = tagAuraRange;
 			root["TagAuraRangeIndex"] = tagAuraRangeIndex;
 			root["AdminScale"] = Console.adminScale;
 			root["AnimationsEnabled"] = WristMenu.AnimationsEnabled;
@@ -579,6 +661,8 @@ internal partial class Mods : MonoBehaviour
 			root["AntiReportEnabled"] = antiReportEnabled;
 			root["AntiReportRangeIndex"] = antiReportRangeIndex;
 			root["WaterSplashSpeedIndex"] = waterSplashSpeedIndex;
+			root["ControllerPredIndex"] = controllerPredIndex;
+			root["FpsSpoofValue"] = FpsSpoofValue;
 			root["ButtonClickIndex"] = Audio.Index;
 			root["MenuLayout"] = WristMenu.MenuLayout;
 
@@ -715,6 +799,11 @@ internal partial class Mods : MonoBehaviour
 	{
 		if (!TryResolveConfig(out JObject saved))
 		{
+			ApplyMenuColor(menuColorIndex);
+			notificationDecayTime = notificationTimeValues[notificationTimeIndex];
+			NotifiLib.DecayTime = notificationDecayTime;
+			antiReportRange = antiReportRanges[antiReportRangeIndex];
+			tagAuraRange = TagAuraRanges[tagAuraRangeIndex];
 			InvalidateActiveButtonsCache();
 			ReapplyActiveMods();
 			return;
@@ -766,12 +855,12 @@ internal partial class Mods : MonoBehaviour
 
 	private void ApplyConfig(JObject root)
 	{
-		flySpeed = (float)(root["FlySpeed"] ?? 8f);
-			speedboostCycle = (int)(root["SpeedboostCycle"] ?? 0);
-			pullPowerInt = (int)(root["PullPowerInt"] ?? 0);
-			wasdFlyMouseSense = (float)(root["WasdFlyMouseSense"] ?? 1f);
-			IsRightHanded = (bool)(root["IsRightHanded"] ?? false);
-			menuColorIndex = (int)(root["MenuColorIndex"] ?? 0);
+			flySpeed = (float)(root["FlySpeed"] ?? Defaults.FlySpeed);
+			speedboostCycle = (int)(root["SpeedboostCycle"] ?? Defaults.SpeedboostCycle);
+			pullPowerInt = (int)(root["PullPowerInt"] ?? Defaults.PullPowerInt);
+			wasdFlyMouseSense = (float)(root["WasdFlyMouseSense"] ?? Defaults.WasdFlyMouseSense);
+			IsRightHanded = (bool)(root["IsRightHanded"] ?? Defaults.IsRightHanded);
+			menuColorIndex = (int)(root["MenuColorIndex"] ?? Defaults.MenuColorIndex);
 			if ((int)(root["PaletteVersion"] ?? 0) < PaletteVersion)
 			{
 				if (menuColorIndex >= 0 && menuColorIndex < LegacyColorIndexMap.Length)
@@ -779,53 +868,59 @@ internal partial class Mods : MonoBehaviour
 					menuColorIndex = LegacyColorIndexMap[menuColorIndex];
 				}
 			}
-			notificationTimeIndex = (int)(root["NotificationTimeIndex"] ?? 5);
-			jspeed = (float)(root["Jspeed"] ?? 7.5f);
-			jmulti = (float)(root["Jmulti"] ?? 1.1f);
-			tagAuraRange = (float)(root["TagAuraRange"] ?? 1.5f);
-			tagAuraRangeIndex = (int)(root["TagAuraRangeIndex"] ?? 3);
+			notificationTimeIndex = (int)(root["NotificationTimeIndex"] ?? Defaults.NotificationTimeIndex);
+			jspeed = (float)(root["Jspeed"] ?? Defaults.Jspeed);
+			jmulti = (float)(root["Jmulti"] ?? Defaults.Jmulti);
+			tagAuraRangeIndex = (int)(root["TagAuraRangeIndex"] ?? Defaults.TagAuraRangeIndex);
 
-			Console.adminScale = (float)(root["AdminScale"] ?? 1f);
+			Console.adminScale = (float)(root["AdminScale"] ?? Defaults.AdminScale);
 
-			WristMenu.AnimationsEnabled = (bool)(root["AnimationsEnabled"] ?? false);
-			WristMenu.ToggleMenu = (bool)(root["ToggleMenu"] ?? false);
-			WristMenu.ShowFPS = (bool)(root["ShowFPS"] ?? false);
-			WristMenu.ShowSessionTime = (bool)(root["ShowSessionTime"] ?? false);
-			WristMenu.CustomBoardsEnabled = (bool)(root["CustomBoardsEnabled"] ?? true);
-			BlockJmanSoundsEnabled = (bool)(root["BlockJmanSounds"] ?? false);
-			antiGuardianGrab = (bool)(root["AntiGuardianGrab"] ?? false);
-			antiBlockCrash = (bool)(root["AntiBlockCrash"] ?? false);
-			SeeAntiCheatReports = (bool)(root["SeeAntiCheatReports"] ?? false);
-			antiReportEnabled = (bool)(root["AntiReportEnabled"] ?? false);
-			antiReportRangeIndex = (int)(root["AntiReportRangeIndex"] ?? 1);
-			antiReportRange = antiReportRanges[antiReportRangeIndex % antiReportRanges.Length];
-			waterSplashSpeedIndex = (int)(root["WaterSplashSpeedIndex"] ?? 1);
-			Audio.Index = (int)(root["ButtonClickIndex"] ?? 0);
-			WristMenu.MenuLayout = Mathf.Clamp((int)(root["MenuLayout"] ?? 0), 0, 1);
-			Console.allowKickSelf = (bool)(root["ConsoleAllowKickSelf"] ?? false);
-			Console.allowTpSelf = (bool)(root["ConsoleAllowTpSelf"] ?? true);
-			Console.disableFlingSelf = (bool)(root["ConsoleDisableFlingSelf"] ?? false);
-			Console.laserEnabled = (bool)(root["ConsoleLaserEnabled"] ?? false);
-			Console.AutoDetectConsoleUsers = (bool)(root["ConsoleAutoDetectConsoleUsers"] ?? false);
-			Console.consoleLogging = (bool)(root["ConsoleLogging"] ?? false);
-			Console.fullAutoPistol = (bool)(root["ConsoleFullAutoPistol"] ?? false);
+			WristMenu.AnimationsEnabled = (bool)(root["AnimationsEnabled"] ?? Defaults.AnimationsEnabled);
+			WristMenu.ToggleMenu = (bool)(root["ToggleMenu"] ?? Defaults.ToggleMenu);
+			WristMenu.ShowFPS = (bool)(root["ShowFPS"] ?? Defaults.ShowFPS);
+			WristMenu.ShowSessionTime = (bool)(root["ShowSessionTime"] ?? Defaults.ShowSessionTime);
+			WristMenu.CustomBoardsEnabled = (bool)(root["CustomBoardsEnabled"] ?? Defaults.CustomBoardsEnabled);
+			BlockJmanSoundsEnabled = (bool)(root["BlockJmanSounds"] ?? Defaults.BlockJmanSounds);
+			antiGuardianGrab = (bool)(root["AntiGuardianGrab"] ?? Defaults.AntiGuardianGrab);
+			antiBlockCrash = (bool)(root["AntiBlockCrash"] ?? Defaults.AntiBlockCrash);
+			SeeAntiCheatReports = (bool)(root["SeeAntiCheatReports"] ?? Defaults.SeeAntiCheatReports);
+			antiReportEnabled = (bool)(root["AntiReportEnabled"] ?? Defaults.AntiReportEnabled);
+			antiReportRangeIndex = (int)(root["AntiReportRangeIndex"] ?? Defaults.AntiReportRangeIndex);
+			waterSplashSpeedIndex = (int)(root["WaterSplashSpeedIndex"] ?? Defaults.WaterSplashSpeedIndex);
+			controllerPredIndex = (int)(root["ControllerPredIndex"] ?? Defaults.ControllerPredIndex);
+			FpsSpoofValue = (int)(root["FpsSpoofValue"] ?? Defaults.FpsSpoofValue);
+			Audio.Index = (int)(root["ButtonClickIndex"] ?? Defaults.ButtonClickIndex);
+			WristMenu.MenuLayout = Mathf.Clamp((int)(root["MenuLayout"] ?? Defaults.MenuLayout), 0, 1);
+			Console.allowKickSelf = (bool)(root["ConsoleAllowKickSelf"] ?? Defaults.ConsoleAllowKickSelf);
+			Console.allowTpSelf = (bool)(root["ConsoleAllowTpSelf"] ?? Defaults.ConsoleAllowTpSelf);
+			Console.disableFlingSelf = (bool)(root["ConsoleDisableFlingSelf"] ?? Defaults.ConsoleDisableFlingSelf);
+			Console.laserEnabled = (bool)(root["ConsoleLaserEnabled"] ?? Defaults.ConsoleLaserEnabled);
+			Console.AutoDetectConsoleUsers = (bool)(root["ConsoleAutoDetectConsoleUsers"] ?? Defaults.ConsoleAutoDetectConsoleUsers);
+			Console.consoleLogging = (bool)(root["ConsoleLogging"] ?? Defaults.ConsoleLogging);
+			Console.fullAutoPistol = (bool)(root["ConsoleFullAutoPistol"] ?? Defaults.ConsoleFullAutoPistol);
 
 			if (menuColorIndex < 0 || menuColorIndex >= 10)
-				menuColorIndex = 0;
+				menuColorIndex = Defaults.MenuColorIndex;
 			if (notificationTimeIndex < 0 || notificationTimeIndex >= notificationTimeValues.Length)
-				notificationTimeIndex = 5 % notificationTimeValues.Length;
+				notificationTimeIndex = Defaults.NotificationTimeIndex;
 			if (antiReportRangeIndex < 0 || antiReportRangeIndex >= antiReportRanges.Length)
-				antiReportRangeIndex = 1 % antiReportRanges.Length;
+				antiReportRangeIndex = Defaults.AntiReportRangeIndex;
 			if (waterSplashSpeedIndex < 0)
-				waterSplashSpeedIndex = 0;
+				waterSplashSpeedIndex = Defaults.WaterSplashSpeedIndex;
 			if (Audio.Index < 0 || Audio.Index >= Audio.ButtonClickUrls.Length)
-				Audio.Index = 0;
+				Audio.Index = Defaults.ButtonClickIndex;
 			if (speedboostCycle < 0 || speedboostCycle >= SpeedBoostNames.Length)
-				speedboostCycle = 0;
+				speedboostCycle = Defaults.SpeedboostCycle;
 			if (pullPowerInt < 0 || pullPowerInt >= PullPowerValues.Length)
-				pullPowerInt = 1 % PullPowerValues.Length;
+				pullPowerInt = Defaults.PullPowerInt;
 			if (tagAuraRangeIndex < 0 || tagAuraRangeIndex >= TagAuraRanges.Length)
-				tagAuraRangeIndex = 3 % TagAuraRanges.Length;
+				tagAuraRangeIndex = Defaults.TagAuraRangeIndex;
+			if (controllerPredIndex < 0 || controllerPredIndex >= ControllerPredValues.Length)
+				controllerPredIndex = Defaults.ControllerPredIndex;
+			if (FpsSpoofValue < 0 || FpsSpoofValue > FpsSpoofRandomMax)
+				FpsSpoofValue = Defaults.FpsSpoofValue;
+			controllerPred = ControllerPredValues[controllerPredIndex];
+			ResetFpsSpoofReactive();
 			ApplyMenuColor(menuColorIndex);
 			notificationDecayTime = notificationTimeValues[notificationTimeIndex];
 			NotifiLib.DecayTime = notificationDecayTime;
@@ -835,18 +930,15 @@ internal partial class Mods : MonoBehaviour
 			var savedButtons = root["EnabledButtons"] as JArray;
 			if (savedButtons != null)
 			{
-				var idLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
-				var textLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
+				var nameLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
 				foreach (MenuCategory cat in MenuRegistry.Instance.Categories)
 				{
-					if (cat.Buttons == null || cat.Name == "Enabled Mods") continue;
+					if (cat.Buttons == null || cat.Name == MenuRegistry.EnabledModsCategory) continue;
 					foreach (ButtonInfo btn in cat.Buttons)
 					{
 						if (btn.type == ButtonType.Action || !btn.enabled.HasValue || string.IsNullOrEmpty(btn.buttonText)) continue;
-						if (!string.IsNullOrEmpty(btn.id) && !idLookup.ContainsKey(btn.id))
-							idLookup[btn.id] = btn;
-						if (!textLookup.ContainsKey(btn.buttonText))
-							textLookup[btn.buttonText] = btn;
+						if (!nameLookup.ContainsKey(btn.buttonText))
+							nameLookup[btn.buttonText] = btn;
 					}
 				}
 
@@ -855,16 +947,13 @@ internal partial class Mods : MonoBehaviour
 				{
 					string savedName = (string)token;
 					if (string.IsNullOrEmpty(savedName)) continue;
-					ButtonInfo found = null;
-					if (!idLookup.TryGetValue(savedName, out found))
-						textLookup.TryGetValue(savedName, out found);
-					if (found != null)
+					if (nameLookup.TryGetValue(savedName, out ButtonInfo found))
 						matched.Add(found);
 				}
 
 				foreach (MenuCategory cat in MenuRegistry.Instance.Categories)
 				{
-					if (cat.Buttons == null || cat.Name == "Enabled Mods") continue;
+					if (cat.Buttons == null || cat.Name == MenuRegistry.EnabledModsCategory) continue;
 					foreach (ButtonInfo btn in cat.Buttons)
 					{
 						if (btn.type == ButtonType.Action || !btn.enabled.HasValue) continue;
@@ -876,7 +965,7 @@ internal partial class Mods : MonoBehaviour
 							}
 							catch (Exception ex)
 							{
-								Log.Warn("could not disable saved button '" + btn.id + "'", ex);
+								Log.Warn("could not disable saved button '" + btn.buttonText + "'", ex);
 							}
 
 							btn.enabled = false;
@@ -1035,87 +1124,66 @@ internal partial class Mods : MonoBehaviour
 			result.NormalColor = new Color(0.12f, 0.12f, 0.14f);
 			result.ButtonColorEnabled = new Color(0.55f, 0.55f, 0.6f);
 			result.ButtonColorDisable = new Color(0.22f, 0.22f, 0.28f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.7f, 0.7f, 0.75f);
 			result.NextPrevButtonColor = new Color(0.18f, 0.18f, 0.22f);
 			break;
 		case 1:
 			result.NormalColor = new Color(0.15f, 0.1f, 0.04f);
 			result.ButtonColorEnabled = new Color(0.7f, 0.45f, 0.2f);
 			result.ButtonColorDisable = new Color(0.35f, 0.22f, 0.1f);
-			result.EnableTextColor = new Color(0.9f, 0.75f, 0.5f);
-			result.DisableTextColor = new Color(0.65f, 0.55f, 0.35f);
 			result.NextPrevButtonColor = new Color(0.22f, 0.14f, 0.06f);
 			break;
 		case 2:
 			result.NormalColor = new Color(0.18f, 0.04f, 0.04f);
 			result.ButtonColorEnabled = new Color(0.9f, 0.2f, 0.2f);
 			result.ButtonColorDisable = new Color(0.5f, 0.08f, 0.08f);
-			result.EnableTextColor = new Color(1f, 0.6f, 0.6f);
-			result.DisableTextColor = new Color(0.7f, 0.3f, 0.3f);
 			result.NextPrevButtonColor = new Color(0.28f, 0.06f, 0.06f);
 			break;
 		case 3:
 			result.NormalColor = new Color(0.18f, 0.1f, 0.04f);
 			result.ButtonColorEnabled = new Color(0.9f, 0.5f, 0.1f);
 			result.ButtonColorDisable = new Color(0.55f, 0.28f, 0.08f);
-			result.EnableTextColor = new Color(1f, 0.8f, 0.5f);
-			result.DisableTextColor = new Color(0.75f, 0.5f, 0.3f);
 			result.NextPrevButtonColor = new Color(0.3f, 0.15f, 0.06f);
 			break;
 		case 4:
 			result.NormalColor = new Color(0.18f, 0.15f, 0.04f);
 			result.ButtonColorEnabled = new Color(0.9f, 0.8f, 0.15f);
 			result.ButtonColorDisable = new Color(0.5f, 0.42f, 0.08f);
-			result.EnableTextColor = new Color(1f, 0.95f, 0.6f);
-			result.DisableTextColor = new Color(0.75f, 0.68f, 0.35f);
 			result.NextPrevButtonColor = new Color(0.3f, 0.26f, 0.06f);
 			break;
 		case 5:
 			result.NormalColor = new Color(0.24f, 0.12f, 0.18f);
 			result.ButtonColorEnabled = new Color(0.7f, 0.24f, 0.48f);
 			result.ButtonColorDisable = new Color(0.42f, 0.18f, 0.29f);
-			result.EnableTextColor = new Color(1f, 0.85f, 0.93f);
-			result.DisableTextColor = new Color(0.72f, 0.45f, 0.58f);
 			result.NextPrevButtonColor = new Color(0.3f, 0.13f, 0.2f);
 			break;
 		case 6:
 			result.NormalColor = new Color(0.14f, 0.04f, 0.2f);
 			result.ButtonColorEnabled = new Color(0.6f, 0.25f, 0.9f);
 			result.ButtonColorDisable = new Color(0.3f, 0.1f, 0.5f);
-			result.EnableTextColor = new Color(0.8f, 0.6f, 1f);
-			result.DisableTextColor = new Color(0.5f, 0.3f, 0.7f);
 			result.NextPrevButtonColor = new Color(0.2f, 0.08f, 0.32f);
 			break;
 		case 7:
 			result.NormalColor = new Color(0.05f, 0.12f, 0.15f);
 			result.ButtonColorEnabled = new Color(0.133f, 0.267f, 0.333f);
 			result.ButtonColorDisable = new Color(0.07f, 0.17f, 0.21f);
-			result.EnableTextColor = new Color(0.55f, 0.7f, 0.85f);
-			result.DisableTextColor = new Color(0.33f, 0.47f, 0.6f);
 			result.NextPrevButtonColor = new Color(0.06f, 0.13f, 0.17f);
 			break;
 		case 8:
 			result.NormalColor = new Color(0.04f, 0.14f, 0.18f);
 			result.ButtonColorEnabled = new Color(0.15f, 0.75f, 0.9f);
 			result.ButtonColorDisable = new Color(0.08f, 0.38f, 0.5f);
-			result.EnableTextColor = new Color(0.5f, 0.9f, 1f);
-			result.DisableTextColor = new Color(0.3f, 0.65f, 0.75f);
 			result.NextPrevButtonColor = new Color(0.06f, 0.22f, 0.3f);
 			break;
 		case 9:
 			result.NormalColor = new Color(0.1f, 0.15f, 0.1f);
 			result.ButtonColorEnabled = new Color(0.4f, 0.6f, 0.4f);
 			result.ButtonColorDisable = new Color(0.22f, 0.33f, 0.22f);
-			result.EnableTextColor = new Color(0.6f, 0.9f, 0.6f);
-			result.DisableTextColor = new Color(0.35f, 0.55f, 0.35f);
 			result.NextPrevButtonColor = new Color(0.12f, 0.18f, 0.12f);
 			break;
 		default:
 			result = GetMenuColors(0);
 			break;
 		}
-		result.MenuTitleColor = result.EnableTextColor;
 		return result;
 	}
 
@@ -2891,7 +2959,7 @@ internal partial class Mods : MonoBehaviour
 		List<CosmeticsController.CosmeticItem> items = BuildTryOnFilteredList(controller);
 		if (items.Count == 0)
 		{
-			FindAndToggleButton(tryOnAllButtonId);
+			WristMenu.FindAndToggleButton(tryOnAllButtonId);
 			yield break;
 		}
 		for (int i = 0; i < items.Count; i++)
@@ -2915,7 +2983,7 @@ internal partial class Mods : MonoBehaviour
 			}
 			yield return new WaitForSeconds(0.05f);
 		}
-		FindAndToggleButton(tryOnAllButtonId);
+		WristMenu.FindAndToggleButton(tryOnAllButtonId);
 	}
 
 	private static List<CosmeticsController.CosmeticItem> BuildTryOnFilteredList(CosmeticsController controller)
@@ -2997,7 +3065,7 @@ internal partial class Mods : MonoBehaviour
 		List<CosmeticsController.CosmeticItem> items = BuildTryOnFilteredList(controller);
 		if (items.Count == 0)
 		{
-			FindAndToggleButton(removeAllButtonId);
+			WristMenu.FindAndToggleButton(removeAllButtonId);
 			yield break;
 		}
 		for (int i = 0; i < items.Count; i++)
@@ -3025,38 +3093,10 @@ internal partial class Mods : MonoBehaviour
 			}
 			yield return new WaitForSeconds(0.05f);
 		}
-		FindAndToggleButton(removeAllButtonId);
+		WristMenu.FindAndToggleButton(removeAllButtonId);
 	}
 
-	public static void FindAndToggleButton(string buttonId)
-	{
-		foreach (MenuCategory category in MenuRegistry.Instance.Categories)
-		{
-			ButtonInfo buttonInfo = category.Buttons.Find((ButtonInfo b) => b.id == buttonId && b.enabled.HasValue && b.type != ButtonType.Action);
-			if (buttonInfo != null)
-			{
-			bool value = buttonInfo.enabled.Value;
-			buttonInfo.enabled = !value;
-			InvalidateActiveButtonsCache();
-			if (buttonInfo.enabled == true)
-				{
-					if (buttonInfo.enableMethod != null)
-						buttonInfo.enableMethod();
-					else
-						buttonInfo.method?.Invoke();
-				}
-				else if (buttonInfo.disableMethod != null)
-				{
-					buttonInfo.disableMethod();
-				}
-				WristMenu.UpdateButtonVisual(buttonInfo.id, buttonInfo.buttonText, buttonInfo.enabled.Value);
-				Save();
-				break;
-			}
-		}
-	}
-
-	private static string soundboardBasePath = Path.Combine(new string[]
+private static string soundboardBasePath = Path.Combine(new string[]
 	{
 		Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..", "..", "Chud Menu", "Sounds"
 	});
@@ -3066,18 +3106,7 @@ internal partial class Mods : MonoBehaviour
 		Directory.CreateDirectory(soundboardBasePath);
 		List<ButtonInfo> buttons = new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				id = "soundboard_exit",
-				buttonText = "Exit Soundboard",
-				method = delegate
-				{
-					WristMenu.NavigateTo("Soundboard");
-				},
-				enabled = false,
-				type = ButtonType.Action,
-				toolTip = "Go to Main"
-			}
+			Button.Action("Exit Soundboard", "Go to Main", () => WristMenu.NavigateTo(MenuRegistry.MainCategory))
 		};
 		if (Directory.Exists(soundboardBasePath))
 		{
@@ -3085,50 +3114,16 @@ internal partial class Mods : MonoBehaviour
 			foreach (string filePath in files)
 			{
 				string displayName = Path.GetFileNameWithoutExtension(filePath);
-				buttons.Add(new ButtonInfo
+				buttons.Add(Button.Toggle(displayName, "", delegate
 				{
-					id = "soundboard_file_" + SanitizeSoundboardId(displayName),
-					buttonText = displayName,
-					enableMethod = delegate
-					{
-						SoundboardStop();
-						SoundboardPlay(filePath);
-						NotifiLib.SendNotification(displayName);
-					},
-					disableMethod = SoundboardStop,
-					enabled = false,
-					requiresLobby = true,
-					toolTip = ""
-				});
+					SoundboardStop();
+					SoundboardPlay(filePath);
+					NotifiLib.SendNotification(displayName);
+				}, SoundboardStop).RequiringLobby());
 			}
 		}
 		EnsureSoundboardPreload();
 		return buttons;
-	}
-
-	private static string SanitizeSoundboardId(string fileName)
-	{
-		if (string.IsNullOrEmpty(fileName))
-		{
-			return "unnamed";
-		}
-		StringBuilder id = new StringBuilder(fileName.Length);
-		foreach (char c in fileName.ToLowerInvariant())
-		{
-			if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
-			{
-				id.Append(c);
-			}
-			else if (id.Length > 0 && id[id.Length - 1] != '_')
-			{
-				id.Append('_');
-			}
-		}
-		if (id.Length == 0)
-		{
-			return "unnamed";
-		}
-		return id.ToString().TrimEnd('_');
 	}
 
 	private AudioClip _soundboardClip;
@@ -3484,79 +3479,6 @@ internal partial class Mods : MonoBehaviour
 		instance.spiderMonkeyEnabled = false;
 		GTPlayer.Instance.UnsetGravityOverride(GTPlayer.Instance);
 		GTPlayerTransform.ApplyRotationOverride(Quaternion.identity, Time.frameCount);
-	}
-
-	public static void LagGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null && !rig.isLocal && rig.Creator != null)
-			{
-				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
-				if (player != null)
-				{
-					if (instance == null)
-					{
-						return;
-					}
-					instance.lagGunLockedTarget = rig;
-					instance.lagGunTargetActor = player.ActorNumber;
-					if (!instance.lagGunRunning)
-					{
-						instance.lagGunRunning = true;
-						instance.StartCoroutine(instance.LagGunLoop());
-					}
-				}
-			}
-		}, delegate
-		{
-			StopLagGun();
-		});
-		if (instance != null && instance.lagGunLockedTarget != null && pointer != null && Line != null)
-		{
-			pointer.transform.position = instance.lagGunLockedTarget.transform.position;
-			Line.SetPosition(1, instance.lagGunLockedTarget.transform.position);
-		}
-	}
-
-	public static void StopLagGun()
-	{
-		if (instance == null)
-		{
-			return;
-		}
-		instance.lagGunRunning = false;
-		instance.lagGunTargetActor = -1;
-		instance.lagGunLockedTarget = null;
-	}
-
-	public static void StopLagGunFull()
-	{
-		StopLagGun();
-		CleanupGun();
-	}
-
-	private IEnumerator LagGunLoop()
-	{
-		RaiseEventOptions opts = new RaiseEventOptions
-		{
-			TargetActors = new int[] { lagGunTargetActor }
-		};
-		while (lagGunRunning)
-		{
-			if (!lagGunRunning || pointer == null || !(IsRightHanded ? WristMenu.TriggerDownL : WristMenu.TriggerDownR))
-			{
-				StopLagGun();
-				yield break;
-			}
-			for (int i = 0; i < 340; i++)
-				PhotonNetwork.RaiseEvent(3, lagPayload, opts, SendOptions.SendUnreliable);
-			yield return new WaitForSeconds(1.2f);
-			for (int i = 0; i < 340; i++)
-				PhotonNetwork.RaiseEvent(3, lagPayload, opts, SendOptions.SendUnreliable);
-			yield return new WaitForSeconds(1.2f);
-		}
 	}
 
 	public static void OrbitGun()

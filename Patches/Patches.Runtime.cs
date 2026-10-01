@@ -168,7 +168,7 @@ namespace Chud.Patches
                 return;
             }
 
-            __result = (short)((__result & 0xFF00) | (Mods.FpsSpoofValue & 0xFF));
+            __result = (short)((__result & 0xFF00) | (Mods.FpsSpoofDisplay & 0xFF));
         }
     }
 
@@ -185,7 +185,7 @@ namespace Chud.Patches
             }
 
             long mask = ~(0xFFFFL << FpsShift);
-            __result = (__result & mask) | ((long)(Mods.FpsSpoofValue & 0xFFFF) << FpsShift);
+            __result = (__result & mask) | ((long)(Mods.FpsSpoofDisplay & 0xFFFF) << FpsShift);
         }
     }
 

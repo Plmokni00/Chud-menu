@@ -804,10 +804,22 @@ internal partial class Mods
 		FpsSpoofActive = false;
 	}
 
+	public static void EnableFPSSpoofRandom()
+	{
+		FpsSpoofRandomActive = true;
+		RollFpsSpoofRandom();
+	}
+
+	public static void DisableFPSSpoofRandom()
+	{
+		FpsSpoofRandomActive = false;
+	}
+
 	public static void SetFPSSpoof(int index)
 	{
 		index %= FPSSpoofValues.Length;
 		FpsSpoofValue = FPSSpoofValues[((index < 0) ? (FPSSpoofValues.Length - 1) : index)];
+		ResetFpsSpoofReactive();
 		NotifiLib.SendNotification("Set to " + FpsSpoofValue + " fps");
 	}
 

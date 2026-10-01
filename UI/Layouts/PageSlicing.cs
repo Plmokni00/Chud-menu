@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 namespace Chud.UI
 {
     public static class PageSlicing
@@ -52,20 +51,6 @@ namespace Chud.UI
         {
             int end = first + pageSize;
             return end > count ? count : end;
-        }
-
-        public static void Fill<T>(IReadOnlyList<T> source, int first, int last, List<T> destination)
-        {
-            destination.Clear();
-            if (source == null)
-            {
-                return;
-            }
-
-            for (int i = first; i < last && i < source.Count; i++)
-            {
-                destination.Add(source[i]);
-            }
         }
     }
 }

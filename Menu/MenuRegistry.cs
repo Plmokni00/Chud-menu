@@ -7,6 +7,7 @@ namespace Chud.Menu
     {
         public const string MainCategory = "Main";
         public const string EnabledModsCategory = "Enabled Mods";
+        public const string MasterModsCategory = "Master Mods";
         public const string ConsoleModsCategory = "Console Mods";
         public const string ConsoleSettingsCategory = "Console Settings";
 
@@ -84,7 +85,6 @@ namespace Chud.Menu
 
             var category = new MenuCategory(name, buttons);
             _categories.Add(category);
-            ReportDuplicateButtonIds(category);
             return category;
         }
 
@@ -134,34 +134,6 @@ namespace Chud.Menu
                     }
                 }
             }
-        }
-
-        private static void ReportDuplicateButtonIds(MenuCategory category)
-        {
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            List<ButtonInfo> buttons = category.Buttons;
-            for (int i = 0; i < buttons.Count; i++)
-            {
-                ButtonInfo button = buttons[i];
-                if (button == null || string.IsNullOrEmpty(button.id))
-                {
-                    continue;
-                }
-
-                if (!seen.Add(button.id))
-                {
-                    Log.Warn(
-                        "duplicate button id '" + button.id + "' on page '" + category.Name +
-                        "' ('" + button.buttonText + "'); it cannot be pressed");
-                }
-            }
-        }
-
-        public void Reset()
-        {
-            _categories.Clear();
-            _categoryNames.Clear();
-            CurrentCategoryName = MainCategory;
         }
     }
 }

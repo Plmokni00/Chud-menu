@@ -214,12 +214,12 @@ namespace Chud.UI
                     LabelScale = t => Text.LabelScale(button.ButtonId, t)
                 };
 
-                if (button.ButtonId == ReservedButtonIds.Disconnect)
+                if (button.ButtonId == ReservedNames.Disconnect)
                 {
                     plan.Disconnect = item;
                 }
-                else if (button.ButtonId != ReservedButtonIds.PreviousPage &&
-                         button.ButtonId != ReservedButtonIds.NextPage)
+                else if (button.ButtonId != ReservedNames.PreviousPage &&
+                         button.ButtonId != ReservedNames.NextPage)
                 {
                     plan.Items.Add(item);
                 }
@@ -280,7 +280,7 @@ namespace Chud.UI
 
         private void BuildHeader()
         {
-            Text.Add(ReservedButtonIds.Title, WristMenu.MenuTitle,
+            Text.Add(ReservedNames.Title, WristMenu.MenuTitle,
                 new Vector3(LabelX, 0f, TitleZ), TitleWidth,
                 TitleHeight, WristMenu.MenuTitleColor);
         }
@@ -307,12 +307,12 @@ namespace Chud.UI
             button.GetComponent<Renderer>().material = WristMenu.Materials.Gradient(top, bottom);
 
             var collider = button.AddComponent<MenuButton>();
-            collider.ButtonId = ReservedButtonIds.Disconnect;
+            collider.ButtonId = ReservedNames.Disconnect;
             collider.DisplayText = "Disconnect";
 
-            Round(button, ReservedButtonIds.Disconnect, top, bottom);
+            Round(button, ReservedNames.Disconnect, top, bottom);
 
-            Text.AddStretched(ReservedButtonIds.Disconnect, "Disconnect",
+            Text.Add(ReservedNames.Disconnect, "Disconnect",
                 new Vector3(LabelX, 0f, DisconnectZ + LabelShiftZ),
                 ButtonWidth * ButtonTextWidthRatio,
                 ButtonHeight * ButtonTextHeightRatio,
@@ -343,7 +343,7 @@ namespace Chud.UI
                 }
 
                 int slot = index - first;
-                string id = button.EffectiveId;
+                string name = button.buttonText;
                 bool isEnabled = button.enabled == true;
                 Color baseColor = isEnabled ? WristMenu.ButtonColorEnabled : WristMenu.ButtonColorDisable;
                 float z = ButtonZForSlot(slot);
@@ -361,20 +361,20 @@ namespace Chud.UI
                 go.GetComponent<Renderer>().material = WristMenu.Materials.Gradient(baseColor * 0.35f, baseColor);
 
                 var collider = go.AddComponent<MenuButton>();
-                collider.ButtonId = id;
+                collider.ButtonId = name;
                 collider.DisplayText = button.buttonText;
 
-                Round(go, id, baseColor * 0.35f, baseColor);
+                Round(go, name, baseColor * 0.35f, baseColor);
 
                 Color accent = isEnabled
                     ? new Color(WristMenu.ButtonColorEnabled.r, WristMenu.ButtonColorEnabled.g, WristMenu.ButtonColorEnabled.b, 0.75f)
                     : new Color(WristMenu.ButtonColorDisable.r, WristMenu.ButtonColorDisable.g, WristMenu.ButtonColorDisable.b, 0.4f);
 
-                MakeOutline(id, new Vector3(PanelFrontX + OutlineOffset, 0f, z),
+                MakeOutline(name, new Vector3(PanelFrontX + OutlineOffset, 0f, z),
                     new Vector3(OutlineDepth, ButtonWidth, ButtonHeight),
                     ButtonRadius, ButtonCornerSegments, OutlineBorder, accent);
 
-                Text.Add(id, PageSlicing.Truncate(button.buttonText),
+                Text.Add(name, PageSlicing.Truncate(button.buttonText),
                     new Vector3(LabelX, LabelShiftY, z + LabelShiftZ),
                     LabelMaxWidth, LabelMaxHeight,
                     isEnabled ? WristMenu.EnableTextColor : WristMenu.DisableTextColor);
@@ -386,8 +386,8 @@ namespace Chud.UI
             Color top = WristMenu.NextPrevButtonColor * 0.35f;
             Color bottom = WristMenu.NextPrevButtonColor;
 
-            BuildNavButton(ReservedButtonIds.PreviousPage, "<", NavOffsetY, top, bottom);
-            BuildNavButton(ReservedButtonIds.NextPage, ">", -NavOffsetY, top, bottom);
+            BuildNavButton(ReservedNames.PreviousPage, "<", NavOffsetY, top, bottom);
+            BuildNavButton(ReservedNames.NextPage, ">", -NavOffsetY, top, bottom);
         }
 
         private void BuildNavButton(string id, string glyph, float y, Color top, Color bottom)
@@ -424,7 +424,7 @@ namespace Chud.UI
 
         private void BuildFooter()
         {
-            WristMenu.FpsText = Text.Add(ReservedButtonIds.Status, WristMenu.BottomBarText,
+            WristMenu.FpsText = Text.Add(ReservedNames.Status, WristMenu.BottomBarText,
                 new Vector3(LabelX, 0f, StatusZ), StatusWidth, StatusHeight, WristMenu.ToolTipColor);
         }
 

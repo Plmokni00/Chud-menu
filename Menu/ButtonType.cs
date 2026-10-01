@@ -11,14 +11,16 @@ namespace Chud.Menu
         Gun
     }
 
-    public static class ReservedButtonIds
+    public static class ReservedNames
     {
-        public const string NextPage = "NextPage";
-        public const string PreviousPage = "PreviousPage";
-        public const string Disconnect = "DisconnectingButton";
+        public const string NextPage = ">";
 
-        public const string Title = "title";
-        public const string Status = "status";
-        public const string ConsoleEntry = "main_console_mods";
+        public const string PreviousPage = "<";
+
+        public const string Disconnect = "Disconnect";
+
+        public const string Title = "__title";
+
+        public const string Status = "__status";
     }
 }

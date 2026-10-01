@@ -172,7 +172,7 @@ namespace Chud.UI
                     LabelScale = t => new Vector3(t, t, t)
                 };
 
-                if (button.ButtonId == ReservedButtonIds.Disconnect)
+                if (button.ButtonId == ReservedNames.Disconnect)
                 {
                     plan.Disconnect = item;
                 }
@@ -187,7 +187,7 @@ namespace Chud.UI
 
         private static bool IsNav(string id)
         {
-            return id == ReservedButtonIds.PreviousPage || id == ReservedButtonIds.NextPage;
+            return id == ReservedNames.PreviousPage || id == ReservedNames.NextPage;
         }
 
         private Transform VisualFor(string id)
@@ -240,7 +240,7 @@ namespace Chud.UI
             titleRect.sizeDelta = new Vector2(TitleWidth, TitleHeight);
             titleRect.position = new Vector3(TitlePosX, 0f, TitlePosZ);
             titleRect.rotation = NormalTextLayer.Rotation;
-            Text.Track(ReservedButtonIds.Title, title);
+            Text.Track(ReservedNames.Title, title);
 
             var statusObj = new GameObject();
             statusObj.transform.parent = WristMenu.CanvasObj.transform;
@@ -262,7 +262,7 @@ namespace Chud.UI
             statusRect.rotation = NormalTextLayer.Rotation;
 
             WristMenu.FpsText = status;
-            Text.Track(ReservedButtonIds.Status, status);
+            Text.Track(ReservedNames.Status, status);
         }
 
         public void SetStatusVisible(bool visible)
@@ -274,11 +274,11 @@ namespace Chud.UI
             Color top = WristMenu.DisconnectButtonColor * 0.35f;
             Color bottom = WristMenu.DisconnectButtonColor;
 
-            AddButton(ReservedButtonIds.Disconnect, "Disconnect", ButtonScale(),
+            AddButton(ReservedNames.Disconnect, "Disconnect", ButtonScale(),
                 new Vector3(SurfaceX, 0f, DisconnectZ), top, bottom);
 
             float labelZ = LabelBaseZ - (FirstButtonZ - DisconnectZ) / LabelCompress;
-            Text.Add(ReservedButtonIds.Disconnect, "Disconnect",
+            Text.Add(ReservedNames.Disconnect, "Disconnect",
                 new Vector2(LabelWidth, LabelHeight), new Vector3(LabelPosX, 0f, labelZ),
                 WristMenu.DisconnectTextColor, true);
         }
@@ -288,15 +288,15 @@ namespace Chud.UI
             Color top = WristMenu.NextPrevButtonColor * 0.35f;
             Color bottom = WristMenu.NextPrevButtonColor;
 
-            AddButton(ReservedButtonIds.PreviousPage, "<", NavScale(),
+            AddButton(ReservedNames.PreviousPage, "<", NavScale(),
                 new Vector3(SurfaceX, NavY, 0f), top, bottom);
-            Text.Add(ReservedButtonIds.PreviousPage, "<",
+            Text.Add(ReservedNames.PreviousPage, "<",
                 new Vector2(LabelWidth, LabelHeight), new Vector3(LabelPosX, NavLabelY, 0f),
                 WristMenu.NextPrevTextColor, false);
 
-            AddButton(ReservedButtonIds.NextPage, ">", NavScale(),
+            AddButton(ReservedNames.NextPage, ">", NavScale(),
                 new Vector3(SurfaceX, -NavY, 0f), top, bottom);
-            Text.Add(ReservedButtonIds.NextPage, ">",
+            Text.Add(ReservedNames.NextPage, ">",
                 new Vector2(LabelWidth, LabelHeight), new Vector3(LabelPosX, -NavLabelY, 0f),
                 WristMenu.NextPrevTextColor, false);
         }
@@ -326,17 +326,17 @@ namespace Chud.UI
                 }
 
                 int slot = index - first;
-                string id = button.EffectiveId;
+                string name = button.buttonText;
                 bool isEnabled = button.enabled == true;
                 Color baseColor = isEnabled ? WristMenu.ButtonColorEnabled : WristMenu.ButtonColorDisable;
 
                 float slotOffset = slot * SlotPitch;
                 float z = FirstButtonZ - slotOffset;
 
-                AddButton(id, button.buttonText, ButtonScale(),
+                AddButton(name, button.buttonText, ButtonScale(),
                     new Vector3(SurfaceX, 0f, z), baseColor * 0.35f, baseColor);
 
-                Text.Add(id, button.buttonText,
+                Text.Add(name, button.buttonText,
                     new Vector2(LabelWidth, LabelHeight),
                     new Vector3(LabelPosX, 0f, LabelBaseZ - slotOffset / LabelCompress),
                     isEnabled ? WristMenu.EnableTextColor : WristMenu.DisableTextColor,

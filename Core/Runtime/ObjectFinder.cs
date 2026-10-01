@@ -31,42 +31,5 @@ namespace Chud.Runtime
 
             return FindComponent<Camera>("Shoulder Camera");
         }
-
-        public static Camera FindDesktopCamera()
-        {
-            Camera[] cameras = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
-            for (int i = 0; i < cameras.Length; i++)
-            {
-                Camera camera = cameras[i];
-                if (camera == (Object)null)
-                {
-                    continue;
-                }
-
-                if (camera.name == "Shoulder Camera")
-                {
-                    return camera;
-                }
-
-                Transform parent = camera.transform.parent;
-                if (parent != (Object)null && parent.name == "Third Person Camera")
-                {
-                    return camera;
-                }
-            }
-
-            return null;
-        }
-
-        public static T FindInChildren<T>(Transform root, string relativePath) where T : Component
-        {
-            if (root == (Object)null)
-            {
-                return null;
-            }
-
-            Transform found = root.Find(relativePath);
-            return found == (Object)null ? null : found.GetComponent<T>();
-        }
     }
 }

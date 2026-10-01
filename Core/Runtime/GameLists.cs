@@ -5,18 +5,9 @@ namespace Chud.Runtime
 {
     public static class GameLists
     {
-        [System.ThreadStatic]
-        private static List<VRRig> _rigBuffer;
-
-        [System.ThreadStatic]
-        private static List<GorillaPlayerScoreboardLine> _scoreboardBuffer;
-
-        public static List<VRRig> ActiveRigs()
+        private static List<VRRig> FillActiveRigs(IReadOnlyList<VRRig> source)
         {
-            List<VRRig> buffer = _rigBuffer ?? (_rigBuffer = new List<VRRig>(16));
-            buffer.Clear();
-
-            IReadOnlyList<VRRig> source = VRRigCache.ActiveRigs;
+            List<VRRig> buffer = new List<VRRig>(source == null ? 16 : source.Count);
             if (source == null)
             {
                 return buffer;
@@ -34,13 +25,10 @@ namespace Chud.Runtime
             return buffer;
         }
 
-        public static List<GorillaPlayerScoreboardLine> ScoreboardLines()
+        private static List<GorillaPlayerScoreboardLine> FillScoreboardLines(List<GorillaPlayerScoreboardLine> source)
         {
             List<GorillaPlayerScoreboardLine> buffer =
-                _scoreboardBuffer ?? (_scoreboardBuffer = new List<GorillaPlayerScoreboardLine>(16));
-            buffer.Clear();
-
-            List<GorillaPlayerScoreboardLine> source = GorillaScoreboardTotalUpdater.allScoreboardLines;
+                new List<GorillaPlayerScoreboardLine>(source == null ? 16 : source.Count);
             if (source == null)
             {
                 return buffer;
@@ -56,6 +44,16 @@ namespace Chud.Runtime
             }
 
             return buffer;
+        }
+
+        public static List<VRRig> ActiveRigs()
+        {
+            return FillActiveRigs(VRRigCache.ActiveRigs);
+        }
+
+        public static List<GorillaPlayerScoreboardLine> ScoreboardLines()
+        {
+            return FillScoreboardLines(GorillaScoreboardTotalUpdater.allScoreboardLines);
         }
     }
 }

@@ -12,22 +12,9 @@ namespace Chud.Runtime
     {
         public static GTPlayer Player => GTPlayer.Instance;
 
-        public static bool HasPlayer => GTPlayer.Instance != (Object)null;
-
         public static GorillaTagger Tagger => GorillaTagger.Instance;
 
-        public static bool HasTagger
-        {
-            get
-            {
-                GorillaTagger tagger = GorillaTagger.Instance;
-                return tagger != (Object)null && tagger.headCollider != (Object)null;
-            }
-        }
-
         public static VRRig LocalRig => VRRig.LocalRig;
-
-        public static bool HasLocalRig => VRRig.LocalRig != (Object)null;
 
         public static bool TryGetHeadTransform(out VRRig rig, out Transform head)
         {
@@ -43,8 +30,6 @@ namespace Chud.Runtime
         }
 
         public static NetworkSystem Network => NetworkSystem.Instance;
-
-        public static bool HasNetwork => NetworkSystem.Instance != null;
 
         public static NetPlayer LocalNetPlayer
         {
@@ -75,8 +60,6 @@ namespace Chud.Runtime
             GorillaNetworking.PhotonNetworkController.Instance;
 
         public static ControllerInputPoller Poller => ControllerInputPoller.instance;
-
-        public static bool HasPoller => ControllerInputPoller.instance != (Object)null;
 
         public static GorillaGameManager GameMode => GorillaGameManager.instance;
 
@@ -130,11 +113,6 @@ namespace Chud.Runtime
                 float scale = player.scale;
                 return SanitizeScale(scale);
             }
-        }
-
-        public static float MenuScale(bool cameraAnchored)
-        {
-            return cameraAnchored ? 1f : PlayerScale;
         }
 
         public static float SanitizeScale(float scale, float fallback = 1f)

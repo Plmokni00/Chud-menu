@@ -14,9 +14,9 @@ namespace Chud.Menu
             Buttons = buttons ?? new List<ButtonInfo>();
         }
 
-        public ButtonInfo Find(string buttonId)
+        public ButtonInfo Find(string name)
         {
-            if (string.IsNullOrEmpty(buttonId))
+            if (string.IsNullOrEmpty(name))
             {
                 return null;
             }
@@ -24,7 +24,7 @@ namespace Chud.Menu
             for (int i = 0; i < Buttons.Count; i++)
             {
                 ButtonInfo button = Buttons[i];
-                if (button != null && button.id == buttonId)
+                if (button != null && button.buttonText == name)
                 {
                     return button;
                 }
@@ -36,11 +36,6 @@ namespace Chud.Menu
         public int RemoveWhere(System.Func<ButtonInfo, bool> predicate)
         {
             return predicate == null ? 0 : Buttons.RemoveAll(b => b != null && predicate(b));
-        }
-
-        public int Compact()
-        {
-            return Buttons.RemoveAll(b => b == null);
         }
     }
 }

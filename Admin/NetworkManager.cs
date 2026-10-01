@@ -1,3 +1,4 @@
+using Chud.Diagnostics;
 using Chud.Menu;
 using Chud.UI;
 using ExitGames.Client.Photon;
@@ -17,15 +18,28 @@ public class NetworkManager : MonoBehaviour
 
 	public const byte ConsoleByte = 68;
 
+	private LoadBalancingClient _client;
+
 	private void Awake()
 	{
 		instance = this;
-		PhotonNetwork.NetworkingClient.EventReceived += OnEventReceived;
+		_client = PhotonNetwork.NetworkingClient;
+		if (_client == null)
+		{
+			Log.Error("no Photon networking client is available; console commands are inactive");
+			return;
+		}
+		_client.EventReceived += OnEventReceived;
 	}
 
 	private void OnDestroy()
 	{
-		PhotonNetwork.NetworkingClient.EventReceived -= OnEventReceived;
+		if (_client == null)
+		{
+			return;
+		}
+		_client.EventReceived -= OnEventReceived;
+		_client = null;
 	}
 
 	private void OnEventReceived(EventData data)

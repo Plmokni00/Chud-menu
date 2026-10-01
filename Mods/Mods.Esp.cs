@@ -67,8 +67,6 @@ internal partial class Mods
 
 	private static readonly HttpClient arsHttpClient = new HttpClient();
 
-	private FieldInfo _fpsField;
-
 	private static readonly Dictionary<string, string> cosmeticNames = new Dictionary<string, string>
 	{
 		{ "LBAAK.", "Dev stick" },
@@ -83,8 +81,6 @@ internal partial class Mods
 		{ "LMAYT.", "LAVA MONKE DOUGHBOI" },
 		{ "LMBAO.", "Gorillacon golden phone" }
 	};
-
-	private FieldInfo _ownedCosmeticsField;
 
 	private bool arsNameTagsActive = false;
 
@@ -408,10 +404,11 @@ internal partial class Mods
 
 	private void TracersCore()
 	{
+		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
 		reusableTracerRemovals.Clear();
 		foreach (KeyValuePair<Player, LineRenderer> tracerLine in tracerLines)
 		{
-			if (!PhotonNetwork.PlayerListOthers.Contains(tracerLine.Key))
+			if (Array.IndexOf(playerListOthers, tracerLine.Key) < 0)
 			{
 				reusableTracerRemovals.Add(tracerLine.Key);
 			}
@@ -424,7 +421,6 @@ internal partial class Mods
 				tracerLines.Remove(stalePlayer);
 			}
 		}
-		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
 		foreach (Player player in playerListOthers)
 		{
 			VRRig targetRig = GorillaGameManager.StaticFindRigForPlayer(player);
@@ -462,7 +458,7 @@ internal partial class Mods
 
 	private Vector3 GetTracerStart()
 	{
-		if (!XRSettings.isDeviceActive && ghostRig != (Object)null && GhostWanted())
+		if (!XRSettings.isDeviceActive && ghostRig != (Object)null && LocalRigDriven())
 		{
 			Transform ghostHand = GhostHandTransform(true);
 			if (ghostHand != (Object)null) return ghostHand.position;
@@ -513,15 +509,21 @@ internal partial class Mods
 		new SkeletonLink { first = 9, second = 7 }
 	};
 
-	private const int SkeletonLineCount = 26;
-
-	private const int SkeletonFingerStart = 20;
-
 	private static readonly string[] skeletonFingerNames = new string[]
 	{
 		"thumb.03.L", "f_index.02.L", "f_middle.02.L",
 		"thumb.03.R", "f_index.02.R", "f_middle.02.R"
 	};
+
+	private const int SkeletonFingerCount = 6;
+
+	private const int SkeletonHeadLine = 0;
+
+	private const int SkeletonLinkStart = SkeletonHeadLine + 1;
+
+	private static readonly int SkeletonFingerStart = SkeletonLinkStart + skeletonLinks.Length;
+
+	private static readonly int SkeletonLineCount = SkeletonFingerStart + SkeletonFingerCount;
 
 	private LineRenderer CreateSkeletonLine()
 	{
@@ -600,10 +602,11 @@ internal partial class Mods
 
 	private void SkeletonEspCore()
 	{
+		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
 		reusableSkeletonRemovals.Clear();
 		foreach (var kvp in skeletonLines)
 		{
-			if (!PhotonNetwork.PlayerListOthers.Contains(kvp.Key))
+			if (Array.IndexOf(playerListOthers, kvp.Key) < 0)
 				reusableSkeletonRemovals.Add(kvp.Key);
 		}
 		foreach (Player p in reusableSkeletonRemovals)
@@ -627,7 +630,7 @@ internal partial class Mods
 		foreach (VRRig stale in skeletonFingerStale)
 			skeletonFingerCache.Remove(stale);
 
-		foreach (Player player in PhotonNetwork.PlayerListOthers)
+		foreach (Player player in playerListOthers)
 		{
 			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(player);
 			if (rig == null) continue;
@@ -647,7 +650,7 @@ internal partial class Mods
 			Color color = SkeletonLineColor(rig);
 			float s = EspScale(rig);
 			Vector3 headPos = GetHeadAnchor(rig);
-			DrawSkeletonLine(lines[0], color, headPos + new Vector3(0f, 0.16f * s, 0f), headPos - new Vector3(0f, 0.4f * s, 0f), s);
+			DrawSkeletonLine(lines[SkeletonHeadLine], color, headPos + new Vector3(0f, 0.16f * s, 0f), headPos - new Vector3(0f, 0.4f * s, 0f), s);
 
 			for (int i = 0; i < skeletonLinks.Length; i++)
 			{
@@ -657,7 +660,7 @@ internal partial class Mods
 				Transform ta = bones[a];
 				Transform tb = bones[b];
 				if (ta == null || tb == null) continue;
-				DrawSkeletonLine(lines[1 + i], color, ta.position, tb.position, s);
+				DrawSkeletonLine(lines[SkeletonLinkStart + i], color, ta.position, tb.position, s);
 			}
 
 			VRMap lm = rig.leftHand;
@@ -683,7 +686,7 @@ internal partial class Mods
 			reusableFingerConns[4] = (rHand, rIndex);
 			reusableFingerConns[5] = (rHand, rMiddle);
 
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < SkeletonFingerCount; i++)
 				DrawSkeletonLine(lines[SkeletonFingerStart + i], color, reusableFingerConns[i].Item1, reusableFingerConns[i].Item2, s);
 		}
 	}
@@ -714,15 +717,12 @@ internal partial class Mods
 
 	private int GetFps(VRRig rig)
 	{
-		if (_fpsField == null)
-		{
-			_fpsField = AccessTools.Field(typeof(VRRig), "fps");
-		}
-		if (_fpsField == null)
+		FieldInfo field = GameReflection.VrrigFps();
+		if (field == null)
 		{
 			return 0;
 		}
-		object value = _fpsField.GetValue(rig);
+		object value = field.GetValue(rig);
 		return (value is int fps) ? fps : 0;
 	}
 
@@ -1008,11 +1008,7 @@ internal partial class Mods
 
 	private HashSet<string> GetOwnedCosmetics(VRRig rig)
 	{
-		if (_ownedCosmeticsField == null)
-		{
-			_ownedCosmeticsField = AccessTools.Field(typeof(VRRig), "_playerOwnedCosmetics");
-		}
-		return _ownedCosmeticsField?.GetValue(rig) as HashSet<string>;
+		return GameReflection.PlayerOwnedCosmetics()?.GetValue(rig) as HashSet<string>;
 	}
 
 	public static void CosmeticNameTags()
@@ -1188,13 +1184,12 @@ internal partial class Mods
 				where !StringUtils.IsNullOrEmpty(id)
 				select id).ToHashSet());
 			arsDownloaded = true;
-			System.Console.WriteLine("[ARS] Loaded " + ids.Count + " player IDs to detect");
+			Log.Info("ARS: loaded " + ids.Count + " player IDs to detect");
 		}
 		catch (Exception ex)
 		{
-			Exception e = ex;
-			System.Console.WriteLine("[ARS] Failed to download player IDs: " + e.Message);
 			arsDownloaded = false;
+			Log.Warn("ARS: failed to download the player ID list: " + ex.Message);
 		}
 		arsDownloading = false;
 	}

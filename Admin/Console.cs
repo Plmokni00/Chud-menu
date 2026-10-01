@@ -41,13 +41,14 @@ public class Console : MonoBehaviour
 
 		private void OnCollisionEnter(Collision collision)
 		{
-			if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) || Time.time - lastCollisionTime < 0.5f)
+			Player local = PhotonNetwork.LocalPlayer;
+			if (local == null || !ServerData.IsAdmin(local.UserId) || Time.time - lastCollisionTime < 0.5f)
 			{
 				return;
 			}
 			lastCollisionTime = Time.time;
 			VRRig rig = collision.collider.GetComponentInParent<VRRig>();
-			if (rig == (Object)null || rig.Creator == null || rig.isLocal || rig.Creator.UserId == PhotonNetwork.LocalPlayer.UserId)
+			if (rig == (Object)null || rig.Creator == null || rig.isLocal || rig.Creator.UserId == local.UserId)
 			{
 				return;
 			}
@@ -1962,8 +1963,15 @@ public class Console : MonoBehaviour
 	private void PruneConePool()
 	{
 		_adminCleanupList.Clear();
+		VRRig ownCrownRig = SeeOwnCrown ? null : GetVRRigFromPlayer(PhotonNetwork.LocalPlayer);
 		foreach (KeyValuePair<VRRig, GameObject> entry in conePool)
 		{
+			if (ownCrownRig != null && entry.Key == ownCrownRig)
+			{
+				Object.Destroy(entry.Value);
+				_adminCleanupList.Add(entry.Key);
+				continue;
+			}
 			NetPlayer creator = entry.Key.Creator;
 			Player player = creator != null ? creator.GetPlayerRef() : null;
 			bool isAdmin;

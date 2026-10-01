@@ -9,12 +9,21 @@
     <BepInExCoreDir Condition="!Exists('$(BepInExCoreDir)')">$(MSBuildThisFileDirectory)Libs\BepInEx</BepInExCoreDir>
   </PropertyGroup>
   <PropertyGroup>
-    <LangVersion>latest</LangVersion>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup>
     <RootNamespace>Chud</RootNamespace>
+    <Version>1.8.7</Version>
   </PropertyGroup>
+  <Target Name="GeneratePluginInfoVersion" BeforeTargets="BeforeCompile">
+    <PropertyGroup>
+      <_PluginVersionFile>$(IntermediateOutputPath)PluginInfo.Version.g.cs</_PluginVersionFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <_PluginVersionLine Include="namespace Chud { public static partial class PluginInfo { public const string Version = &quot;$(Version)&quot;%3B } }" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_PluginVersionFile)" Lines="@(_PluginVersionLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(_PluginVersionFile)" />
+    </ItemGroup>
+  </Target>
   <Target Name="CopyToPlugins" AfterTargets="Build" Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\plugins')">
     <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\plugins" />
   </Target>

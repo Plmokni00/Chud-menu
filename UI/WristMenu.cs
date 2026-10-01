@@ -1,7 +1,6 @@
+using Chud.Backend;
 using Chud.Rendering;
 using Object = UnityEngine.Object;
-using System.Collections.Generic;
-using System;
 using UnityEngine.UI;
 using UnityEngine;
 namespace Chud.UI
@@ -20,17 +19,17 @@ namespace Chud.UI
             "if u get banned with this, its on u, not me"
         };
 
-        public static bool AnimationsEnabled = false;
+        public static bool AnimationsEnabled = Defaults.AnimationsEnabled;
 
-        public static int MenuLayout = 0;
+        public static int MenuLayout = Defaults.MenuLayout;
 
-        public static bool ToggleMenu = false;
+        public static bool ToggleMenu = Defaults.ToggleMenu;
 
-        public static bool ShowFPS = false;
+        public static bool ShowFPS = Defaults.ShowFPS;
 
-        public static bool ShowSessionTime = false;
+        public static bool ShowSessionTime = Defaults.ShowSessionTime;
 
-        public static bool CustomBoardsEnabled = true;
+        public static bool CustomBoardsEnabled = Defaults.CustomBoardsEnabled;
 
         public static bool CustomBoardsApplied = false;
 
@@ -78,10 +77,6 @@ namespace Chud.UI
 
         public static Vector2 JoyL = Vector2.zero;
 
-        public static bool LeftTriggerLocked;
-
-        public static bool RightTriggerLocked;
-
         public static int ClickCooldown = 10;
 
         public static int PageNumber = 0;
@@ -108,75 +103,35 @@ namespace Chud.UI
 
         internal static MenuMaterialSet Materials;
 
-        internal static string BottomBarText => _bottomBar;
+        internal static MenuRuntimeState State => _state ?? (_state = new MenuRuntimeState());
 
-        private static string _bottomBar = string.Empty;
+        private static MenuRuntimeState _state;
 
-        private static float _lastButtonPressTime = -1f;
-
-        private static GameObject _menuAnchor;
-
-        private static bool _menuCameraAnchored;
-
-        private static bool _menuAnchorIsRightHand;
-
-        private static Transform _menuFollowHand;
-
-        private static readonly Camera[] _cameraScratch = new Camera[1];
-
-        private static DateTime _sessionStartTime = DateTime.Now;
-
-        private static float _fpsAccumulator;
-
-        private static int _fpsFrameCount;
-
-        private static int _cachedFPS;
-
-        private static int _frameCounter;
-
-        private static bool _adminInitialized;
-
-        private static bool _mouseWasPressed;
-
-        private static Camera _tpc;
-
-        private static bool _prevToggleButton;
-
-        private static bool _menuStickyOpen;
-
-        private static bool _fontInitialized;
+        internal static string BottomBarText => State.BottomBar;
 
         internal static bool AnimatorOwnsScale;
 
-        internal static MenuFont Fonts;
+        internal static MenuFont Fonts => State.Fonts;
 
         internal static void SetBottomBar(string value)
         {
-            _bottomBar = value ?? string.Empty;
+            State.BottomBar = value;
         }
+
+        internal static int RealFps => State.RealFps;
 
         internal static void TickFpsCounter()
         {
-            _fpsAccumulator += Time.unscaledDeltaTime;
-            _fpsFrameCount++;
-            if (_fpsFrameCount < 30)
-            {
-                return;
-            }
-
-            _cachedFPS = _fpsAccumulator > 0f ? Mathf.RoundToInt((float)_fpsFrameCount / _fpsAccumulator) : 0;
-            _fpsAccumulator = 0f;
-            _fpsFrameCount = 0;
+            State.TickFpsCounter();
         }
 
         internal static string ComposeBottomBar()
         {
-            string fpsPart = ShowFPS ? "FPS: " + _cachedFPS : null;
+            string fpsPart = ShowFPS ? "FPS: " + State.RealFps : null;
             string sessionPart = null;
             if (ShowSessionTime)
             {
-                TimeSpan span = DateTime.Now - _sessionStartTime;
-                sessionPart = (int)span.TotalMinutes + ":" + span.Seconds.ToString("D2");
+                sessionPart = State.SessionMinutes() + ":" + State.SessionSeconds().ToString("D2");
             }
 
             if (fpsPart != null && sessionPart != null) return fpsPart + " | " + sessionPart;
@@ -187,101 +142,88 @@ namespace Chud.UI
 
         internal static void ResetSessionClock()
         {
-            _sessionStartTime = DateTime.Now;
+            State.ResetSessionClock();
         }
 
         internal static void InitFonts()
         {
-            if (_fontInitialized)
+            if (State.TryInitFonts(out MenuFont fonts))
             {
-                return;
+                MenuFont = fonts.Notification;
             }
-
-            _fontInitialized = true;
-            Fonts = new MenuFont();
-            MenuFont = Fonts.Notification;
         }
 
         internal static bool ConsumeButtonPress()
         {
-            if (Time.time - _lastButtonPressTime < 0.25f)
-            {
-                return false;
-            }
-
-            _lastButtonPressTime = Time.time;
-            return true;
+            return State.ConsumeButtonPress();
         }
 
-        internal static GameObject MenuAnchor => _menuAnchor;
+        internal static GameObject MenuAnchor => State.MenuAnchor;
 
-        internal static bool MenuCameraAnchored => _menuCameraAnchored;
+        internal static bool MenuCameraAnchored => State.MenuCameraAnchored;
 
-        internal static bool MenuAnchorIsRightHand => _menuAnchorIsRightHand;
+        internal static bool MenuAnchorIsRightHand => State.MenuAnchorIsRightHand;
 
-        internal static Transform MenuFollowHand => _menuFollowHand;
+        internal static Transform MenuFollowHand => State.MenuFollowHand;
 
         internal static void SetMenuAnchor(GameObject anchor, bool rightHand, Transform follow)
         {
-            _menuAnchor = anchor;
-            _menuAnchorIsRightHand = rightHand;
-            _menuFollowHand = follow;
+            State.SetMenuAnchor(anchor, rightHand, follow);
         }
 
         internal static void ClearMenuAnchor()
         {
-            _menuAnchor = null;
-            _menuFollowHand = null;
+            State.ClearMenuAnchor();
         }
 
         internal static void ClearMenuFollow()
         {
-            _menuFollowHand = null;
+            State.ClearMenuFollow();
         }
 
         internal static void SetMenuCameraAnchored(bool value)
         {
-            _menuCameraAnchored = value;
+            State.SetMenuCameraAnchored(value);
         }
 
         internal static bool AdminInitialized
         {
-            get => _adminInitialized;
-            set => _adminInitialized = value;
+            get => State.AdminInitialized;
+            set => State.AdminInitialized = value;
         }
 
         internal static bool MouseWasPressed
         {
-            get => _mouseWasPressed;
-            set => _mouseWasPressed = value;
+            get => State.MouseWasPressed;
+            set => State.MouseWasPressed = value;
         }
 
-        internal static Camera ThirdPersonCamera => _tpc;
+        internal static Camera ThirdPersonCamera => State.ThirdPersonCamera;
 
         internal static void SetThirdPersonCamera(Camera camera)
         {
-            _tpc = camera;
+            State.SetThirdPersonCamera(camera);
         }
 
         internal static bool PrevToggleButton
         {
-            get => _prevToggleButton;
-            set => _prevToggleButton = value;
+            get => State.PrevToggleButton;
+            set => State.PrevToggleButton = value;
         }
 
         internal static bool MenuStickyOpen
         {
-            get => _menuStickyOpen;
-            set => _menuStickyOpen = value;
+            get => State.MenuStickyOpen;
+            set => State.MenuStickyOpen = value;
         }
 
         internal static int FrameCounter
         {
-            get => _frameCounter;
-            set => _frameCounter = value;
+            get => State.FrameCounter;
+            set => State.FrameCounter = value;
         }
 
-        internal static Camera[] CameraScratch => _cameraScratch;
+        internal static Camera[] CameraScratch => State.CameraScratch;
 
         internal static void TickGradientAnimations(float time)
         {

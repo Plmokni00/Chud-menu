@@ -19,7 +19,7 @@ public class NotifiLib : MonoBehaviour
 
 	private static Text notificationText;
 
-	private Material textMaterial = new Material(Shader.Find("GUI/Text Shader"));
+	private Material textMaterial;
 
 	private bool hasInit = false;
 
@@ -202,10 +202,18 @@ public class NotifiLib : MonoBehaviour
 			notificationText.alignment = (TextAnchor)6;
 			notificationText.rectTransform.localScale = new Vector3(0.002f, 0.002f, 1f);
 			notificationText.rectTransform.localPosition = new Vector3(-0.3f, -0.35f, -0.15f);
-			if (textMaterial != (Object)null)
+if (textMaterial == (Object)null)
+		{
+			Shader shader = Shader.Find("GUI/Text Shader");
+			if (shader != (Object)null)
 			{
-				notificationText.material = textMaterial;
+				textMaterial = new Material(shader);
 			}
+		}
+		if (textMaterial != (Object)null)
+		{
+			notificationText.material = textMaterial;
+		}
 			hudObjParent.SetActive(IsVrMode() && _isEnabled);
 		}
 	}
@@ -232,22 +240,27 @@ public class NotifiLib : MonoBehaviour
 		}
 	}
 
-	private void HandleModeSwitch()
-	{
-		bool desktop = IsDesktopMode();
-		if (_lastSeenDesktopMode.HasValue && _lastSeenDesktopMode.Value != desktop)
-		{
-			if (desktop)
-			{
-				ClearVrLines();
-			}
-			else
-			{
-				_desktopNotis.Clear();
-			}
-		}
-		_lastSeenDesktopMode = desktop;
-	}
+private static void HandleModeSwitch()
+    {
+        SyncModeSwitch();
+    }
+
+    private static void SyncModeSwitch()
+    {
+        bool desktop = IsDesktopMode();
+        if (_lastSeenDesktopMode.HasValue && _lastSeenDesktopMode.Value != desktop)
+        {
+            if (desktop)
+            {
+                ClearVrLines();
+            }
+            else
+            {
+                _desktopNotis.Clear();
+            }
+        }
+        _lastSeenDesktopMode = desktop;
+    }
 
 	private void FollowCamera()
 	{
@@ -384,6 +397,31 @@ public class NotifiLib : MonoBehaviour
 		RebuildVrText();
 	}
 
+	private void OnDestroy()
+	{
+		if (textMaterial != (Object)null)
+		{
+			Destroy(textMaterial);
+			textMaterial = null;
+		}
+		if (hudObjParent != (Object)null)
+		{
+			Destroy(hudObjParent);
+			hudObjParent = null;
+		}
+		if (hudObj != (Object)null)
+		{
+			Destroy(hudObj);
+			hudObj = null;
+		}
+		if (_notiBgTex != (Object)null)
+		{
+			Destroy(_notiBgTex);
+			_notiBgTex = null;
+		}
+		notificationText = null;
+	}
+
 	private void LateUpdate()
 	{
 		EnsureInit();
@@ -417,18 +455,7 @@ public class NotifiLib : MonoBehaviour
 			return;
 		}
 		bool desktop = IsDesktopMode();
-		if (_lastSeenDesktopMode.HasValue && _lastSeenDesktopMode.Value != desktop)
-		{
-			if (desktop)
-			{
-				ClearVrLines();
-			}
-			else
-			{
-				_desktopNotis.Clear();
-			}
-		}
-		_lastSeenDesktopMode = desktop;
+		SyncModeSwitch();
 		if (desktop)
 		{
 			string desktopRich = "<color=green>[Noti]</color> - " + plainText;
@@ -444,32 +471,6 @@ public class NotifiLib : MonoBehaviour
 			if (split > 18 && split < vrPlain.Length - 8) { vrPlain = vrPlain.Substring(0, split) + "\n" + vrPlain.Substring(split + 1); }
 		}
 		string vrRich = "<color=green>[Noti]</color> - " + vrPlain;
-		if (notificationText == (Object)null)
-		{
-			CleanExpiredVrLines();
-			for (int i = 0; i < _vrLines.Count; i++)
-			{
-				if (_vrLines[i].text == vrRich && Time.time < _vrLines[i].expireTime - 0.5f)
-				{
-					return;
-				}
-			}
-			while (_vrLines.Count >= MAX_VR_LINES)
-			{
-				_vrLines.RemoveAt(0);
-			}
-			float pendingDuration = (DecayTime * decayMultiplier) * 0.02f;
-			if (pendingDuration < 0.5f)
-			{
-				pendingDuration = 0.5f;
-			}
-			_vrLines.Add(new VrLine
-			{
-				text = vrRich,
-				expireTime = Time.time + pendingDuration
-			});
-			return;
-		}
 		AddVrNoti(vrRich, decayMultiplier);
 	}
 

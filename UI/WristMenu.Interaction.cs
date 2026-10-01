@@ -12,9 +12,9 @@ namespace Chud.UI
 {
     internal partial class WristMenu
     {
-        public static void Press(string buttonId)
+        public static void Press(string name)
         {
-            if (string.IsNullOrEmpty(buttonId))
+            if (string.IsNullOrEmpty(name))
             {
                 return;
             }
@@ -25,10 +25,10 @@ namespace Chud.UI
             }
 
             Audio.PlayButtonClick(Mods.IsRightHanded);
-            Dispatch(buttonId);
+            Dispatch(name);
         }
 
-        private static void Dispatch(string buttonId)
+        private static void Dispatch(string name)
         {
             IReadOnlyList<ButtonInfo> buttons = MenuRegistry.Instance.CurrentButtons;
             if (buttons == null)
@@ -38,21 +38,21 @@ namespace Chud.UI
 
             int pageCount = PageSlicing.PageCount(buttons.Count, PageSlicing.DefaultPageSize);
 
-            if (buttonId == ReservedButtonIds.NextPage)
+            if (name == ReservedNames.NextPage)
             {
                 PageNumber = PageNumber < pageCount - 1 ? PageNumber + 1 : 0;
                 Reopen();
                 return;
             }
 
-            if (buttonId == ReservedButtonIds.PreviousPage)
+            if (name == ReservedNames.PreviousPage)
             {
                 PageNumber = PageNumber > 0 ? PageNumber - 1 : pageCount - 1;
                 Reopen();
                 return;
             }
 
-            if (buttonId == ReservedButtonIds.Disconnect)
+            if (name == ReservedNames.Disconnect)
             {
                 PhotonNetwork.Disconnect();
                 return;
@@ -62,7 +62,7 @@ namespace Chud.UI
             for (int i = 0; i < buttons.Count; i++)
             {
                 ButtonInfo candidate = buttons[i];
-                if (candidate != null && buttonId == candidate.id)
+                if (candidate != null && name == candidate.buttonText)
                 {
                     target = candidate;
                     break;
@@ -85,7 +85,7 @@ namespace Chud.UI
                 return;
             }
 
-            if (MenuRegistry.Instance.CurrentCategoryName == "Master Mods" && !PhotonNetwork.IsMasterClient)
+            if (MenuRegistry.Instance.CurrentCategoryName == MenuRegistry.MasterModsCategory && !PhotonNetwork.IsMasterClient)
             {
                 NotifiLib.SendNotification("You are not master client!");
                 return;
@@ -117,7 +117,7 @@ namespace Chud.UI
 
             if (Menu != (Object)null)
             {
-                UpdateButtonVisual(target.id, target.buttonText, target.enabled.Value);
+                UpdateButtonVisual(target.buttonText, target.enabled.Value);
             }
 
             Mods.Save();
@@ -159,24 +159,24 @@ namespace Chud.UI
             }
             catch (Exception ex)
             {
-                Log.Error("button '" + button.id + "' ('" + button.buttonText + "') failed in " + slot, ex);
+                Log.Error("button '" + button.buttonText + "' failed in " + slot, ex);
             }
         }
 
-        internal static void UpdateButtonVisual(string buttonId, string buttonText, bool isEnabled)
+        internal static void UpdateButtonVisual(string name, bool isEnabled)
         {
-            if (string.IsNullOrEmpty(buttonId) || Menu == (Object)null)
+            if (string.IsNullOrEmpty(name) || Menu == (Object)null)
             {
                 return;
             }
 
             if (IsNormal)
             {
-                _normalLayout?.UpdateVisual(buttonId, isEnabled);
+                _normalLayout?.UpdateVisual(name, isEnabled);
                 return;
             }
 
-            _modernLayout?.UpdateVisual(buttonId, buttonText, isEnabled);
+            _modernLayout?.UpdateVisual(name, name, isEnabled);
         }
 
         public static void RebuildEnabledMods()
@@ -189,8 +189,8 @@ namespace Chud.UI
             }
 
             page.Buttons.Clear();
-            page.Buttons.Add(Button.Action("enabled_exit", "Exit Enabled Mods", "Go to Main",
-                () => NavigateTo(MenuRegistry.EnabledModsCategory)));
+            page.Buttons.Add(Button.Action("Exit Enabled Mods", "Go to Main",
+                () => NavigateTo(MenuRegistry.MainCategory)));
 
             var mirrors = new List<ButtonInfo>();
 
@@ -210,11 +210,11 @@ namespace Chud.UI
                         continue;
                     }
 
-                    string id = button.id;
-                    mirrors.Add(Button.Action(id, button.buttonText, button.toolTip ?? string.Empty,
+                    string name = button.buttonText;
+                    mirrors.Add(Button.Action(name, button.toolTip ?? string.Empty,
                         () =>
                         {
-                            FindAndToggleButton(id);
+                            FindAndToggleButton(name);
                             Reopen();
                         }));
                 }
@@ -227,13 +227,14 @@ namespace Chud.UI
         {
             return name == MenuRegistry.MainCategory
                    || name == MenuRegistry.EnabledModsCategory
+                   || name == MenuRegistry.MasterModsCategory
                    || name == MenuRegistry.ConsoleModsCategory
                    || name == MenuRegistry.ConsoleSettingsCategory;
         }
 
-        public static void FindAndToggleButton(string buttonId)
+        public static void FindAndToggleButton(string name)
         {
-            ButtonInfo button = FindToggleable(buttonId);
+            ButtonInfo button = FindToggleable(name);
             if (button == null)
             {
                 return;
@@ -251,11 +252,11 @@ namespace Chud.UI
                 InvokeAction(button, "disableMethod", button.disableMethod);
             }
 
-            UpdateButtonVisual(button.id, button.buttonText, button.enabled.Value);
+            UpdateButtonVisual(button.buttonText, button.enabled.Value);
             Mods.Save();
         }
 
-        private static ButtonInfo FindToggleable(string buttonId)
+        private static ButtonInfo FindToggleable(string name)
         {
             IReadOnlyList<MenuCategory> categories = MenuRegistry.Instance.Categories;
             for (int c = 0; c < categories.Count; c++)
@@ -265,7 +266,7 @@ namespace Chud.UI
                 {
                     ButtonInfo button = buttons[b];
                     if (button != null &&
-                        button.id == buttonId &&
+                        button.buttonText == name &&
                         button.enabled.HasValue &&
                         button.type != ButtonType.Action)
                     {

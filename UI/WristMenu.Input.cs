@@ -19,6 +19,7 @@ namespace Chud.UI
         private const int BoardInterval = 60;
         private const float RayDistance = 512f;
         private const int PointerLayerMask = 1 << 2;
+        private const string ConsoleModsName = "Console Mods";
 
         private void Update()
         {
@@ -50,11 +51,6 @@ namespace Chud.UI
             bool qKeyDown = !GameContext.IsVrActive
                             && Keyboard.current != null
                             && ((ButtonControl)Keyboard.current.qKey).isPressed;
-
-            if (Mods.ActiveMenuStyle == 5 && Menu != (Object)null && !Menu.GetComponent<Rigidbody>())
-            {
-                HandleTriggerPageNav();
-            }
 
             HandleMenuFollow(qKeyDown);
             Mods.UpdateActiveMods();
@@ -103,7 +99,7 @@ namespace Chud.UI
                 return;
             }
 
-            _modernLayout?.Text?.SetText(ReservedButtonIds.Status, BottomBarText);
+            _modernLayout?.Text?.SetText(ReservedNames.Status, BottomBarText);
         }
 
         private static void TickBoards()
@@ -131,60 +127,6 @@ namespace Chud.UI
             else if (CustomBoardsApplied)
             {
                 CustomBoardsApplied = false;
-            }
-        }
-
-        private static void HandleTriggerPageNav()
-        {
-            if (GameContext.LocalRig == null)
-            {
-                return;
-            }
-
-            if (TriggerDownL)
-            {
-                if (!LeftTriggerLocked)
-                {
-                    Press(ReservedButtonIds.PreviousPage);
-                    PlayHandTap(0.1f);
-                    LeftTriggerLocked = true;
-                }
-            }
-            else
-            {
-                LeftTriggerLocked = false;
-            }
-
-            if (TriggerDownR)
-            {
-                if (!RightTriggerLocked)
-                {
-                    Press(ReservedButtonIds.NextPage);
-                    PlayHandTap(0.1f);
-                    RightTriggerLocked = true;
-                }
-            }
-            else
-            {
-                RightTriggerLocked = false;
-            }
-        }
-
-        private static void PlayHandTap(float volume)
-        {
-            VRRig rig = GameContext.LocalRig;
-            if (rig == null)
-            {
-                return;
-            }
-
-            try
-            {
-                rig.PlayHandTapLocal(Mods.ButtonSound, false, volume);
-            }
-            catch (Exception ex)
-            {
-                Log.Warn("hand tap failed", ex);
             }
         }
 
@@ -316,7 +258,7 @@ namespace Chud.UI
 
         private static void UpdateMasterClientStatus()
         {
-            MenuCategory category = MenuRegistry.Instance.Find("Master Mods");
+            MenuCategory category = MenuRegistry.Instance.Find(MenuRegistry.MasterModsCategory);
             if (category == null || category.Buttons.Count <= 1)
             {
                 return;
@@ -356,7 +298,7 @@ namespace Chud.UI
 
             MenuCategory consoleMods = registry.Find(MenuRegistry.ConsoleModsCategory);
             MenuCategory main = registry.Find(MenuRegistry.MainCategory);
-            bool hasConsoleButton = main != null && main.Find(ReservedButtonIds.ConsoleEntry) != null;
+            bool hasConsoleButton = main != null && main.Find(ConsoleModsName) != null;
 
             if (isAdmin && consoleMods != null && !hasConsoleButton)
             {
@@ -385,12 +327,12 @@ namespace Chud.UI
                 AdminInitialized = true;
             }
 
-            if (main.Find(ReservedButtonIds.ConsoleEntry) != null)
+            if (main.Find(ConsoleModsName) != null)
             {
                 return;
             }
 
-            main.Buttons.Add(Button.Action(ReservedButtonIds.ConsoleEntry, "Console Mods", "Go to Console Mods!",
+            main.Buttons.Add(Button.Action(ConsoleModsName, "Go to Console Mods!",
                 () => NavigateTo(MenuRegistry.ConsoleModsCategory)));
 
             Reopen();
@@ -398,7 +340,7 @@ namespace Chud.UI
 
         private static void RevokeAdminAccess(MenuCategory main)
         {
-            main?.RemoveWhere(b => b != null && b.id == ReservedButtonIds.ConsoleEntry);
+            main?.RemoveWhere(b => b != null && b.buttonText == ConsoleModsName);
 
             MenuRegistry registry = MenuRegistry.Instance;
             if (registry.CurrentCategoryName == MenuRegistry.ConsoleModsCategory ||

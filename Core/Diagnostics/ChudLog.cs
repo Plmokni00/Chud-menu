@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Threading;
 using System;
 using UnityEngine;
 namespace Chud.Diagnostics
@@ -93,29 +92,6 @@ namespace Chud.Diagnostics
             }
         }
 
-        public static void GuardCritical(string context, Action action)
-        {
-            try
-            {
-                action?.Invoke();
-            }
-            catch (Exception ex) when (IsRecoverable(ex))
-            {
-                Emit(LogLevel.Error, context, ex);
-            }
-        }
-
-        public static void ResetThrottle()
-        {
-            LastSeen.Clear();
-            SuppressedCount = 0;
-        }
-
-        private static bool IsRecoverable(Exception ex)
-        {
-            return !(ex is OutOfMemoryException) && !(ex is StackOverflowException) && !(ex is ThreadAbortException);
-        }
-
         private static void Emit(LogLevel level, string message, Exception ex)
         {
             if (level < MinimumLevel)
@@ -155,7 +131,6 @@ namespace Chud.Diagnostics
             float now = Time.realtimeSinceStartup;
             if (LastSeen.TryGetValue(text, out float previous) && now - previous < DuplicateSuppressSeconds)
             {
-                LastSeen[text] = now;
                 return false;
             }
 
@@ -172,10 +147,5 @@ namespace Chud.Diagnostics
     public static class Frame
     {
         public const string WristMenuUpdate = "WristMenu.Update";
-        public const string WristMenuLateUpdate = "WristMenu.LateUpdate";
-        public const string ModsUpdate = "Mods.Update";
-        public const string ModsLateUpdate = "Mods.LateUpdate";
-        public const string ModsActive = "Mods.UpdateActiveMods";
-        public const string ModsPostTick = "Mods.ApplyRigVisuals";
     }
 }

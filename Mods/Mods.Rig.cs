@@ -424,7 +424,7 @@ internal partial class Mods
 			HideGhostRig();
 			return;
 		}
-		if (!GhostWanted())
+		if (!LocalRigDriven())
 		{
 			HideGhostRig();
 			UnsubscribeGhostRig();
@@ -480,7 +480,7 @@ internal partial class Mods
 		}
 	}
 
-	private bool GhostWanted()
+	internal bool LocalRigDriven()
 	{
 		return tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn || (copyMovementActive && copyMovementTarget != null) || orbitActive;
 	}
@@ -659,7 +659,7 @@ internal partial class Mods
 
 	private void TryUnsubscribeGhostRig()
 	{
-		if (!GhostWanted())
+		if (!LocalRigDriven())
 			UnsubscribeGhostRig();
 	}
 
